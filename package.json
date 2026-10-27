@@ -2,6 +2,7 @@
   "name": "teumsae",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.22.0",
   "engines": {
     "node": ">=24 <25"
@@ -10,13 +11,18 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
+    "prepare": "husky",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test src/lib/*.test.mjs"
   },
   "dependencies": {
     "next": "16.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": "eslint --max-warnings=0 --no-warn-ignored"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.0",
@@ -25,6 +31,8 @@
     "@types/react-dom": "^19.2.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.4.3",
+    "husky": "9.1.7",
+    "lint-staged": "15.5.2",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0"
