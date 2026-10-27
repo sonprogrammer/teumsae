@@ -1,25 +1,25 @@
-# Teumsae repository guidance
+# 틈새 저장소 작업 지침
 
-## Scope
-- Follow `docs/spec.md` as the product reference. Separate confirmed requirements from proposals.
-- Keep each task within its approved issue or PR scope. Preserve existing files and Git changes.
-- Develop each feature on its own branch and review it through a PR with passing CI. Do not add feature work directly to `main`.
-- Distinguish sample screen state from authenticated database data. Never claim sample actions were saved to a database.
-- Keep AI, MCP and notes out of a task unless its scope explicitly includes them.
+## 작업 범위
+- 제품 기준은 `docs/spec.md`다. 확정된 요구사항과 제안을 구분한다.
+- 승인된 이슈나 PR의 범위 안에서 작업하고 기존 파일과 Git 변경사항을 보존한다.
+- 기능마다 별도 브랜치에서 개발하고 CI가 통과한 PR로 검토한다. `main`에 기능을 직접 추가하지 않는다.
+- 샘플 화면 상태와 로그인 계정의 DB 데이터를 구분한다. 샘플 동작을 DB에 저장됐다고 안내하지 않는다.
+- AI, MCP, 노트는 해당 작업 범위에 명시된 경우에만 다룬다.
 
-## Project skills
-- Use `.agents/skills/teumsae-frontend/SKILL.md` for schedule UI, calendar, forms and AI panel work.
-- Use `.agents/skills/teumsae-backend/SKILL.md` for authentication, database, time calculation and API work.
-- Use `.agents/skills/teumsae-qa/SKILL.md` when planning or performing feature verification and PR review.
-- Read only the relevant skill for the task; the product rules remain in `docs/spec.md`.
+## 프로젝트 스킬
+- 일정 UI, 달력, 폼, AI 패널 작업에는 `.agents/skills/teumsae-frontend/SKILL.md`를 사용한다.
+- 인증, DB, 시간 계산, API 작업에는 `.agents/skills/teumsae-backend/SKILL.md`를 사용한다.
+- 기능 검증 계획이나 PR 리뷰에는 `.agents/skills/teumsae-qa/SKILL.md`를 사용한다.
+- 작업에 해당하는 스킬만 읽는다. 제품 규칙의 원본은 `docs/spec.md`다.
 
-## Code style
-- Prefer established project conventions. Keep the structure and dependencies limited to the current task.
-- Avoid unnecessary blank lines and trailing commas.
-- Keep destructured function and component props parameters on one line when practical.
-- Do not commit secrets or print environment variable values.
+## 코드 스타일
+- 기존 프로젝트 관례를 우선하고 현재 작업에 필요한 구조와 의존성만 추가한다.
+- 불필요한 빈 줄과 trailing comma를 피한다.
+- 함수·컴포넌트의 구조분해 props 매개변수는 가능한 한 줄로 작성한다.
+- 비밀값을 커밋하거나 환경변수 값을 출력하지 않는다.
 
-## Verification
-- Run the checks relevant to the change, including the defined `test`, `typecheck`, `lint` and `build` scripts when applicable, and report their actual results.
-- Distinguish local checks, GitHub Actions checks and live service checks. Distinguish checks not run from checks that passed.
-- Verify affected user flows in desktop and mobile layouts when changing the interface.
+## 검증
+- 변경에 맞는 검사를 실행한다. 해당하면 `test`, `typecheck`, `lint`, `build`를 실행하고 실제 결과를 보고한다.
+- 로컬 검사, GitHub Actions 검사, 실제 서비스 검사를 구분한다. 미실행 검사를 통과했다고 표현하지 않는다.
+- 화면을 변경했다면 영향받는 흐름을 데스크톱과 모바일에서 확인한다.

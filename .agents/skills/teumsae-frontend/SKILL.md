@@ -1,20 +1,20 @@
 ---
 name: teumsae-frontend
-description: Use when changing Teumsae's calendar, schedule list, event forms, availability cards, confirmation cards, or mobile AI panel.
+description: 틈새의 달력, 일정 목록, 일정 폼, 빈 시간 후보 카드, 등록 확인 카드 또는 모바일 AI 패널을 변경할 때 사용한다.
 ---
 
-# Teumsae frontend
+# 틈새 프론트엔드
 
-Build the user flow around a visible source of truth. Before editing, read the approved issue or design and the relevant parts of `docs/spec.md` (§4–6). The spec labels some details as proposals; do not silently treat them as confirmed decisions.
+사용자가 화면에서 보는 데이터의 출처를 분명히 한다. 수정 전 승인된 이슈나 디자인과 `docs/spec.md`의 관련 부분(§4~6)을 읽는다. 명세에서 제안으로 표시된 정책을 확정 사항으로 취급하지 않는다.
 
-## UI decisions
+## 화면 흐름
 
-- Trace the transition from schedule view → availability search → dated candidate → registration confirmation → saved result. A candidate selection alone does not create an event.
-- Show the full date, weekday and time on candidate and confirmation cards. Keep the selected candidate recognizable when the panel opens, closes or the viewport changes.
-- Label sample data and local-only actions. Show DB success only after the server reports a saved event, then refresh both calendar and selected-day list.
-- Give loading, empty schedule, no available slot, lookup failure and save failure distinct messages. On save failure, retain the input and confirmation context.
-- For changed controls, check keyboard access, labels, focus and disabled/busy states on desktop and mobile. The mobile flow must allow schedule review, candidate selection and confirmation without a desktop-only control.
+- 일정 확인 → 빈 시간 검색 → 날짜가 표시된 후보 선택 → 등록 확인 → 저장 결과의 연결을 살핀다. 후보를 고르는 것만으로 일정이 생성되지는 않는다.
+- 후보와 확인 카드에 날짜·요일·시간을 모두 표시한다. 패널을 열고 닫거나 화면 크기가 바뀌어도 선택한 후보를 알아볼 수 있게 한다.
+- 샘플 데이터와 화면에서만 반영되는 동작을 명시한다. 서버가 저장 성공을 반환한 뒤에만 DB 저장 완료를 알리고 달력과 선택일 목록을 갱신한다.
+- 로딩, 빈 일정, 빈 시간 없음, 조회 실패, 저장 실패를 구분한다. 저장에 실패하면 입력과 확인 카드를 유지한다.
+- 변경한 조작 요소의 키보드 접근, 레이블, 포커스, 비활성화·처리 중 상태를 데스크톱과 모바일에서 확인한다. 모바일에서도 일정 확인과 후보 선택·등록 확인을 완료할 수 있어야 한다.
 
-Example: selecting the second slot opens a card with its actual date and time; pressing Confirm shows pending, then updates calendar and list only from the successful save response. A sample-only implementation updates local state and says so.
+예: 두 번째 후보를 고르면 실제 날짜와 시간이 적힌 확인 카드가 열린다. 확인을 누른 뒤에는 처리 중 상태를 보이고, 서버의 저장 성공 응답을 받은 경우에만 달력과 목록을 갱신한다. 샘플 화면이라면 로컬 상태만 바꾸고 그 사실을 표시한다.
 
-Verify the affected flow at desktop and mobile sizes. Record what was actually observed separately from code checks.
+영향받는 흐름을 데스크톱과 모바일 크기에서 확인한다. 실제 화면에서 관찰한 결과와 코드 검사 결과를 구분해 기록한다.

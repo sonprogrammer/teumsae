@@ -1,23 +1,23 @@
 ---
 name: teumsae-qa
-description: Use when planning Teumsae feature tests, reviewing a PR, checking a release candidate, or reporting verification of schedule, authentication, database, or AI flows.
+description: 틈새의 기능 검사 계획, PR 리뷰, 배포 전 확인 또는 일정·인증·DB·AI 흐름의 검증 결과 보고에 사용한다.
 ---
 
-# Teumsae QA
+# 틈새 QA
 
-Judge the changed behavior against its approved scope and `docs/spec.md` §9. Build a small feature-specific matrix of user action, expected result, evidence and environment. Do not turn every PR into a full release test.
+변경된 동작을 승인된 작업 범위와 `docs/spec.md` §9에 맞춰 판단한다. 사용자 행동, 기대 결과, 증거, 실행 환경을 담은 작은 기능별 검증표를 만든다. 모든 PR에 전체 배포 검사를 요구하지는 않는다.
 
-## Evidence by change
+## 변경 종류별 확인
 
-| Change | Check beyond code style |
+| 변경 | 코드 스타일 외에 확인할 것 |
 | --- | --- |
-| Calendar or AI panel | Desktop and mobile path through schedule view, candidate, confirmation and resulting state; keyboard access and distinct empty/error states. |
-| Auth or personal data | Two real accounts, anonymous access, cross-account denial, session restore and logout followed by direct URL access. |
-| Time or writes | Boundary times, adjacent versus overlapping events, stale candidate, duplicate submission, concurrent writes and retry after lost response. |
-| AI integration | Fixed-response tests for repeatability and separate real-model evaluation of the claimed tasks. |
+| 달력·AI 패널 | 데스크톱·모바일에서 일정 확인 → 후보 → 등록 확인 → 결과 상태의 흐름, 키보드 접근, 빈 상태와 오류 상태의 구분 |
+| 인증·개인 데이터 | 실제 계정 두 개, 익명 접근, 계정 간 차단, 세션 복원, 로그아웃 후 URL 직접 접근 |
+| 시간 계산·저장 | 경계 시각, 연속·겹침 일정, 오래된 후보, 중복 제출, 동시 저장, 응답 유실 후 재시도 |
+| AI 연결 | 반복 가능한 고정 응답 검사와 실제 모델을 사용한 대표 요청 평가를 별도로 확인 |
 
-For each claim, identify whether evidence came from unit tests, browser observation, a real DB/service, or CI. A mock cannot prove RLS or email delivery. A passed build cannot prove a mobile flow.
+각 결과의 근거가 단위 테스트, 브라우저 관찰, 실제 DB·서비스, CI 중 무엇인지 밝힌다. 모의 객체로 RLS나 확인 메일 발송을 증명할 수 없다. 빌드 통과만으로 모바일 흐름도 증명할 수 없다.
 
-Example: a PR says “saving is complete.” Verify a confirmed event appears after reload in the correct account and a repeated confirmation does not create another row. If the DB was unavailable, report those checks as unrun and keep the claim narrower.
+예: PR에 “저장 완료”라고 적혔다면, 확인한 일정이 새로고침 뒤에도 본인 계정에 보이고 같은 확인 요청을 반복해도 행이 더 생기지 않는지 검증한다. DB를 사용할 수 없었다면 해당 검사를 미실행으로 보고하고 완료 주장도 그 범위에 맞춘다.
 
-Report actionable failures with steps, expected and actual results. Preserve failing evidence; do not weaken checks to make a PR green.
+실패는 재현 단계, 기대 결과, 실제 결과와 함께 보고한다. 실패 증거를 보존하고 PR을 통과시키려고 검사 기준을 낮추지 않는다.
