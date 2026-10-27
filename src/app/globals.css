@@ -73,6 +73,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 24px 27px 20px; }
 .calendar-toolbar h2, .day-heading h2 { margin: 7px 0 0; font-size: 20px; font-weight: 770; letter-spacing: -.055em; }
 .calendar-controls { display: flex; gap: 7px; align-items: center; }
+.view-switch { display: flex; gap: 3px; margin-right: 8px; padding: 3px; border: 1px solid #dce9df; border-radius: 10px; background: #f4f8f2; }
+.view-switch button { min-width: 45px; height: 27px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #779083; font-size: 11px; font-weight: 750; }
+.view-switch button:hover { color: var(--teal); }
+.view-switch button.is-active { background: #fff; color: var(--teal); box-shadow: 0 1px 5px #2849371c; }
 .today-button, .icon-button { height: 34px; border: 1px solid #e2e8dd; border-radius: 10px; background: #fff; color: var(--ink); font-size: 12px; font-weight: 700; }
 .today-button { padding: 0 13px; margin-right: 4px; }
 .icon-button { width: 34px; font-size: 23px; font-weight: 400; line-height: 1; }
@@ -110,6 +114,26 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .legend-coral { background: #e49b7e; }
 .legend-outline { width: 10px; height: 9px; margin-left: 12px; border: 1px dashed var(--teal); border-radius: 2px; }
 .mobile-week-strip { display: none; }
+.month-view { border-top: 1px solid var(--line); }
+.month-weekdays, .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.month-weekdays { border-bottom: 1px solid var(--line); background: #fafbf6; }
+.month-weekdays span { padding: 12px 5px; color: #85978a; font-size: 11px; font-weight: 750; text-align: center; }
+.month-grid { border-left: 1px solid #eef0e9; }
+.month-day { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 8px; min-width: 0; min-height: 108px; padding: 9px 7px; border: 0; border-right: 1px solid #eef0e9; border-bottom: 1px solid #eef0e9; background: #fffefa; color: var(--ink); text-align: left; }
+.month-day:hover { background: #f2f8f2; }
+.month-day.is-outside { background: #fafaf5; color: #acb6ad; }
+.month-day.is-selected { background: #edf8f0; }
+.month-day.has-candidate { outline: 2px dashed #83bd9b; outline-offset: -3px; }
+.month-date { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; font-size: 12px; font-weight: 780; }
+.month-day.is-today .month-date { border: 1px solid var(--teal); color: var(--teal); }
+.month-day.is-selected .month-date { border-color: var(--teal); background: var(--teal); color: #fff; }
+.month-event-list { display: grid; gap: 3px; min-width: 0; }
+.month-event { overflow: hidden; padding: 3px 5px; border-radius: 4px; font-size: 9px; font-weight: 720; text-overflow: ellipsis; white-space: nowrap; }
+.month-event-teal { background: #dff3e9; color: #166152; }
+.month-event-coral { background: #fff0e7; color: #a45e4d; }
+.month-event-lilac { background: #f0eafa; color: #765f99; }
+.month-more { padding-left: 3px; color: #819487; font-size: 9px; }
+.month-mobile-markers { display: none; }
 
 .day-card { padding: 24px 27px 17px; }
 .day-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid var(--line); }
@@ -220,9 +244,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .page-intro h1 { margin-top: 10px; font-size: 28px; }
   .intro-copy { font-size: 12px; }
   .calendar-card, .day-card { border-radius: 19px; }
-  .calendar-toolbar { padding: 20px 17px 17px; }
+  .calendar-toolbar { flex-wrap: wrap; padding: 20px 17px 17px; }
   .calendar-toolbar h2 { font-size: 18px; }
-  .calendar-controls { gap: 5px; }
+  .calendar-controls { gap: 5px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+  .view-switch { margin-right: 4px; }
   .today-button, .icon-button { height: 31px; }
   .icon-button { width: 29px; }
   .week-caption { margin: 0 17px 14px; }
@@ -236,6 +261,16 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .mobile-day i.has-events { background: #86ae9a; }
   .mobile-day.is-selected { background: #edf7ef; color: var(--teal); }
   .mobile-day.is-selected strong { background: var(--teal); color: #fff; }
+  .month-weekdays span { padding: 10px 2px; font-size: 10px; }
+  .month-day { align-items: center; gap: 4px; min-height: 58px; padding: 5px 1px; }
+  .month-date { width: 30px; height: 30px; font-size: 12px; }
+  .month-event-list { display: none; }
+  .month-mobile-markers { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 7px; }
+  .month-mobile-markers i { width: 4px; height: 4px; border-radius: 50%; }
+  .month-marker-teal { background: #54a58c; }
+  .month-marker-coral { background: #e09a7d; }
+  .month-marker-lilac { background: #a991ce; }
+  .month-mobile-markers small { color: #729385; font-size: 8px; }
   .calendar-foot { padding: 11px 16px 14px; }
   .day-card { padding: 21px 17px 14px; }
   .day-heading h2 { font-size: 17px; }
