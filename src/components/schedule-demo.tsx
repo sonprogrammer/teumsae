@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { findSampleSlots, type SampleSlot } from '@/lib/sample-schedule'
+import { monthGrid, shiftMonth } from '@/lib/calendar-grid'
 
 type EventKind = 'teal' | 'coral' | 'lilac'
 type SampleEvent = { id: string; date: string; start: string; end: string; title: string; kind: EventKind; note: string }
 type PreviewMode = 'normal' | 'loading' | 'no-slots' | 'lookup-error' | 'save-error'
+type CalendarView = 'week' | 'month'
 
 const hours = Array.from({ length: 10 }, (_, index) => index + 9)
 const weekdays = ['일', '월', '화', '수', '목', '금', '토']
+const mondayFirstWeekdays = ['월', '화', '수', '목', '금', '토', '일']
 const samplePrompt = '선택한 날 오후에 한 시간 비는 시간 찾아줘'
 
 function dateFromISO(iso: string) {
@@ -57,7 +60,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
   const firstDate = addDays(today, 1)
   const [events, setEvents] = useState<SampleEvent[]>(() => sampleEvents(today))
   const [selectedDate, setSelectedDate] = useState(firstDate)
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(firstDate))
+  const [calendarView, setCalendarView] = useState<CalendarView>('week')
   const [candidateDate, setCandidateDate] = useState(firstDate)
   const [candidates, setCandidates] = useState<SampleSlot[]>(() => findSampleSlots(sampleEvents(today), firstDate))
   const [awaitingSearch, setAwaitingSearch] = useState(false)
@@ -70,7 +73,10 @@ export default function ScheduleDemo({ today }: { today: string }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const openButtonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLElement>(null)
+  const weekStart = startOfWeek(selectedDate)
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
+  const monthDays = monthGrid(selectedDate)
+  const selectedMonth = selectedDate.slice(0, 7)
   const dayEvents = events.filter(event => event.date === selectedDate).sort((a, b) => a.start.localeCompare(b.start))
   const selectedSlot = selectedCandidate === null ? null : candidates[selectedCandidate]
   const displayMode = isSearching ? 'loading' : previewMode
@@ -113,14 +119,11 @@ export default function ScheduleDemo({ today }: { today: string }) {
     }
   }
 
-  function moveWeek(offset: number) {
-    const nextWeek = addDays(weekStart, offset * 7)
-    setWeekStart(nextWeek)
-    selectDate(nextWeek)
+  function moveCalendar(offset: number) {
+    selectDate(calendarView === 'week' ? addDays(weekStart, offset * 7) : shiftMonth(selectedDate, offset))
   }
 
   function goToday() {
-    setWeekStart(startOfWeek(today))
     selectDate(today)
   }
 
@@ -169,7 +172,6 @@ export default function ScheduleDemo({ today }: { today: string }) {
     }
     setEvents(current => [...current, event])
     setSelectedDate(candidateDate)
-    setWeekStart(startOfWeek(candidateDate))
     setSelectedCandidate(null)
     setCandidates([])
     setAwaitingSearch(true)
@@ -192,26 +194,30 @@ export default function ScheduleDemo({ today }: { today: string }) {
       <div className="content-wrap">
         <section className="page-intro" aria-labelledby="page-title">
           <div>
-            <p className="eyebrow">YOUR WEEK, WITH ROOM TO BREATHE</p>
+            <p className="eyebrow">YOUR TIME, WITH ROOM TO BREATHE</p>
             <h1 id="page-title">일정 사이, 나만의 <em>틈새</em>를 찾다.</h1>
-            <p className="intro-copy">한 주를 살펴보고, 여유로운 시간을 골라보세요. 지금은 흐름을 체험하는 샘플 화면입니다.</p>
+            <p className="intro-copy">일정을 살펴보고, 여유로운 시간을 골라보세요. 지금은 흐름을 체험하는 샘플 화면입니다.</p>
           </div>
-          <div className="intro-badge"><span aria-hidden="true">✦</span><span>이번 주의 빈 시간을<br /><strong>함께 찾아볼까요?</strong></span></div>
+          <div className="intro-badge"><span aria-hidden="true">✦</span><span>일정 속 빈 시간을<br /><strong>함께 찾아볼까요?</strong></span></div>
         </section>
 
         <div className="workspace-grid">
           <div className="schedule-column">
             <section className="calendar-card" aria-labelledby="calendar-title">
               <div className="calendar-toolbar">
-                <div><p className="section-kicker">MY CALENDAR</p><h2 id="calendar-title">나의 주간 일정</h2></div>
+                <div><p className="section-kicker">MY CALENDAR</p><h2 id="calendar-title">나의 일정</h2></div>
                 <div className="calendar-controls">
+                  <div className="view-switch" role="group" aria-label="달력 보기">
+                    <button className={calendarView === 'week' ? 'is-active' : ''} onClick={() => setCalendarView('week')} aria-pressed={calendarView === 'week'}>주간</button>
+                    <button className={calendarView === 'month' ? 'is-active' : ''} onClick={() => setCalendarView('month')} aria-pressed={calendarView === 'month'}>월간</button>
+                  </div>
                   <button className="today-button" onClick={goToday}>오늘</button>
-                  <button className="icon-button" onClick={() => moveWeek(-1)} aria-label="이전 주">‹</button>
-                  <button className="icon-button" onClick={() => moveWeek(1)} aria-label="다음 주">›</button>
+                  <button className="icon-button" onClick={() => moveCalendar(-1)} aria-label={calendarView === 'week' ? '이전 주' : '이전 달'}>‹</button>
+                  <button className="icon-button" onClick={() => moveCalendar(1)} aria-label={calendarView === 'week' ? '다음 주' : '다음 달'}>›</button>
                 </div>
               </div>
-              <div className="week-caption"><strong>{shortDate(weekStart)} – {shortDate(addDays(weekStart, 6))}</strong><span>일정을 선택하면 하루를 자세히 볼 수 있어요</span></div>
-              <div className="calendar-desktop">
+              <div className="week-caption"><strong>{calendarView === 'week' ? shortDate(weekStart) + ' – ' + shortDate(addDays(weekStart, 6)) : selectedDate.slice(0, 4) + '년 ' + Number(selectedDate.slice(5, 7)) + '월'}</strong><span>날짜를 선택하면 하루를 자세히 볼 수 있어요</span></div>
+              {calendarView === 'week' ? <><div className="calendar-desktop">
                 <div className="calendar-head">
                   <span className="time-head">GMT+9</span>
                   {days.map(date => {
@@ -240,6 +246,19 @@ export default function ScheduleDemo({ today }: { today: string }) {
                   </button>
                 })}
               </div>
+              </> : <div className="month-view" aria-label="월간 달력">
+                <div className="month-weekdays">{mondayFirstWeekdays.map(day => <span key={day}>{day}</span>)}</div>
+                <div className="month-grid">{monthDays.map(date => {
+                  const dateEvents = events.filter(event => event.date === date)
+                  const isOutside = date.slice(0, 7) !== selectedMonth
+                  const hasCandidate = date === candidateDate && selectedSlot && displayMode === 'normal'
+                  return <button key={date} className={'month-day' + (isOutside ? ' is-outside' : '') + (date === selectedDate ? ' is-selected' : '') + (date === today ? ' is-today' : '') + (hasCandidate ? ' has-candidate' : '')} onClick={() => selectDate(date)} aria-label={longDate(date) + ', 일정 ' + dateEvents.length + '개'} aria-pressed={date === selectedDate}>
+                    <span className="month-date">{dateFromISO(date).getUTCDate()}</span>
+                    <span className="month-event-list">{dateEvents.slice(0, 2).map(event => <span key={event.id} className={'month-event month-event-' + event.kind}>{event.title}</span>)}{dateEvents.length > 2 && <span className="month-more">+{dateEvents.length - 2}개 더</span>}</span>
+                    <span className="month-mobile-markers" aria-hidden="true">{dateEvents.slice(0, 3).map(event => <i key={event.id} className={'month-marker-' + event.kind} />)}{dateEvents.length > 3 && <small>+{dateEvents.length - 3}</small>}</span>
+                  </button>
+                })}</div>
+              </div>}
               <div className="calendar-foot"><span className="legend-dot legend-teal" /> 일정 <span className="legend-dot legend-coral" /> 개인 시간 <span className="legend-outline" /> 선택한 빈 시간</div>
             </section>
 
