@@ -31,4 +31,3 @@
 - 타입 검사·린트·테스트·빌드가 통과하고 실제 브라우저에서 두 화면 폭을 확인한다.
 
 연결 이슈: [#18](https://github.com/sonprogrammer/teumsae/issues/18). 기반 화면: [Draft PR #1](https://github.com/sonprogrammer/teumsae/pull/1).
-

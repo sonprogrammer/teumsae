@@ -25,4 +25,3 @@ export function monthGrid(iso: string): string[] {
   }
   return dates
 }
-

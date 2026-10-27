@@ -21,4 +21,3 @@ test('month navigation crosses years and selects the first day', () => {
   assert.equal(shiftMonth('2026-12-31', 1), '2027-01-01')
   assert.equal(shiftMonth('2027-01-15', -1), '2026-12-01')
 })
-

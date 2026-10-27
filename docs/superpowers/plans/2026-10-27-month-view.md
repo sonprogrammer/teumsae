@@ -63,4 +63,3 @@
 - [ ] Review diff against design and issue #18, including sample-only copy.
 - [ ] Push `feat/month-view` and open a PR based on `feat/sample-schedule-foundation`; note that PR #1 must land first.
 - [ ] Confirm CI status and report browser preview route, worktree, branch, and test results.
-
