@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { findSampleSlots, type SampleSlot } from '@/lib/sample-schedule'
 import { monthGrid, shiftMonth } from '@/lib/calendar-grid'
@@ -188,6 +189,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
         <div className="header-right">
           <span className="demo-pill"><span className="status-dot" /> 샘플 데이터</span>
           <span className="header-note">Asia/Seoul 기준</span>
+          <Link href="/auth" className="account-link">내 일정 시작 →</Link>
         </div>
       </header>
 
