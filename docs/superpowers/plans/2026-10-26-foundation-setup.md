@@ -4,7 +4,7 @@
 
 **Goal:** Make the existing project folder runnable with Next.js App Router, TypeScript and Tailwind CSS before Git and worktree setup.
 
-**Architecture:** Keep the initial app to one labeled sample landing screen. Use package scripts for the same static checks that CI will run. Implement the interactive schedule only after the requested sibling worktree is available.
+**Architecture:** Use package scripts for the same checks that CI will run. The original repository now contains the labeled interactive sample schedule, following the user's updated direction to defer worktree use until branch isolation is needed.
 
 **Tech Stack:** Node.js 24 LTS, pnpm, Next.js, React, TypeScript, Tailwind CSS, ESLint.
 
@@ -17,7 +17,7 @@
 - Do not imply authentication, database persistence or AI are connected.
 - Avoid trailing commas and unnecessary blank lines.
 - Keep secrets out of source, command output and commits.
-- Git initialization and committing are currently denied by the environment; report them separately from software checks.
+- Git initialization and the first commit were completed by the user. The existing sibling `chore/setup` worktree remains unused for this sample UI task.
 
 ## Review Focus
 - A fresh install must use the recorded pnpm lockfile and Node 24.
@@ -32,10 +32,10 @@
 
 **Interfaces:** `pnpm dev` serves the page; `pnpm run typecheck`, `pnpm run lint` and `pnpm run build` verify it.
 
-- [ ] Create the minimal Next.js App Router, TypeScript and Tailwind configuration for Node 24.
-- [ ] Install dependencies and generate a lockfile without overwriting existing project files.
+- [x] Create the minimal Next.js App Router, TypeScript and Tailwind configuration for Node 24.
+- [x] Install dependencies and generate a lockfile without overwriting existing project files.
 - [ ] Run the app and check that the sample label is visible.
-- [ ] Run typecheck, lint and build; fix actual failures.
+- [x] Run typecheck, lint and build; fix actual failures.
 
 ### Task 2: CI
 
@@ -43,5 +43,5 @@
 
 **Interfaces:** CI installs with `pnpm install --frozen-lockfile` on Node 24 and runs the three verification scripts.
 
-- [ ] Add the GitHub Actions workflow.
-- [ ] Verify its commands match `package.json` and report that remote CI cannot run before a Git push.
+- [x] Add the GitHub Actions workflow.
+- [x] Verify its commands match `package.json`; remote CI has not been run for the current uncommitted changes.

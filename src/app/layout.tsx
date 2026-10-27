@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '틈새 | 개인 AI 스케줄러',
-  description: '등록한 일정을 기준으로 빈 시간을 찾는 개인 스케줄러'
+  title: '틈새 | 일정 샘플 데모',
+  description: '샘플 일정으로 빈 시간 검색과 등록 확인 흐름을 체험하는 화면'
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
