@@ -2,10 +2,16 @@
 
 ## Scope
 - Follow `docs/spec.md` as the product reference. Separate confirmed requirements from proposals.
-- The current setup task covers developer tooling and CI. Keep the existing uncommitted sample screen intact while its design is discussed.
-- Keep real authentication, database persistence, AI, MCP and notes for later tasks. Never claim sample actions were saved to a database.
-- Preserve existing files and Git changes. Discuss and approve detailed design before further feature implementation.
-- Develop each future feature on its own branch and use a PR with passing CI for review. Do not add feature work directly to `main`.
+- Keep each task within its approved issue or PR scope. Preserve existing files and Git changes.
+- Develop each feature on its own branch and review it through a PR with passing CI. Do not add feature work directly to `main`.
+- Distinguish sample screen state from authenticated database data. Never claim sample actions were saved to a database.
+- Keep AI, MCP and notes out of a task unless its scope explicitly includes them.
+
+## Project skills
+- Use `.agents/skills/teumsae-frontend/SKILL.md` for schedule UI, calendar, forms and AI panel work.
+- Use `.agents/skills/teumsae-backend/SKILL.md` for authentication, database, time calculation and API work.
+- Use `.agents/skills/teumsae-qa/SKILL.md` when planning or performing feature verification and PR review.
+- Read only the relevant skill for the task; the product rules remain in `docs/spec.md`.
 
 ## Code style
 - Prefer established project conventions. Keep the structure and dependencies limited to the current task.
@@ -14,6 +20,6 @@
 - Do not commit secrets or print environment variable values.
 
 ## Verification
-- After setup, run the defined `typecheck`, `lint` and `build` scripts and report their actual results.
-- Run the same checks in GitHub Actions. Distinguish checks not run from checks that passed.
-- Verify the sample flow in desktop and mobile layouts: view schedules, inspect candidate slots, select one and confirm it into screen state.
+- Run the checks relevant to the change, including the defined `test`, `typecheck`, `lint` and `build` scripts when applicable, and report their actual results.
+- Distinguish local checks, GitHub Actions checks and live service checks. Distinguish checks not run from checks that passed.
+- Verify affected user flows in desktop and mobile layouts when changing the interface.
