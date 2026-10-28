@@ -32,3 +32,8 @@ test('stacks date and time controls on narrow mobile viewports', () => {
   const declarations = declarationsForSelector('.real-datetime-fields', '(max-width: 480px)')
   assert.equal(declarations['grid-template-columns'], 'minmax(0, 1fr)')
 })
+
+test('stacks the calendar and agenda when the viewport cannot fit both panels', () => {
+  const declarations = declarationsForSelector('.real-schedule-workspace', '(max-width: 1200px)')
+  assert.equal(declarations['grid-template-columns'], 'minmax(0, 1fr)')
+})

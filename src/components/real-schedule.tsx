@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createEventAction, deleteEventAction, updateEventAction } from '@/app/schedule/actions'
 import type { EventActionState, EventView } from '@/lib/events'
 import { eventQueryKeys } from '@/lib/event-query-keys'
 import { fetchEvents } from '@/lib/events-query'
+import { toggleSchedulePicker, type ActiveSchedulePicker, type SchedulePicker } from '@/lib/schedule-picker-state'
 import { defaultEndTime, defaultEventTimes, endTimeOptions, monthGrid, shiftMonth, startTimeOptions, visibleCalendarDates, type CalendarView } from '@/lib/calendar-grid'
 import SignOutButton from '@/components/sign-out-button'
 import { useScheduleUiStore } from '@/stores/schedule-ui-store'
@@ -71,8 +72,7 @@ function displayDate(value: string) {
   return koreanDate(value, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 }
 
-function EventDatePicker({ value, today, onChange, invalid }: { value: string; today: string; onChange: (date: string) => void; invalid: boolean }) {
-  const [open, setOpen] = useState(false)
+function EventDatePicker({ value, today, onChange, invalid, open, setActivePicker }: { value: string; today: string; onChange: (date: string) => void; invalid: boolean; open: boolean; setActivePicker: Dispatch<SetStateAction<ActiveSchedulePicker>> }) {
   const [month, setMonth] = useState(value)
   const trigger = useRef<HTMLButtonElement>(null)
   const dates = monthGrid(month)
@@ -81,21 +81,31 @@ function EventDatePicker({ value, today, onChange, invalid }: { value: string; t
     if (!open) return
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      setOpen(false)
+      setActivePicker(null)
       trigger.current?.focus()
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [open])
+  }, [open, setActivePicker])
 
   function showPicker() {
+    if (open) {
+      setActivePicker(null)
+      trigger.current?.focus()
+      return
+    }
     setMonth(value)
-    setOpen(true)
+    setActivePicker(current => toggleSchedulePicker(current, 'date'))
+  }
+
+  function closePicker() {
+    setActivePicker(null)
+    trigger.current?.focus()
   }
 
   function chooseDate(date: string) {
     onChange(date)
-    setOpen(false)
+    setActivePicker(null)
     trigger.current?.focus()
   }
 
@@ -105,7 +115,7 @@ function EventDatePicker({ value, today, onChange, invalid }: { value: string; t
       <span className="real-date-icon" aria-hidden="true">▦</span><span className="real-date-trigger-value"><strong>{displayDate(value)}</strong><small>날짜 변경</small></span><span className="real-date-chevron" aria-hidden="true">⌄</span>
     </button>
     {open && <div className="real-date-popover" role="dialog" aria-label="날짜 선택">
-      <div className="real-date-popover-heading"><button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button><strong>{koreanDate(month, { year: 'numeric', month: 'long' })}</strong><button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}>›</button></div>
+      <div className="real-date-popover-heading"><button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button><strong>{koreanDate(month, { year: 'numeric', month: 'long' })}</strong><button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}>›</button><button className="real-picker-close" type="button" aria-label="날짜 선택 닫기" onClick={closePicker}>×</button></div>
       <div className="real-date-grid">
         {weekdays.map(day => <span className="real-date-weekday" key={day}>{day}</span>)}
         {dates.map(date => <button type="button" key={date} className={'real-date-day' + (date.slice(0, 7) !== month.slice(0, 7) ? ' is-outside' : '') + (date === value ? ' is-selected' : '') + (date === today ? ' is-today' : '')} aria-label={displayDate(date)} aria-pressed={date === value} onClick={() => chooseDate(date)}>{Number(date.slice(-2))}</button>)}
@@ -115,8 +125,7 @@ function EventDatePicker({ value, today, onChange, invalid }: { value: string; t
   </div>
 }
 
-function EventTimePicker({ label, value, options, invalid, align, onChange }: { label: string; value: string; options: string[]; invalid: boolean; align: 'left' | 'right'; onChange: (value: string) => void }) {
-  const [open, setOpen] = useState(false)
+function EventTimePicker({ label, value, options, invalid, align, picker, open, setActivePicker, onChange }: { label: string; value: string; options: string[]; invalid: boolean; align: 'left' | 'right'; picker: Exclude<SchedulePicker, 'date'>; open: boolean; setActivePicker: Dispatch<SetStateAction<ActiveSchedulePicker>>; onChange: (value: string) => void }) {
   const [hour, setHour] = useState(value.slice(0, 2))
   const trigger = useRef<HTMLButtonElement>(null)
   const hours = Array.from(new Set(options.map(time => time.slice(0, 2))))
@@ -126,21 +135,31 @@ function EventTimePicker({ label, value, options, invalid, align, onChange }: { 
     if (!open) return
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      setOpen(false)
+      setActivePicker(null)
       trigger.current?.focus()
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [open])
+  }, [open, setActivePicker])
 
   function showPicker() {
+    if (open) {
+      setActivePicker(null)
+      trigger.current?.focus()
+      return
+    }
     setHour(value.slice(0, 2))
-    setOpen(true)
+    setActivePicker(current => toggleSchedulePicker(current, picker))
+  }
+
+  function closePicker() {
+    setActivePicker(null)
+    trigger.current?.focus()
   }
 
   function chooseMinute(minute: string) {
     onChange(hour + ':' + minute)
-    setOpen(false)
+    setActivePicker(null)
     trigger.current?.focus()
   }
 
@@ -150,6 +169,7 @@ function EventTimePicker({ label, value, options, invalid, align, onChange }: { 
       <span>{value}</span><small>시간 변경</small><span className="real-time-chevron" aria-hidden="true">⌄</span>
     </button>
     {open && <div className="real-time-popover" role="dialog" aria-label={label + ' 선택'}>
+      <div className="real-time-popover-heading"><strong>{label} 선택</strong><button className="real-picker-close" type="button" aria-label={label + ' 선택 닫기'} onClick={closePicker}>×</button></div>
       <div className="real-time-popover-section"><span>시</span><div className="real-time-hour-grid">{hours.map(option => <button type="button" key={option} className={hour === option ? 'is-selected' : ''} aria-pressed={hour === option} onClick={() => setHour(option)}>{option}</button>)}</div></div>
       <div className="real-time-popover-section"><span>분</span><div className="real-time-minute-grid">{minutes.map(minute => <button type="button" key={minute} className={value.slice(3) === minute && hour === value.slice(0, 2) ? 'is-selected' : ''} aria-pressed={value.slice(3) === minute && hour === value.slice(0, 2)} onClick={() => chooseMinute(minute)}>{minute}</button>)}</div></div>
     </div>}
@@ -162,6 +182,7 @@ function EventForm({ event, selectedDate, today, userId, onCancel }: { event: Ev
   const fallback = defaultEventTimes(selectedDate)
   const [title, setTitle] = useState(event?.title ?? '')
   const [note, setNote] = useState(event?.note ?? '')
+  const [activePicker, setActivePicker] = useState<ActiveSchedulePicker>(null)
   const initialStartsAt = event ? localDateTime(event.starts_at) : fallback.startsAt
   const initialEndsAt = event ? localDateTime(event.ends_at) : fallback.endsAt
   const [date, setDate] = useState(localDate(initialStartsAt))
@@ -189,11 +210,11 @@ function EventForm({ event, selectedDate, today, userId, onCancel }: { event: Ev
     <label>일정 이름<input name="title" required maxLength={100} value={title} onChange={e => setTitle(e.target.value)} aria-invalid={state.field === 'title'} autoFocus /></label>
     <label>메모 <span className="real-optional">선택</span><textarea name="note" maxLength={500} rows={2} value={note} onChange={e => setNote(e.target.value)} aria-invalid={state.field === 'note'} /></label>
     <div className="real-datetime-fields">
-      <EventDatePicker value={date} today={today} onChange={setDate} invalid={state.field === 'startsAt' || state.field === 'endsAt'} />
+      <EventDatePicker value={date} today={today} onChange={setDate} invalid={state.field === 'startsAt' || state.field === 'endsAt'} open={activePicker === 'date'} setActivePicker={setActivePicker} />
       <input type="hidden" name="startsAt" value={startsAt} />
       <input type="hidden" name="endsAt" value={endsAt} />
-      <EventTimePicker label="시작 시간" value={startTime} options={startOptions} invalid={state.field === 'startsAt'} align="left" onChange={changeStartTime} />
-      <EventTimePicker label="종료 시간" value={endTime} options={endOptions} invalid={state.field === 'endsAt'} align="right" onChange={setEndTime} />
+      <EventTimePicker label="시작 시간" value={startTime} options={startOptions} invalid={state.field === 'startsAt'} align="left" picker="start" open={activePicker === 'start'} setActivePicker={setActivePicker} onChange={changeStartTime} />
+      <EventTimePicker label="종료 시간" value={endTime} options={endOptions} invalid={state.field === 'endsAt'} align="right" picker="end" open={activePicker === 'end'} setActivePicker={setActivePicker} onChange={setEndTime} />
     </div>
     <p className="real-form-hint">15분 단위 · 15분~4시간 · 한국 시간</p>
     {state.message && <p className={state.status === 'success' ? 'real-action-success' : 'real-action-error'} role={state.status === 'success' ? 'status' : 'alert'}>{state.message}</p>}
