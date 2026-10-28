@@ -1,6 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { eventMutationMessage, parseEventInput, type EventActionState, type EventRecordInput } from '@/lib/events'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
@@ -58,7 +57,6 @@ export async function createEventAction(_previous: EventActionState, formData: F
   if (!parsed.ok) return invalidEvent(parsed.field, parsed.message)
   const { error } = await supabase.rpc('create_event', rpcInput(parsed.value))
   if (error) return mutationFailure(error.code)
-  revalidatePath('/schedule')
   return { status: 'success', message: '일정을 등록했어요.' }
 }
 
@@ -78,7 +76,6 @@ export async function updateEventAction(_previous: EventActionState, formData: F
     ...rpcInput(parsed.value)
   })
   if (error) return mutationFailure(error.code)
-  revalidatePath('/schedule')
   return { status: 'success', message: '일정을 수정했어요.' }
 }
 
@@ -92,6 +89,5 @@ export async function deleteEventAction(_previous: EventActionState, formData: F
   }
   const { error } = await supabase.rpc('delete_event', { p_event_id: id, p_expected_version: version })
   if (error) return mutationFailure(error.code)
-  revalidatePath('/schedule')
   return { status: 'success', message: '일정을 삭제했어요.' }
 }

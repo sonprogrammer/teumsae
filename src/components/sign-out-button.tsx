@@ -2,10 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { createBrowserSupabaseClient } from '@/lib/supabase/client'
+import { useScheduleUiStore } from '@/stores/schedule-ui-store'
 
 export default function SignOutButton() {
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const resetScheduleUi = useScheduleUiStore(state => state.reset)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -19,6 +23,8 @@ export default function SignOutButton() {
         setMessage('로그아웃하지 못했어요. 다시 시도해 주세요.')
         return
       }
+      queryClient.clear()
+      resetScheduleUi()
       router.replace('/auth')
       router.refresh()
     } catch {

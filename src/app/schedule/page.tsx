@@ -1,8 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import RealSchedule from '@/components/real-schedule'
-import type { EventView } from '@/lib/events'
-import { visibleCalendarDates, type CalendarView } from '@/lib/calendar-grid'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -28,26 +26,15 @@ function isDate(value?: string) {
   return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value
 }
 
-function addDay(value: string) {
-  const date = new Date(value + 'T00:00:00.000Z')
-  date.setUTCDate(date.getUTCDate() + 1)
-  return date.toISOString().slice(0, 10)
-}
-
 export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ date?: string; view?: string }> }) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) redirect('/auth')
   const supabase = await createServerSupabaseClient()
   const { data: authData, error: authError } = await supabase.auth.getClaims()
-  if (authError || !authData?.claims) redirect('/auth')
+  if (authError || typeof authData?.claims?.sub !== 'string') redirect('/auth')
 
   const params = await searchParams
   const today = todayInKorea()
   const selectedDate = isDate(params.date) ? params.date as string : today
-  const view: CalendarView = params.view === 'month' ? 'month' : 'week'
-  const dates = visibleCalendarDates(selectedDate, view)
-  const from = dates[0] + 'T00:00:00+09:00'
-  const to = addDay(dates[dates.length - 1]) + 'T00:00:00+09:00'
-  const { data, error } = await supabase.from('events').select('id, title, note, starts_at, ends_at, version').gte('starts_at', from).lt('starts_at', to).order('starts_at')
-
-  return <RealSchedule events={(data ?? []) as EventView[]} selectedDate={selectedDate} today={today} view={view} loadError={Boolean(error)} />
+  const view = params.view === 'month' ? 'month' : 'week'
+  return <RealSchedule userId={authData.claims.sub} selectedDate={selectedDate} today={today} view={view} />
 }
