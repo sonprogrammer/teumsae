@@ -28,6 +28,42 @@ export function monthGrid(iso: string): string[] {
 
 export type CalendarView = 'week' | 'month'
 
+function minutesFromTime(value: string) {
+  const match = /^(\d{2}):(\d{2})$/.exec(value)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours > 23 || minutes > 59 || minutes % 15 !== 0) return null
+  return hours * 60 + minutes
+}
+
+function timeFromMinutes(minutes: number) {
+  return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0')
+}
+
+export function quarterHourOptions() {
+  return Array.from({ length: 96 }, (_, index) => timeFromMinutes(index * 15))
+}
+
+export function startTimeOptions() {
+  return quarterHourOptions().slice(0, -1)
+}
+
+export function endTimeOptions(startTime: string) {
+  const startMinutes = minutesFromTime(startTime)
+  if (startMinutes === null) return []
+  return quarterHourOptions().filter(time => {
+    const minutes = minutesFromTime(time)
+    return minutes !== null && minutes > startMinutes && minutes <= Math.min(startMinutes + 240, 23 * 60 + 45)
+  })
+}
+
+export function defaultEndTime(startTime: string) {
+  const startMinutes = minutesFromTime(startTime)
+  if (startMinutes === null || startMinutes >= 23 * 60 + 45) return ''
+  return timeFromMinutes(Math.min(startMinutes + 60, 23 * 60 + 45))
+}
+
 function addDays(iso: string, days: number) {
   const date = dateFromISO(iso)
   date.setUTCDate(date.getUTCDate() + days)

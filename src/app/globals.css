@@ -356,6 +356,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-calendar-day:nth-child(7n) { border-right: 0; }
 .real-calendar-day:hover { background: #f7faf5; }
 .real-calendar-day.is-selected { background: #eff7ef; box-shadow: inset 0 0 0 2px #9ccbb5; }
+.real-calendar-day.is-selected.is-last-row.is-first-column { border-bottom-left-radius: 20px; }
+.real-calendar-day.is-selected.is-last-row.is-last-column { border-bottom-right-radius: 20px; }
 .real-calendar-day.is-outside .real-day-number { color: #b6c0b7; }
 .real-day-number { display: grid; place-items: center; align-self: flex-start; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: 700; }
 .real-calendar-day.is-today .real-day-number { background: var(--teal); color: #fff; }
@@ -364,7 +366,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-calendar-event:nth-child(3n + 2) { background: #fbefe7; color: #a3634d; }
 .real-calendar-event:nth-child(3n) { background: #f0edf8; color: #736398; }
 .real-more-events { color: var(--muted); font-size: 9px; }
-.real-agenda-card { padding: 20px; }
+.real-agenda-card { overflow: visible; padding: 20px; }
 .real-agenda-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
 .real-agenda-heading h2 { margin: 7px 0 0; font-size: 19px; letter-spacing: -.05em; }
 .real-primary-button, .real-secondary-button { min-height: 38px; padding: 0 13px; border-radius: 10px; font-size: 12px; font-weight: 750; }
@@ -399,7 +401,45 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-event-form textarea { resize: vertical; }
 .real-event-form [aria-invalid="true"] { border-color: #cb785e; }
 .real-optional { color: var(--muted); font-weight: 500; }
-.real-datetime-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.real-datetime-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.real-date-field { position: relative; grid-column: 1 / -1; display: grid; gap: 6px; }
+.real-control-label { display: flex; align-items: center; justify-content: space-between; color: #38584e; font-size: 11px; font-weight: 750; }
+.real-control-label small { color: var(--muted); font-size: 10px; font-weight: 500; }
+.real-date-trigger { display: flex; align-items: center; width: 100%; min-height: 58px; gap: 11px; padding: 9px 12px; border: 1px solid #dce6dc; border-radius: 12px; background: #fff; color: var(--ink); text-align: left; }
+.real-date-trigger[data-invalid="true"] { border-color: #cb785e; }
+.real-date-trigger:focus-visible, .real-date-day:focus-visible, .real-date-popover-heading button:focus-visible, .real-date-today:focus-visible { outline: 3px solid #9ccbb5; outline-offset: 2px; }
+.real-date-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto; border-radius: 11px; background: #edf6ee; color: var(--teal); font-size: 18px; }
+.real-date-trigger-value { display: grid; flex: 1; gap: 2px; }
+.real-date-trigger-value strong { font-size: 13px; }
+.real-date-trigger-value small { color: var(--muted); font-size: 10px; }
+.real-date-chevron { color: #7a9185; font-size: 18px; }
+.real-date-popover { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: min(290px, calc(100vw - 64px)); padding: 13px; border: 1px solid #dce7dd; border-radius: 16px; background: #fff; box-shadow: 0 15px 38px #23423624; }
+.real-date-popover-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.real-date-popover-heading strong { font-size: 13px; }
+.real-date-popover-heading button { width: 32px; height: 32px; border: 1px solid #e4ebe2; border-radius: 9px; background: #fff; color: var(--ink); font-size: 20px; }
+.real-date-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.real-date-weekday { display: grid; place-items: center; height: 28px; color: #82948b; font-size: 10px; font-weight: 750; }
+.real-date-day { display: grid; place-items: center; min-width: 0; height: 32px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font-size: 11px; }
+.real-date-day:hover { background: #f1f7ef; }
+.real-date-day.is-outside { color: #b6c0b7; }
+.real-date-day.is-today { color: var(--teal); font-weight: 800; }
+.real-date-day.is-selected { background: var(--teal); color: #fff; font-weight: 800; }
+.real-date-today { width: 100%; margin-top: 7px; padding: 7px; border: 0; border-radius: 8px; background: #f2f7f1; color: var(--teal); font-size: 10px; font-weight: 750; }
+.real-time-field { position: relative; display: grid; min-width: 0; gap: 6px; }
+.real-time-trigger { display: flex; align-items: center; min-height: 58px; gap: 8px; padding: 8px 11px; border: 1px solid #dce6dc; border-radius: 12px; background: #fff; color: var(--ink); text-align: left; }
+.real-time-trigger[data-invalid="true"] { border-color: #cb785e; }
+.real-time-trigger:focus-visible, .real-time-hour-grid button:focus-visible, .real-time-minute-grid button:focus-visible { outline: 3px solid #9ccbb5; outline-offset: 2px; }
+.real-time-trigger > span:first-child { font-size: 19px; font-variant-numeric: tabular-nums; font-weight: 750; }
+.real-time-trigger small { margin-left: auto; color: var(--muted); font-size: 9px; white-space: nowrap; }
+.real-time-chevron { color: #7a9185; font-size: 17px; }
+.real-time-popover { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: min(258px, calc(100vw - 40px)); display: grid; gap: 12px; padding: 13px; border: 1px solid #dce7dd; border-radius: 15px; background: #fff; box-shadow: 0 15px 38px #23423624; }
+.real-time-field.is-right .real-time-popover { right: 0; left: auto; }
+.real-time-popover-section { display: grid; gap: 6px; }
+.real-time-popover-section > span { color: #74897d; font-size: 10px; font-weight: 750; }
+.real-time-hour-grid, .real-time-minute-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.real-time-hour-grid button, .real-time-minute-grid button { min-height: 34px; border: 1px solid #e1eae0; border-radius: 9px; background: #f9fbf8; color: var(--ink); font-size: 11px; font-variant-numeric: tabular-nums; }
+.real-time-hour-grid button:hover, .real-time-minute-grid button:hover { border-color: #a9ccb8; background: #f0f7ef; }
+.real-time-hour-grid button.is-selected, .real-time-minute-grid button.is-selected { border-color: var(--teal); background: var(--teal); color: #fff; font-weight: 800; }
 .real-form-hint { margin: -4px 0 0; color: var(--muted); font-size: 10px; }
 .real-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .real-form-actions button:disabled { opacity: .6; cursor: wait; }
@@ -436,6 +476,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-calendar-grid.is-month .real-more-events { display: none; }
   .real-weekday { height: 34px; font-size: 10px; }
   .real-agenda-card { padding: 15px; }
-  .real-datetime-fields { grid-template-columns: 1fr; }
+  .real-datetime-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .real-empty-state { padding: 64px 19px; }
 }

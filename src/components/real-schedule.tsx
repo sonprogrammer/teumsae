@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createEventAction, deleteEventAction, updateEventAction } from '@/app/schedule/actions'
 import type { EventActionState, EventView } from '@/lib/events'
-import { defaultEventTimes, shiftMonth, visibleCalendarDates, type CalendarView } from '@/lib/calendar-grid'
+import { defaultEndTime, defaultEventTimes, endTimeOptions, monthGrid, shiftMonth, startTimeOptions, visibleCalendarDates, type CalendarView } from '@/lib/calendar-grid'
 import SignOutButton from '@/components/sign-out-button'
 
 const initialActionState: EventActionState = { status: 'idle', message: '' }
@@ -55,14 +55,123 @@ function periodLabel(dates: string[], view: CalendarView) {
   return koreanDate(dates[0]) + ' – ' + koreanDate(dates[dates.length - 1], { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-function EventForm({ event, selectedDate, onCancel }: { event: EventView | null; selectedDate: string; onCancel: () => void }) {
+function localDate(value: string) {
+  return value.slice(0, 10)
+}
+
+function localTime(value: string) {
+  return value.slice(11, 16)
+}
+
+function displayDate(value: string) {
+  return koreanDate(value, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+}
+
+function EventDatePicker({ value, today, onChange, invalid }: { value: string; today: string; onChange: (date: string) => void; invalid: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [month, setMonth] = useState(value)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const dates = monthGrid(month)
+
+  useEffect(() => {
+    if (!open) return
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      trigger.current?.focus()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [open])
+
+  function showPicker() {
+    setMonth(value)
+    setOpen(true)
+  }
+
+  function chooseDate(date: string) {
+    onChange(date)
+    setOpen(false)
+    trigger.current?.focus()
+  }
+
+  return <div className="real-date-field">
+    <span className="real-control-label">날짜</span>
+    <button ref={trigger} type="button" className="real-date-trigger" aria-label={'날짜 선택, ' + displayDate(value)} aria-haspopup="dialog" aria-expanded={open} data-invalid={invalid ? 'true' : undefined} onClick={showPicker}>
+      <span className="real-date-icon" aria-hidden="true">▦</span><span className="real-date-trigger-value"><strong>{displayDate(value)}</strong><small>날짜 변경</small></span><span className="real-date-chevron" aria-hidden="true">⌄</span>
+    </button>
+    {open && <div className="real-date-popover" role="dialog" aria-label="날짜 선택">
+      <div className="real-date-popover-heading"><button type="button" aria-label="이전 달" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button><strong>{koreanDate(month, { year: 'numeric', month: 'long' })}</strong><button type="button" aria-label="다음 달" onClick={() => setMonth(shiftMonth(month, 1))}>›</button></div>
+      <div className="real-date-grid">
+        {weekdays.map(day => <span className="real-date-weekday" key={day}>{day}</span>)}
+        {dates.map(date => <button type="button" key={date} className={'real-date-day' + (date.slice(0, 7) !== month.slice(0, 7) ? ' is-outside' : '') + (date === value ? ' is-selected' : '') + (date === today ? ' is-today' : '')} aria-label={displayDate(date)} aria-pressed={date === value} onClick={() => chooseDate(date)}>{Number(date.slice(-2))}</button>)}
+      </div>
+      <button type="button" className="real-date-today" onClick={() => chooseDate(today)}>오늘 날짜 선택</button>
+    </div>}
+  </div>
+}
+
+function EventTimePicker({ label, value, options, invalid, align, onChange }: { label: string; value: string; options: string[]; invalid: boolean; align: 'left' | 'right'; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [hour, setHour] = useState(value.slice(0, 2))
+  const trigger = useRef<HTMLButtonElement>(null)
+  const hours = Array.from(new Set(options.map(time => time.slice(0, 2))))
+  const minutes = options.filter(time => time.slice(0, 2) === hour).map(time => time.slice(3))
+
+  useEffect(() => {
+    if (!open) return
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      trigger.current?.focus()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [open])
+
+  function showPicker() {
+    setHour(value.slice(0, 2))
+    setOpen(true)
+  }
+
+  function chooseMinute(minute: string) {
+    onChange(hour + ':' + minute)
+    setOpen(false)
+    trigger.current?.focus()
+  }
+
+  return <div className={'real-time-field is-' + align}>
+    <span className="real-control-label">{label}<small>15분 단위</small></span>
+    <button ref={trigger} type="button" className="real-time-trigger" aria-label={label + ' 선택, ' + value} aria-haspopup="dialog" aria-expanded={open} data-invalid={invalid ? 'true' : undefined} onClick={showPicker}>
+      <span>{value}</span><small>시간 변경</small><span className="real-time-chevron" aria-hidden="true">⌄</span>
+    </button>
+    {open && <div className="real-time-popover" role="dialog" aria-label={label + ' 선택'}>
+      <div className="real-time-popover-section"><span>시</span><div className="real-time-hour-grid">{hours.map(option => <button type="button" key={option} className={hour === option ? 'is-selected' : ''} aria-pressed={hour === option} onClick={() => setHour(option)}>{option}</button>)}</div></div>
+      <div className="real-time-popover-section"><span>분</span><div className="real-time-minute-grid">{minutes.map(minute => <button type="button" key={minute} className={value.slice(3) === minute && hour === value.slice(0, 2) ? 'is-selected' : ''} aria-pressed={value.slice(3) === minute && hour === value.slice(0, 2)} onClick={() => chooseMinute(minute)}>{minute}</button>)}</div></div>
+    </div>}
+  </div>
+}
+
+function EventForm({ event, selectedDate, today, onCancel }: { event: EventView | null; selectedDate: string; today: string; onCancel: () => void }) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(event ? updateEventAction : createEventAction, initialActionState)
   const fallback = defaultEventTimes(selectedDate)
   const [title, setTitle] = useState(event?.title ?? '')
   const [note, setNote] = useState(event?.note ?? '')
-  const [startsAt, setStartsAt] = useState(event ? localDateTime(event.starts_at) : fallback.startsAt)
-  const [endsAt, setEndsAt] = useState(event ? localDateTime(event.ends_at) : fallback.endsAt)
+  const initialStartsAt = event ? localDateTime(event.starts_at) : fallback.startsAt
+  const initialEndsAt = event ? localDateTime(event.ends_at) : fallback.endsAt
+  const [date, setDate] = useState(localDate(initialStartsAt))
+  const [startTime, setStartTime] = useState(localTime(initialStartsAt))
+  const [endTime, setEndTime] = useState(localTime(initialEndsAt))
+  const startOptions = startTimeOptions()
+  const endOptions = endTimeOptions(startTime)
+  const startsAt = date + 'T' + startTime
+  const endsAt = date + 'T' + endTime
+
+  function changeStartTime(value: string) {
+    setStartTime(value)
+    if (!endTimeOptions(value).includes(endTime)) setEndTime(defaultEndTime(value))
+  }
 
   useEffect(() => {
     if (state.status !== 'success') return
@@ -76,8 +185,11 @@ function EventForm({ event, selectedDate, onCancel }: { event: EventView | null;
     <label>일정 이름<input name="title" required maxLength={100} value={title} onChange={e => setTitle(e.target.value)} aria-invalid={state.field === 'title'} autoFocus /></label>
     <label>메모 <span className="real-optional">선택</span><textarea name="note" maxLength={500} rows={2} value={note} onChange={e => setNote(e.target.value)} aria-invalid={state.field === 'note'} /></label>
     <div className="real-datetime-fields">
-      <label>시작<input name="startsAt" type="datetime-local" required step={900} value={startsAt} onChange={e => setStartsAt(e.target.value)} aria-invalid={state.field === 'startsAt'} /></label>
-      <label>종료<input name="endsAt" type="datetime-local" required step={900} value={endsAt} onChange={e => setEndsAt(e.target.value)} aria-invalid={state.field === 'endsAt'} /></label>
+      <EventDatePicker value={date} today={today} onChange={setDate} invalid={state.field === 'startsAt' || state.field === 'endsAt'} />
+      <input type="hidden" name="startsAt" value={startsAt} />
+      <input type="hidden" name="endsAt" value={endsAt} />
+      <EventTimePicker label="시작 시간" value={startTime} options={startOptions} invalid={state.field === 'startsAt'} align="left" onChange={changeStartTime} />
+      <EventTimePicker label="종료 시간" value={endTime} options={endOptions} invalid={state.field === 'endsAt'} align="right" onChange={setEndTime} />
     </div>
     <p className="real-form-hint">15분 단위 · 15분~4시간 · 한국 시간</p>
     {state.message && <p className={state.status === 'success' ? 'real-action-success' : 'real-action-error'} role={state.status === 'success' ? 'status' : 'alert'}>{state.message}</p>}
@@ -99,11 +211,11 @@ function DeleteEventButton({ event }: { event: EventView }) {
   return <div className="real-delete-confirm"><span>이 일정을 삭제할까요?</span><form action={formAction}><input type="hidden" name="id" value={event.id} /><input type="hidden" name="version" value={event.version} /><button type="button" className="real-text-button" onClick={() => setConfirming(false)}>취소</button><button type="submit" className="real-text-button is-danger" disabled={pending}>{pending ? '삭제 중...' : '삭제 확인'}</button></form>{state.status === 'error' && <p role="alert">{state.message}</p>}</div>
 }
 
-function EventCard({ event, selectedDate }: { event: EventView; selectedDate: string }) {
+function EventCard({ event, selectedDate, today }: { event: EventView; selectedDate: string; today: string }) {
   const [editing, setEditing] = useState(false)
   return <article className="real-event-card">
     <div className="real-event-time"><strong>{eventTime(event.starts_at)}</strong><span>{eventTime(event.ends_at)}</span></div>
-    {editing ? <EventForm event={event} selectedDate={selectedDate} onCancel={() => setEditing(false)} /> : <div className="real-event-detail"><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}<div className="real-event-actions"><button type="button" className="real-text-button" onClick={() => setEditing(true)}>수정</button><DeleteEventButton event={event} /></div></div>}
+    {editing ? <EventForm event={event} selectedDate={selectedDate} today={today} onCancel={() => setEditing(false)} /> : <div className="real-event-detail"><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}<div className="real-event-actions"><button type="button" className="real-text-button" onClick={() => setEditing(true)}>수정</button><DeleteEventButton event={event} /></div></div>}
   </article>
 }
 
@@ -132,11 +244,12 @@ export default function RealSchedule({ events, selectedDate, today, view, loadEr
           <div className="real-period-caption"><strong>{periodLabel(dates, view)}</strong><span>{events.length}개 일정</span></div>
           <div className={'real-calendar-grid ' + (view === 'month' ? 'is-month' : 'is-week')}>
             {weekdays.map(day => <div className="real-weekday" key={day}>{day}</div>)}
-            {dates.map(date => {
+            {dates.map((date, index) => {
               const dateEvents = events.filter(event => koreaDateKey(event.starts_at) === date)
               const selected = selectedDate === date
               const outsideMonth = view === 'month' && date.slice(0, 7) !== currentMonth
-              return <button type="button" key={date} className={'real-calendar-day' + (selected ? ' is-selected' : '') + (date === today ? ' is-today' : '') + (outsideMonth ? ' is-outside' : '')} aria-pressed={selected} onClick={() => navigate(date)}>
+              const outerCell = (index >= dates.length - 7 ? ' is-last-row' : '') + (index % 7 === 0 ? ' is-first-column' : '') + (index % 7 === 6 ? ' is-last-column' : '')
+              return <button type="button" key={date} className={'real-calendar-day' + outerCell + (selected ? ' is-selected' : '') + (date === today ? ' is-today' : '') + (outsideMonth ? ' is-outside' : '')} aria-pressed={selected} onClick={() => navigate(date)}>
                 <span className="real-day-number">{Number(date.slice(-2))}</span>
                 <span className="real-calendar-events">{dateEvents.slice(0, view === 'week' ? 3 : 2).map(event => <span className="real-calendar-event" key={event.id}>{eventTime(event.starts_at)} {event.title}</span>)}{dateEvents.length > (view === 'week' ? 3 : 2) && <span className="real-more-events">+{dateEvents.length - (view === 'week' ? 3 : 2)}개</span>}</span>
               </button>
@@ -146,8 +259,8 @@ export default function RealSchedule({ events, selectedDate, today, view, loadEr
         <aside className="real-agenda-card" aria-label="선택한 날짜 일정">
           <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div><button type="button" className="real-primary-button" onClick={() => setCreating(true)}>＋ 일정</button></div>
           {loadError ? <div className="real-empty-agenda is-error" role="alert"><strong>일정을 불러오지 못했어요.</strong><p>잠시 후 새로고침해 주세요.</p><button type="button" className="real-secondary-button" onClick={() => router.refresh()}>다시 불러오기</button></div> : <>
-            {creating && <EventForm key={'new-' + selectedDate} event={null} selectedDate={selectedDate} onCancel={() => setCreating(false)} />}
-            {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => setCreating(true)}>일정 추가</button></div>}
+            {creating && <EventForm key={'new-' + selectedDate} event={null} selectedDate={selectedDate} today={today} onCancel={() => setCreating(false)} />}
+            {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} today={today} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => setCreating(true)}>일정 추가</button></div>}
           </>}
         </aside>
       </div>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { defaultEventTimes, visibleCalendarDates } from './calendar-grid.ts'
+import { defaultEndTime, defaultEventTimes, endTimeOptions, quarterHourOptions, startTimeOptions, visibleCalendarDates } from './calendar-grid.ts'
 
 test('builds Monday-first week dates around the selected date', () => {
   assert.deepEqual(visibleCalendarDates('2026-11-01', 'week'), [
@@ -34,4 +34,18 @@ test('moves the default to the next date when today has no future quarter left',
     startsAt: '2026-10-29T09:00',
     endsAt: '2026-10-29T10:00'
   })
+})
+
+test('provides quarter-hour time choices and same-day valid end times', () => {
+  const options = quarterHourOptions()
+  assert.equal(options.length, 96)
+  assert.equal(options[0], '00:00')
+  assert.equal(options.at(-1), '23:45')
+  assert.equal(startTimeOptions().at(-1), '23:30')
+  assert.deepEqual(endTimeOptions('23:30'), ['23:45'])
+  assert.deepEqual(endTimeOptions('23:45'), [])
+  assert.equal(endTimeOptions('09:00').at(-1), '13:00')
+  assert.equal(defaultEndTime('09:00'), '10:00')
+  assert.equal(defaultEndTime('23:30'), '23:45')
+  assert.equal(defaultEndTime('23:45'), '')
 })
