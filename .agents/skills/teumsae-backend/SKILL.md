@@ -7,6 +7,28 @@ description: 틈새의 인증, DB 스키마·RLS, 일정 API, 시간 계산, 빈
 
 소유권, 시간, 저장 여부는 서버와 DB에서 결정한다. 관련 코드를 바꾸기 전에 승인된 이슈나 디자인과 `docs/spec.md` §5, §7.3, §8을 읽는다. 확정된 요구사항과 명세의 제안 기본값을 구분한다.
 
+## 기본 명령
+
+저장소 루트에서 `nvm use`로 `.nvmrc` 버전의 Node를 선택하고 pnpm을 사용한다. 의존성이 없거나 lockfile이 바뀐 경우에만 `pnpm install --frozen-lockfile`을 실행한다.
+
+| 목적 | 명령 |
+| --- | --- |
+| 자동 테스트 | `pnpm test` |
+| 타입 검사 | `pnpm typecheck` |
+| 린트 | `pnpm lint` |
+| 프로덕션 빌드 | `pnpm build` |
+
+SQL 검증은 Supabase 로컬 프로젝트 설정(`supabase/config.toml`)과 로컬 DB가 이미 준비된 경우에만 수행한다. 현재 저장소에는 설정 파일이 없으므로 설정을 임의로 만들거나 원격 DB를 대상으로 명령하지 않는다. 로컬 스택이 구성된 뒤 DB 변경 검증이 작업 범위라면 다음을 사용한다.
+
+```sh
+supabase start
+supabase migration up --local
+supabase db lint --local --fail-on error
+supabase test db
+```
+
+`supabase test db`는 `supabase/tests`에 DB 테스트가 있을 때 실행한다. 원격 DB를 바꾸는 `supabase db push`, `supabase migration up --linked` 또는 `--db-url` 사용은 사용자가 해당 원격 적용을 명시적으로 승인한 경우에만 한다. `supabase db reset`은 로컬 데이터도 삭제하므로 기본 검증 명령에 포함하지 않는다.
+
 ## 데이터 경로 확인
 
 | 작업 | 서버의 책임 |

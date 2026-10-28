@@ -7,6 +7,19 @@ description: 틈새의 기능 검사 계획, PR 리뷰, 배포 전 확인 또는
 
 변경된 동작을 승인된 작업 범위와 `docs/spec.md` §9에 맞춰 판단한다. 사용자 행동, 기대 결과, 증거, 실행 환경을 담은 작은 기능별 검증표를 만든다. 모든 PR에 전체 배포 검사를 요구하지는 않는다.
 
+## 기본 로컬 검증 명령
+
+저장소 루트에서 `nvm use`로 `.nvmrc` 버전의 Node를 선택하고 pnpm을 사용한다. 의존성이 없거나 lockfile이 바뀐 경우에만 `pnpm install --frozen-lockfile`을 실행한다. GitHub Actions와 같은 기본 검증 순서는 다음과 같다.
+
+```sh
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+```
+
+화면 작업은 `pnpm dev`로 띄운 뒤 변경한 흐름을 데스크톱과 모바일 화면에서 확인한다. 브라우저나 DB 검증을 실행하지 못했다면 코드 검사 결과와 구분해 미실행으로 기록한다. Supabase 로컬·원격 명령은 백엔드 스킬의 조건과 권한 기준을 따른다.
+
 ## 변경 종류별 확인
 
 | 변경 | 코드 스타일 외에 확인할 것 |
