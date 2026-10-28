@@ -330,6 +330,88 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-empty-state strong { font-size: 17px; }
 .real-empty-state p { max-width: 370px; margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
 
+.real-schedule-content { max-width: 1340px; margin: 45px auto; padding: 0 30px 60px; }
+.real-page-heading { margin: 0 0 24px; }
+.real-page-heading h1 { margin: 8px 0; font-size: 34px; letter-spacing: -.065em; }
+.real-page-heading p:last-child { margin: 0; color: var(--ink-soft); font-size: 13px; }
+.real-header-actions { display: flex; align-items: center; gap: 18px; }
+.real-sample-link { color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; }
+.real-schedule-workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(310px, .8fr); align-items: start; gap: 18px; }
+.real-calendar-card, .real-agenda-card { min-width: 0; overflow: hidden; border: 1px solid #e2e9df; border-radius: 21px; background: var(--paper); box-shadow: 0 9px 32px #2342360b; }
+.real-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 22px 13px; }
+.real-period-switch, .real-period-controls { display: flex; align-items: center; gap: 5px; }
+.real-period-switch { padding: 3px; border: 1px solid #e0e9df; border-radius: 10px; background: #f3f7f1; }
+.real-period-switch button { min-width: 39px; height: 29px; border: 0; border-radius: 7px; background: transparent; color: #6f887c; font-size: 12px; font-weight: 750; }
+.real-period-switch button.is-active { background: #fff; color: var(--teal); box-shadow: 0 1px 5px #1839341c; }
+.real-period-arrow, .real-today-button { height: 34px; border: 1px solid #e1e8df; border-radius: 9px; background: #fff; color: var(--ink); }
+.real-period-arrow { width: 34px; font-size: 21px; line-height: 1; }
+.real-today-button { padding: 0 12px; font-size: 11px; font-weight: 750; }
+.real-period-caption { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px 17px; }
+.real-period-caption strong { font-size: 14px; letter-spacing: -.03em; }
+.real-period-caption > span { color: var(--muted); font-size: 11px; }
+.real-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.real-weekday { display: grid; place-items: center; height: 39px; border-bottom: 1px solid var(--line); color: #82948b; font-size: 11px; font-weight: 750; }
+.real-calendar-day { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 112px; padding: 8px 7px; border: 0; border-right: 1px solid #edf0e9; border-bottom: 1px solid #edf0e9; background: transparent; color: var(--ink); text-align: left; }
+.real-calendar-grid.is-month .real-calendar-day { min-height: 91px; }
+.real-calendar-day:nth-child(7n) { border-right: 0; }
+.real-calendar-day:hover { background: #f7faf5; }
+.real-calendar-day.is-selected { background: #eff7ef; box-shadow: inset 0 0 0 2px #9ccbb5; }
+.real-calendar-day.is-outside .real-day-number { color: #b6c0b7; }
+.real-day-number { display: grid; place-items: center; align-self: flex-start; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: 700; }
+.real-calendar-day.is-today .real-day-number { background: var(--teal); color: #fff; }
+.real-calendar-events { display: grid; gap: 3px; margin-top: 4px; }
+.real-calendar-event { overflow: hidden; padding: 3px 5px; border-radius: 5px; background: #e8f3eb; color: #356b58; font-size: 9px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.real-calendar-event:nth-child(3n + 2) { background: #fbefe7; color: #a3634d; }
+.real-calendar-event:nth-child(3n) { background: #f0edf8; color: #736398; }
+.real-more-events { color: var(--muted); font-size: 9px; }
+.real-agenda-card { padding: 20px; }
+.real-agenda-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+.real-agenda-heading h2 { margin: 7px 0 0; font-size: 19px; letter-spacing: -.05em; }
+.real-primary-button, .real-secondary-button { min-height: 38px; padding: 0 13px; border-radius: 10px; font-size: 12px; font-weight: 750; }
+.real-primary-button { border: 0; background: var(--teal); color: #fff; }
+.real-primary-button:hover { background: var(--teal-dark); }
+.real-secondary-button { border: 1px solid #dce7dd; background: #fff; color: var(--teal); }
+.real-event-list { display: grid; gap: 10px; }
+.real-event-card { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 12px; padding: 14px; border: 1px solid #e7ebe2; border-left: 3px solid #79b69c; border-radius: 12px; background: #fff; }
+.real-event-time { display: flex; flex-direction: column; gap: 4px; padding-top: 2px; color: #8b9b90; font-size: 10px; }
+.real-event-time strong { color: var(--teal); font-size: 12px; }
+.real-event-detail { min-width: 0; }
+.real-event-detail h3 { margin: 0; font-size: 13px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.real-event-detail p { margin: 6px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.real-event-actions { display: flex; gap: 14px; margin-top: 10px; }
+.real-text-button { padding: 0; border: 0; background: transparent; color: var(--teal); font-size: 11px; font-weight: 750; }
+.real-text-button.is-danger { color: #af6854; }
+.real-delete-confirm { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink-soft); font-size: 11px; }
+.real-delete-confirm form { display: flex; gap: 10px; }
+.real-delete-confirm p { width: 100%; margin: 0; color: #af6854; }
+.real-empty-agenda { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 36px 12px; border: 1px dashed #dbe6db; border-radius: 14px; text-align: center; }
+.real-empty-agenda > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--mint); color: var(--teal); font-size: 19px; }
+.real-empty-agenda strong { font-size: 13px; }
+.real-empty-agenda p { margin: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.6; }
+.real-empty-agenda.is-error { border-style: solid; border-color: #f0d8ca; background: #fff9f5; }
+.real-empty-agenda.is-error strong, .real-empty-agenda.is-error p { color: #a3644c; }
+.real-event-form { display: grid; gap: 12px; margin: 0 0 14px; padding: 15px; border: 1px solid #d9e8dc; border-radius: 13px; background: #f8fbf6; }
+.real-form-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.real-form-heading h3 { margin: 5px 0 0; font-size: 15px; }
+.real-icon-button { width: 30px; height: 30px; border: 1px solid #e0e8de; border-radius: 8px; background: #fff; color: var(--ink); font-size: 20px; line-height: 1; }
+.real-event-form label { display: grid; gap: 6px; color: #38584e; font-size: 11px; font-weight: 750; }
+.real-event-form input, .real-event-form textarea { width: 100%; min-width: 0; min-height: 40px; padding: 9px 10px; border: 1px solid #dce6dc; border-radius: 8px; background: #fff; color: var(--ink); font-size: 12px; }
+.real-event-form textarea { resize: vertical; }
+.real-event-form [aria-invalid="true"] { border-color: #cb785e; }
+.real-optional { color: var(--muted); font-weight: 500; }
+.real-datetime-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.real-form-hint { margin: -4px 0 0; color: var(--muted); font-size: 10px; }
+.real-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.real-form-actions button:disabled { opacity: .6; cursor: wait; }
+.real-action-error, .real-action-success { margin: 0; padding: 9px 10px; border-radius: 8px; font-size: 11px; line-height: 1.5; }
+.real-action-error { background: #fff0e8; color: #a3644c; }
+.real-action-success { background: #eaf6ec; color: #326d57; }
+
+@media (max-width: 900px) {
+  .real-schedule-workspace { grid-template-columns: 1fr; }
+  .real-agenda-card { order: 2; }
+}
+
 @media (max-width: 700px) {
   .account-link { padding: 8px 9px; font-size: 10px; }
   .header-right { gap: 8px; }
@@ -339,6 +421,21 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .auth-intro > p:last-child { font-size: 13px; }
   .auth-card { padding: 20px; }
   .real-schedule-header { height: 68px; margin: 0 18px; }
-  .real-schedule-content { margin: 50px 18px; }
+  .real-schedule-content { margin: 34px 0; padding: 0 14px 36px; }
+  .real-page-heading { margin-bottom: 19px; }
+  .real-page-heading h1 { font-size: 29px; }
+  .real-header-actions { gap: 10px; }
+  .real-sample-link { font-size: 10px; }
+  .real-calendar-toolbar { padding: 15px 12px 11px; }
+  .real-period-caption { padding: 0 12px 12px; }
+  .real-calendar-day { min-height: 86px; padding: 6px 4px; }
+  .real-calendar-grid.is-month .real-calendar-day { min-height: 57px; }
+  .real-day-number { width: 23px; height: 23px; font-size: 11px; }
+  .real-calendar-grid.is-month .real-calendar-events { display: flex; justify-content: center; }
+  .real-calendar-grid.is-month .real-calendar-event { width: 5px; height: 5px; padding: 0; border-radius: 50%; font-size: 0; }
+  .real-calendar-grid.is-month .real-more-events { display: none; }
+  .real-weekday { height: 34px; font-size: 10px; }
+  .real-agenda-card { padding: 15px; }
+  .real-datetime-fields { grid-template-columns: 1fr; }
   .real-empty-state { padding: 64px 19px; }
 }
