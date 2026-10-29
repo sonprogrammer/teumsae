@@ -337,6 +337,22 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-header-actions { display: flex; align-items: center; gap: 18px; }
 .real-sample-link { color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; }
 .real-schedule-workspace { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(310px, .8fr); align-items: start; gap: 18px; }
+.real-activity-hours { display: grid; gap: 12px; margin: -5px 0 17px; padding: 15px 18px; border: 1px solid #e2e9df; border-radius: 16px; background: linear-gradient(110deg, #fffefa, #f5faf5); box-shadow: 0 6px 20px #23423608; }
+.real-activity-hours-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.real-activity-hours-summary strong { display: block; margin-top: 5px; font-size: 14px; letter-spacing: -.03em; }
+.real-activity-hours-summary p:last-child { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.real-activity-hours-form { display: grid; grid-template-columns: minmax(140px, 190px) 18px minmax(140px, 190px) 1fr auto; align-items: end; gap: 10px; padding-top: 13px; border-top: 1px solid #e7ede5; }
+.real-activity-hours-form label { display: grid; gap: 6px; color: #38584e; font-size: 11px; font-weight: 750; }
+.real-activity-hours-form input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid #dce6dc; border-radius: 9px; background: #fff; color: var(--ink); font-size: 13px; }
+.real-activity-hours-form input:disabled { opacity: .65; }
+.real-activity-hours-separator { align-self: center; padding-top: 18px; color: var(--muted); text-align: center; }
+.real-activity-hours-form > p { margin: 0; color: var(--muted); font-size: 10px; }
+.real-activity-hours-form > p.real-activity-hours-error, .real-activity-hours-form > p.real-activity-hours-success { grid-column: 1 / -1; padding: 9px 10px; border-radius: 8px; line-height: 1.5; }
+.real-activity-hours-error, .real-activity-hours-success { margin: 0; font-size: 11px; }
+.real-activity-hours-error { color: #a3644c; }
+.real-activity-hours-success { color: #326d57; }
+.real-activity-hours > .real-activity-hours-error { padding: 9px 10px; border-radius: 8px; background: #fff0e8; }
+.real-activity-hours-form > .real-primary-button { white-space: nowrap; }
 .real-calendar-card, .real-agenda-card { min-width: 0; overflow: hidden; border: 1px solid #e2e9df; border-radius: 21px; background: var(--paper); box-shadow: 0 9px 32px #2342360b; }
 .real-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 22px 13px; }
 .real-period-switch, .real-period-controls { display: flex; align-items: center; gap: 5px; }
@@ -470,6 +486,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-page-heading { margin-bottom: 19px; }
   .real-page-heading h1 { font-size: 29px; }
   .real-header-actions { gap: 10px; }
+  .real-activity-hours { padding: 14px; }
+  .real-activity-hours-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .real-activity-hours-separator { display: none; }
+  .real-activity-hours-form > p:not(.real-activity-hours-error):not(.real-activity-hours-success) { grid-column: 1; }
+  .real-activity-hours-form > .real-primary-button { grid-column: 2; }
   .real-sample-link { font-size: 10px; }
   .real-calendar-toolbar { padding: 15px 12px 11px; }
   .real-period-caption { padding: 0 12px 12px; }

@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useActionState, useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createEventAction, deleteEventAction, updateEventAction } from '@/app/schedule/actions'
+import { ActivityHoursRequestError, activityHoursQueryKey, fetchActivityHours, saveActivityHours } from '@/lib/activity-hours-query'
+import { DEFAULT_ACTIVITY_HOURS, parseActivityHoursInput } from '@/lib/events'
 import type { EventActionState, EventView } from '@/lib/events'
 import { eventQueryKeys } from '@/lib/event-query-keys'
 import { fetchEvents } from '@/lib/events-query'
@@ -70,6 +72,79 @@ function localTime(value: string) {
 
 function displayDate(value: string) {
   return koreanDate(value, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+}
+
+function ActivityHoursPanel({ userId }: { userId: string }) {
+  const queryClient = useQueryClient()
+  const queryKey = activityHoursQueryKey(userId)
+  const settingsQuery = useQuery({ queryKey, queryFn: fetchActivityHours })
+  const [open, setOpen] = useState(false)
+  const [dayStart, setDayStart] = useState<string | null>(null)
+  const [dayEnd, setDayEnd] = useState<string | null>(null)
+  const [validationMessage, setValidationMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const currentStart = dayStart ?? settingsQuery.data?.dayStart ?? DEFAULT_ACTIVITY_HOURS.dayStart
+  const currentEnd = dayEnd ?? settingsQuery.data?.dayEnd ?? DEFAULT_ACTIVITY_HOURS.dayEnd
+  const saveMutation = useMutation({
+    mutationFn: saveActivityHours,
+    onSuccess: settings => {
+      queryClient.setQueryData(queryKey, settings)
+      setDayStart(settings.dayStart)
+      setDayEnd(settings.dayEnd)
+      setValidationMessage('')
+      setSuccessMessage('활동 시간을 저장했어요.')
+    },
+    onError: error => {
+      setSuccessMessage('')
+      setValidationMessage(error instanceof Error ? error.message : '활동 시간 설정을 저장하지 못했어요.')
+      if (error instanceof ActivityHoursRequestError && error.status === 409) {
+        setDayStart(null)
+        setDayEnd(null)
+        void queryClient.invalidateQueries({ queryKey })
+      }
+    }
+  })
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setValidationMessage('')
+    setSuccessMessage('')
+    const parsed = parseActivityHoursInput({ dayStart: currentStart, dayEnd: currentEnd })
+    if (!parsed.ok) {
+      setValidationMessage(parsed.message)
+      return
+    }
+    if (!settingsQuery.data) {
+      setValidationMessage('활동 시간 설정을 불러온 뒤 다시 시도해 주세요.')
+      return
+    }
+    saveMutation.mutate({ ...parsed.value, version: settingsQuery.data.version })
+  }
+
+  function changeStart(value: string) {
+    setDayStart(value)
+    setValidationMessage('')
+    setSuccessMessage('')
+  }
+
+  function changeEnd(value: string) {
+    setDayEnd(value)
+    setValidationMessage('')
+    setSuccessMessage('')
+  }
+
+  return <section className="real-activity-hours" aria-label="활동 시간 설정">
+    <div className="real-activity-hours-summary"><div><p className="section-kicker">MY DAY</p><strong>{settingsQuery.isPending ? '활동 시간 불러오는 중…' : settingsQuery.isError ? '활동 시간 설정을 불러오지 못했어요' : '활동 시간 ' + settingsQuery.data.dayStart + ' – ' + settingsQuery.data.dayEnd}</strong><p>기존 일정은 유지되고 새 일정과 시간 변경에 적용돼요.</p></div><button type="button" className="real-secondary-button" aria-expanded={open} aria-controls="activity-hours-form" onClick={() => setOpen(value => !value)}>{open ? '닫기' : '시간 설정'}</button></div>
+    {settingsQuery.isError && <p className="real-activity-hours-error" role="alert">{settingsQuery.error instanceof Error ? settingsQuery.error.message : '활동 시간 설정을 불러오지 못했어요.'} <button type="button" className="real-text-button" onClick={() => void settingsQuery.refetch()}>다시 시도</button></p>}
+    {open && <form id="activity-hours-form" className="real-activity-hours-form" onSubmit={save}>
+      <label>시작 시간<input type="time" value={currentStart} min="00:00" max="23:45" step={900} required disabled={settingsQuery.isPending || settingsQuery.isError || saveMutation.isPending} onChange={event => changeStart(event.target.value)} /></label>
+      <span className="real-activity-hours-separator" aria-hidden="true">–</span>
+      <label>종료 시간<input type="time" value={currentEnd} min="00:15" max="23:45" step={900} required disabled={settingsQuery.isPending || settingsQuery.isError || saveMutation.isPending} onChange={event => changeEnd(event.target.value)} /></label>
+      <p>한국 시간 · 15분 단위</p>
+      {(validationMessage || successMessage) && <p className={validationMessage ? 'real-activity-hours-error' : 'real-activity-hours-success'} role={validationMessage ? 'alert' : 'status'}>{validationMessage || successMessage}</p>}
+      <button type="submit" className="real-primary-button" disabled={settingsQuery.isPending || settingsQuery.isError || saveMutation.isPending}>{saveMutation.isPending ? '저장 중…' : '활동 시간 저장'}</button>
+    </form>}
+  </section>
 }
 
 function EventDatePicker({ value, today, onChange, invalid, open, setActivePicker }: { value: string; today: string; onChange: (date: string) => void; invalid: boolean; open: boolean; setActivePicker: Dispatch<SetStateAction<ActiveSchedulePicker>> }) {
@@ -287,6 +362,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
     <header className="real-schedule-header"><Link href="/" className="real-schedule-brand">틈새 <small>TEUMSAE</small></Link><div className="real-header-actions"><Link className="real-sample-link" href="/">샘플 화면 보기</Link><SignOutButton /></div></header>
     <section className="real-schedule-content">
       <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div></div>
+      <ActivityHoursPanel userId={userId} />
       <div className="real-schedule-workspace">
         <section className="real-calendar-card" aria-label="일정 달력">
           <div className="real-calendar-toolbar"><div className="real-period-switch" role="group" aria-label="달력 보기"><button type="button" className={view === 'week' ? 'is-active' : ''} aria-pressed={view === 'week'} onClick={() => navigate(selectedDate, 'week')}>주</button><button type="button" className={view === 'month' ? 'is-active' : ''} aria-pressed={view === 'month'} onClick={() => navigate(selectedDate, 'month')}>월</button></div><div className="real-period-controls"><button type="button" className="real-period-arrow" aria-label="이전" onClick={() => changePeriod(-1)}>‹</button><button type="button" className="real-today-button" onClick={() => navigate(today)}>오늘</button><button type="button" className="real-period-arrow" aria-label="다음" onClick={() => changePeriod(1)}>›</button></div></div>
