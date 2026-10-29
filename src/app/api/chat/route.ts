@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 const privateHeaders = { 'Cache-Control': 'private, no-store' }
 const modelUrl = 'https://api.groq.com/openai/v1/chat/completions'
-const maxModelCalls = 3
+const maxModelCalls = 5
 const maxToolCalls = 5
 const requestBudgetMs = 20000
 

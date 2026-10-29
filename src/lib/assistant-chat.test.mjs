@@ -40,6 +40,8 @@ test('validates the model input separately for event and availability tools', ()
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', startTime: '09:00' }).ok, false)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 50 }).ok, false)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 60 }).ok, true)
+  assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 180 }).ok, true)
+  assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 3 }).ok, false)
 })
 
 test('uses Seoul local date for natural language reference context', () => {
