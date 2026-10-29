@@ -518,10 +518,21 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-close { display: none; margin-left: auto; border: 0; background: transparent; color: var(--ink-soft); font-size: 24px; }
 .assistant-live-messages { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding: 14px 12px; }
 .assistant-live-message { display: grid; gap: 9px; align-self: flex-start; width: 100%; max-width: 100%; }
-.assistant-live-message > p { margin: 0; padding: 10px 12px; border-radius: 5px 14px 14px 14px; background: #f1f6ef; color: #38584e; font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.assistant-live-message > p, .assistant-live-markdown { margin: 0; padding: 10px 12px; border-radius: 5px 14px 14px 14px; background: #f1f6ef; color: #38584e; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.assistant-live-markdown > :first-child { margin-top: 0; }
+.assistant-live-markdown > :last-child { margin-bottom: 0; }
+.assistant-live-markdown p { margin: 0 0 8px; white-space: pre-wrap; }
+.assistant-live-markdown h1, .assistant-live-markdown h2, .assistant-live-markdown h3 { margin: 10px 0 5px; color: var(--ink); font-size: 13px; line-height: 1.4; }
+.assistant-live-markdown ul, .assistant-live-markdown ol { margin: 5px 0 9px; padding-left: 21px; }
+.assistant-live-markdown li + li { margin-top: 3px; }
+.assistant-live-markdown blockquote { margin: 8px 0; padding-left: 10px; border-left: 2px solid #aac9b7; color: var(--ink-soft); }
+.assistant-live-markdown pre { max-width: 100%; overflow-x: auto; padding: 9px; border-radius: 8px; background: #e8efe8; font-size: 10px; }
+.assistant-live-markdown code { padding: 1px 4px; border-radius: 4px; background: #e7eee8; font-size: .92em; }
+.assistant-live-markdown pre code { padding: 0; background: transparent; }
+.assistant-live-markdown a { color: var(--teal-dark); text-decoration: underline; text-underline-offset: 2px; }
 .assistant-live-message.is-user { align-self: flex-end; width: auto; max-width: 90%; }
 .assistant-live-message.is-user > p { border-radius: 14px 5px 14px 14px; background: var(--teal); color: #fff; }
-.assistant-live-message.is-error > p { background: #fff0e8; color: #9b5c46; }
+.assistant-live-message.is-error > p, .assistant-live-message.is-error .assistant-live-markdown { background: #fff0e8; color: #9b5c46; }
 .assistant-live-fallback-note { color: var(--muted); font-size: 9px; }
 .assistant-live-pending, .assistant-live-notice { margin: 0 12px 8px; color: var(--muted); font-size: 11px; }
 .assistant-live-form { display: flex; align-items: flex-end; gap: 8px; margin: 0 11px 11px; padding: 8px; border: 1px solid #dce7dd; border-radius: 13px; background: #fff; }
