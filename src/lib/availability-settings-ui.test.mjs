@@ -4,6 +4,7 @@ import test from 'node:test'
 
 const settings = await readFile(new URL('../components/availability-settings.tsx', import.meta.url), 'utf8')
 const demo = await readFile(new URL('../components/schedule-demo.tsx', import.meta.url), 'utf8')
+const realSchedule = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
 const stylesheet = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8')
 
 test('lets weekly availability save without requiring a vacation date', () => {
@@ -19,4 +20,6 @@ test('shows calendar event details in a project-styled custom tooltip', () => {
   assert.match(stylesheet, /\.event-block::after[\s\S]*?content: attr\(data-tooltip\)/)
   assert.match(stylesheet, /\.event-block::after \{[^}]*bottom: calc\(100% \+ 8px\)/)
   assert.match(stylesheet, /\.event-block::before \{[^}]*transform: translateX\(-50%\) rotate\(45deg\)/)
+  assert.match(realSchedule, /className="real-calendar-event"[^>]*data-tooltip=/)
+  assert.match(stylesheet, /\.real-calendar-event::after \{[^}]*content: attr\(data-tooltip\)/)
 })
