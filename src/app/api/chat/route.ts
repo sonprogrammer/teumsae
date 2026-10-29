@@ -90,7 +90,9 @@ export async function POST(request: Request) {
     { role: 'user', content: parsed.value.message }
   ]
   const cards: AssistantCard[] = []
+  // 개발 검증용 호출 기록으로, 제목·메모·검색어 원문 없이 입력 조건과 결과 건수만 담고 대화 DB에는 저장하지 않는다.
   const toolLog: AssistantToolCallLog[] = []
+  const diagnosticDetails = () => process.env.NODE_ENV === 'development' ? { toolCalls: toolLog } : {}
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), requestBudgetMs)
   let modelCalls = 0
@@ -193,14 +195,14 @@ export async function POST(request: Request) {
     clearTimeout(timer)
   }
 
-  if (requestFailure) return responseError(requestFailure.code, requestFailure.message, requestFailure.status, { model, usage: { totalTokens }, toolCalls: toolLog, cards })
+  if (requestFailure) return responseError(requestFailure.code, requestFailure.message, requestFailure.status, { model, usage: { totalTokens }, ...diagnosticDetails(), cards })
   const nextMessages = [...conversationMessages, { role: 'user' as const, content: parsed.value.message }, { role: 'assistant' as const, content: assistantText }].slice(-8)
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   const save = parsed.value.conversationId
     ? supabase.from('conversations').update({ messages: nextMessages, context, version: version + 1, expires_at: expiresAt, updated_at: new Date().toISOString() }).eq('id', conversationId).eq('owner_id', userId).eq('version', version).select('id').maybeSingle()
     : supabase.from('conversations').insert({ id: conversationId, owner_id: userId, messages: nextMessages, context, version: 1, expires_at: expiresAt }).select('id').single()
   const { data: saved, error: saveError } = await save
-  if (saveError) return responseError('CONVERSATION_SAVE_FAILED', 'AI 답변은 받았지만 대화 상태를 저장하지 못했어요. 다시 시도해 주세요.', 500, { response: assistantText, model, usage: { totalTokens }, cards, toolCalls: toolLog })
-  if (!saved) return responseError('CONVERSATION_CONFLICT', '다른 요청에서 대화가 바뀌었어요. 최신 응답을 확인해 주세요.', 409, { response: assistantText, model, usage: { totalTokens }, cards, toolCalls: toolLog })
-  return NextResponse.json({ response: assistantText, answerSource, conversationId, version: version + 1, cards, toolCalls: toolLog, model, usage: { totalTokens } }, { headers: privateHeaders })
+  if (saveError) return responseError('CONVERSATION_SAVE_FAILED', 'AI 답변은 받았지만 대화 상태를 저장하지 못했어요. 다시 시도해 주세요.', 500, { response: assistantText, model, usage: { totalTokens }, cards, ...diagnosticDetails() })
+  if (!saved) return responseError('CONVERSATION_CONFLICT', '다른 요청에서 대화가 바뀌었어요. 최신 응답을 확인해 주세요.', 409, { response: assistantText, model, usage: { totalTokens }, cards, ...diagnosticDetails() })
+  return NextResponse.json({ response: assistantText, answerSource, conversationId, version: version + 1, cards, ...diagnosticDetails(), model, usage: { totalTokens } }, { headers: privateHeaders })
 }
