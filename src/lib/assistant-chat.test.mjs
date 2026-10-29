@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, validateAssistantToolArguments } from './assistant-chat.ts'
+import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ' }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null } })
@@ -61,6 +61,14 @@ test('keeps a compact Korean-time event result for follow-up questions', () => {
   assert.equal(summary.events[0].startTime, '09:00')
   assert.equal(summary.events[0].endTime, '10:00')
   assert.equal(summary.hasMore, true)
+})
+
+test('returns only Korean-time events that overlap the requested availability window', () => {
+  const conflicts = summarizeAssistantConflicts([
+    { title: '아침 미팅', starts_at: '2026-10-31T00:00:00.000Z', ends_at: '2026-10-31T01:00:00.000Z' },
+    { title: '점심 일정', starts_at: '2026-10-31T03:00:00.000Z', ends_at: '2026-10-31T04:00:00.000Z' }
+  ], { startDate: '2026-10-31', endDate: '2026-10-31', startTime: '08:00', endTime: '10:00' })
+  assert.deepEqual(conflicts, [{ title: '아침 미팅', date: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' }])
 })
 
 test('returns a clearly identified server fallback only when tool results are successful', () => {

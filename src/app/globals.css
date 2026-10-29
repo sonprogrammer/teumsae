@@ -539,6 +539,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .chat-event-results li > span, .chat-event-results li small { color: var(--muted); font-size: 9px; }
 .chat-event-results li strong { color: var(--ink); font-size: 11px; }
 .chat-card-empty { margin: 0; color: var(--ink-soft); font-size: 10px; line-height: 1.6; }
+.chat-conflict-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.chat-conflict-list li { display: grid; gap: 3px; padding: 8px; border-radius: 9px; background: #fff3e9; }
+.chat-conflict-list li span { color: #9a6c52; font-size: 9px; }
+.chat-conflict-list li strong { color: #70442f; font-size: 10px; }
 .chat-candidate-list button { display: grid; grid-template-columns: 25px minmax(0, 1fr); align-items: center; gap: 3px 7px; padding: 8px; border: 1px solid #e2eadd; border-radius: 9px; background: #fff; color: var(--ink); text-align: left; }
 .chat-candidate-list button:hover { border-color: #a9ccb8; background: #f2f8f1; }
 .chat-candidate-list button > span { display: grid; place-items: center; grid-row: span 2; width: 23px; height: 23px; border-radius: 50%; background: #e9f5ec; color: var(--teal); font-size: 10px; font-weight: 800; }

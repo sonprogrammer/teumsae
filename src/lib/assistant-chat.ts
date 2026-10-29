@@ -90,3 +90,14 @@ export function summarizeAssistantEvents(events: Array<{ title: string; starts_a
     hasMore: events.length > limit
   }
 }
+
+export function summarizeAssistantConflicts(events: Array<{ title: string; starts_at: string; ends_at: string }>, range: { startDate: string; endDate: string; startTime: string; endTime: string }) {
+  const rangeStart = `${range.startDate}T${range.startTime}`
+  const rangeEnd = `${range.endDate}T${range.endTime}`
+  return events.flatMap(event => {
+    const start = formatKoreaDateTime(event.starts_at)
+    const end = formatKoreaDateTime(event.ends_at)
+    if (!start || !end || `${start.date}T${start.time}` >= rangeEnd || `${end.date}T${end.time}` <= rangeStart) return []
+    return [{ title: event.title, date: start.date, startTime: start.time, endDate: end.date, endTime: end.time }]
+  })
+}
