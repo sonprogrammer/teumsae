@@ -139,7 +139,6 @@ export function findAvailabilitySlots({ windows, events, request, limit }: { win
 
 const searchTimezone = 'Asia/Seoul'
 const dayMinutes = 24 * 60
-const maxSearchDays = 7
 const maxEvents = 100
 const maxCandidates = 3
 
@@ -224,8 +223,8 @@ export function parseAvailabilitySearchRequest(input: unknown, now = new Date())
   const durationMinutes = value.durationMinutes
   const today = koreaParts(now).date
 
-  if (!isSearchDate(startDate) || !isSearchDate(endDate) || startDate > endDate || startDate < today || searchDayCount(startDate, endDate) > maxSearchDays) {
-    return { ok: false, message: '오늘부터 7일 이내의 날짜 범위를 입력해 주세요.' }
+  if (!isSearchDate(startDate) || !isSearchDate(endDate) || startDate > endDate || startDate < today) {
+    return { ok: false, message: '오늘부터의 올바른 날짜 범위를 입력해 주세요.' }
   }
   if (hasStartTime !== hasEndTime || !isSearchTime(startTime) || !isSearchTime(endTime, true) || !isSearchQuarterHour(startTime) || !isSearchQuarterHour(endTime) || searchTimeToMinutes(startTime) >= searchTimeToMinutes(endTime)) {
     return { ok: false, message: '검색 시간은 15분 단위의 올바른 시간 범위로 입력해 주세요.' }
@@ -254,13 +253,18 @@ function searchEventTime(value: string) {
   return { date: koreaParts(date).date, minutes: Number(fields.hour) * 60 + Number(fields.minute) }
 }
 
-function searchBusyIntervals(date: string, events: SearchEvent[]) {
-  return events.map(event => {
+function groupSearchBusyIntervals(events: SearchEvent[]) {
+  const grouped = new Map<string, Array<{ start: number; end: number }>>()
+  for (const event of events) {
     const start = searchEventTime(event.starts_at)
     const end = searchEventTime(event.ends_at)
     if (!start || !end || start.date !== end.date || start.minutes >= end.minutes) throw new Error('INVALID_EVENT_INTERVAL')
-    return { date: start.date, start: start.minutes, end: end.minutes }
-  }).filter(event => event.date === date).sort((left, right) => left.start - right.start)
+    const intervals = grouped.get(start.date) ?? []
+    intervals.push({ start: start.minutes, end: end.minutes })
+    grouped.set(start.date, intervals)
+  }
+  for (const intervals of grouped.values()) intervals.sort((left, right) => left.start - right.start)
+  return grouped
 }
 
 function findFreeIntervals(start: number, end: number, busy: Array<{ start: number; end: number }>) {
@@ -281,6 +285,7 @@ export function searchAvailability({ request, schedule, events, now = new Date()
   if (events.length > maxEvents) throw new Error('AVAILABILITY_EVENT_LIMIT')
   const today = koreaParts(now).date
   const nowMinutes = koreaParts(now).minutes
+  const busyByDate = groupSearchBusyIntervals(events)
   const candidates: SearchCandidate[] = []
   const intervals: SearchInterval[] = []
   let hasMore = false
@@ -293,7 +298,7 @@ export function searchAvailability({ request, schedule, events, now = new Date()
     const windows = availabilityWindowsForDate(date, schedule)
       .map(window => ({ start: Math.max(requestStart, searchTimeToMinutes(window.start)), end: Math.min(requestEnd, searchTimeToMinutes(window.end)) }))
       .filter(window => window.start < window.end)
-    const busy = searchBusyIntervals(date, events)
+    const busy = busyByDate.get(date) ?? []
 
     if (request.durationMinutes !== undefined) {
       for (const window of windows) {
