@@ -41,11 +41,10 @@ test('requires a 15 to 240 minute duration in 15 minute increments', () => {
   assert.equal(parseEventInput({ ...input, endsAt: '2026-10-28T15:00:00+09:00' }, now).field, 'endsAt')
 })
 
-test('validates new events against the configured activity hours', () => {
+test('manual event validation allows times outside recommendation windows', () => {
   const hours = { dayStart: '09:00', dayEnd: '21:00' }
-  assert.equal(parseEventInput({ title: '작업', startsAt: '2026-10-28T08:45', endsAt: '2026-10-28T09:45' }, now, { activityHours: hours }).field, 'startsAt')
-  assert.equal(parseEventInput({ title: '작업', startsAt: '2026-10-28T20:30', endsAt: '2026-10-28T21:30' }, now, { activityHours: hours }).field, 'endsAt')
-  assert.equal(parseEventInput({ title: '작업', startsAt: '2026-10-28T20:00', endsAt: '2026-10-28T21:00' }, now, { activityHours: hours }).ok, true)
+  assert.equal(parseEventInput({ title: '출근', startsAt: '2026-10-28T08:45', endsAt: '2026-10-28T09:45' }, now, { activityHours: hours }).ok, true)
+  assert.equal(parseEventInput({ title: '야간 작업', startsAt: '2026-10-28T21:00', endsAt: '2026-10-28T22:00' }, now, { activityHours: hours }).ok, true)
 })
 
 test('rejects end before start, a different Korea date, and a past start', () => {
@@ -67,6 +66,5 @@ test('maps database conflict, stale version, missing event and unknown failures 
   assert.match(eventMutationMessage('23P01'), /겹쳐요/)
   assert.match(eventMutationMessage('40001'), /최신/)
   assert.match(eventMutationMessage('P0002'), /찾을 수/)
-  assert.match(eventMutationMessage('22023', 'outside_activity_hours'), /활동 시간 밖/)
   assert.match(eventMutationMessage('XX000'), /저장하지 못/)
 })

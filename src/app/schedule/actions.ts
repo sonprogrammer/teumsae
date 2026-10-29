@@ -1,6 +1,6 @@
 'use server'
 
-import { eventMutationMessage, normalizeActivityTime, parseActivityHoursInput, parseEventInput, type EventActionState, type EventRecordInput } from '@/lib/events'
+import { eventMutationMessage, parseEventInput, type EventActionState, type EventRecordInput } from '@/lib/events'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 async function authenticatedClient() {
@@ -15,13 +15,13 @@ function textValue(formData: FormData, name: string) {
   return typeof value === 'string' ? value : ''
 }
 
-function eventInput(formData: FormData, allowPast = false, activityHours?: { dayStart: string; dayEnd: string }) {
+function eventInput(formData: FormData, allowPast = false) {
   return parseEventInput({
     title: textValue(formData, 'title'),
     note: textValue(formData, 'note'),
     startsAt: textValue(formData, 'startsAt'),
     endsAt: textValue(formData, 'endsAt')
-  }, new Date(), { allowPast, activityHours })
+  }, new Date(), { allowPast })
 }
 
 function rpcInput(value: EventRecordInput) {
@@ -41,17 +41,8 @@ function invalidEvent(field: 'title' | 'note' | 'startsAt' | 'endsAt', message: 
   return { status: 'error', field, message }
 }
 
-function mutationFailure(code: string, detail = ''): EventActionState {
-  return { status: 'error', message: eventMutationMessage(code, detail) }
-}
-
-async function currentActivityHours(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
-  const { data, error } = await supabase.rpc('get_activity_hours')
-  if (error) return null
-  const row = Array.isArray(data) ? data[0] : data
-  if (!row) return null
-  const parsed = parseActivityHoursInput({ dayStart: normalizeActivityTime(row.day_start), dayEnd: normalizeActivityTime(row.day_end) })
-  return parsed.ok ? parsed.value : null
+function mutationFailure(code: string): EventActionState {
+  return { status: 'error', message: eventMutationMessage(code) }
 }
 
 function validVersion(formData: FormData) {
@@ -62,12 +53,10 @@ function validVersion(formData: FormData) {
 export async function createEventAction(_previous: EventActionState, formData: FormData): Promise<EventActionState> {
   const supabase = await authenticatedClient()
   if (!supabase) return invalidSession()
-  const hours = await currentActivityHours(supabase)
-  if (!hours) return { status: 'error', message: '활동 시간 설정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.' }
-  const parsed = eventInput(formData, false, hours)
+  const parsed = eventInput(formData)
   if (!parsed.ok) return invalidEvent(parsed.field, parsed.message)
   const { error } = await supabase.rpc('create_event', rpcInput(parsed.value))
-  if (error) return mutationFailure(error.code, error.message)
+  if (error) return mutationFailure(error.code)
   return { status: 'success', message: '일정을 등록했어요.' }
 }
 
@@ -86,7 +75,7 @@ export async function updateEventAction(_previous: EventActionState, formData: F
     p_expected_version: version,
     ...rpcInput(parsed.value)
   })
-  if (error) return mutationFailure(error.code, error.message)
+  if (error) return mutationFailure(error.code)
   return { status: 'success', message: '일정을 수정했어요.' }
 }
 
@@ -99,6 +88,6 @@ export async function deleteEventAction(_previous: EventActionState, formData: F
     return { status: 'error', message: '일정 정보가 올바르지 않아요. 새로고침해 주세요.' }
   }
   const { error } = await supabase.rpc('delete_event', { p_event_id: id, p_expected_version: version })
-  if (error) return mutationFailure(error.code, error.message)
+  if (error) return mutationFailure(error.code)
   return { status: 'success', message: '일정을 삭제했어요.' }
 }
