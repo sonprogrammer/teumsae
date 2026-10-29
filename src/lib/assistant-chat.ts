@@ -70,3 +70,12 @@ export function getKoreaToday(now = new Date()) {
   const fields = Object.fromEntries(parts.map(part => [part.type, part.value]))
   return fields.year + '-' + fields.month + '-' + fields.day
 }
+
+export function formatKoreaDateTime(value: string): { date: string; time: string } | null {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return null
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date)
+  const fields = Object.fromEntries(parts.map(part => [part.type, part.value]))
+  if (!fields.year || !fields.month || !fields.day || !fields.hour || !fields.minute) return null
+  return { date: `${fields.year}-${fields.month}-${fields.day}`, time: `${fields.hour}:${fields.minute}` }
+}

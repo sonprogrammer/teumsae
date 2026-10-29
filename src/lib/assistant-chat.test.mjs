@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { countInclusiveDays, createToolLimitFallback, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, validateAssistantToolArguments } from './assistant-chat.ts'
+import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ' }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null } })
@@ -44,6 +44,11 @@ test('validates the model input separately for event and availability tools', ()
 
 test('uses Seoul local date for natural language reference context', () => {
   assert.equal(getKoreaToday(new Date('2026-10-29T15:30:00.000Z')), '2026-10-30')
+})
+
+test('converts UTC timestamps to Korean date and time before sending them to the model', () => {
+  assert.deepEqual(formatKoreaDateTime('2026-10-29T15:30:00.000Z'), { date: '2026-10-30', time: '00:30' })
+  assert.deepEqual(formatKoreaDateTime('2026-11-02T00:00:00.000Z'), { date: '2026-11-02', time: '09:00' })
 })
 
 test('returns a clearly identified server fallback only when tool results are successful', () => {

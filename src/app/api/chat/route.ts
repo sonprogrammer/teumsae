@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { createToolLimitFallback, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName } from '@/lib/assistant-chat'
+import { createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName } from '@/lib/assistant-chat'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -19,6 +19,22 @@ function responseError(code: string, message: string, status: number, details: R
 function asMessages(value: unknown): Array<{ role: 'user' | 'assistant'; content: string }> {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is { role: 'user' | 'assistant'; content: string } => Boolean(item) && typeof item === 'object' && ((item as Record<string, unknown>).role === 'user' || (item as Record<string, unknown>).role === 'assistant') && typeof (item as Record<string, unknown>).content === 'string').slice(-8)
+}
+
+function modelToolResult(card: AssistantCard) {
+  if (card.type !== 'events') return card
+  return {
+    type: card.type,
+    startDate: card.startDate,
+    endDate: card.endDate,
+    hasMore: card.hasMore,
+    timezone: 'Asia/Seoul',
+    events: card.events.map(event => {
+      const start = formatKoreaDateTime(event.starts_at)
+      const end = formatKoreaDateTime(event.ends_at)
+      return { title: event.title, startDate: start?.date, startTime: start?.time, endDate: end?.date, endTime: end?.time }
+    })
+  }
 }
 
 export async function POST(request: Request) {
@@ -154,7 +170,7 @@ export async function POST(request: Request) {
         }
         context = result.context
         cards.push(result.card)
-        modelMessages.push({ role: 'tool', tool_call_id: callId, name, content: JSON.stringify(result.card) })
+        modelMessages.push({ role: 'tool', tool_call_id: callId, name, content: JSON.stringify(modelToolResult(result.card)) })
       }
       if (requestFailure) break
     }
