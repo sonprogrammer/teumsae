@@ -43,6 +43,11 @@ export function countInclusiveDays(startDate: string, endDate: string) {
   return (Date.parse(endDate + 'T00:00:00.000Z') - Date.parse(startDate + 'T00:00:00.000Z')) / 86400000 + 1
 }
 
+export function createToolLimitFallback(cardCount: number, toolStatuses: string[]): string | null {
+  if (!Number.isSafeInteger(cardCount) || cardCount < 1 || !toolStatuses.length || toolStatuses.some(status => status !== 'success')) return null
+  return '조회 결과는 위 카드에 표시했어요. 더 궁금한 점이 있으면 이어서 물어봐 주세요.'
+}
+
 export function validateAssistantToolArguments(name: AssistantToolName, args: Record<string, unknown>) {
   const allowedArgs = name === 'listEvents' ? ['startDate', 'endDate', 'query'] : ['startDate', 'endDate', 'startTime', 'endTime', 'durationMinutes']
   if (Object.keys(args).some(key => !allowedArgs.includes(key))) return { ok: false as const, message: '지원하지 않는 조회 조건이 포함되어 있어요.' }

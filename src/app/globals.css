@@ -522,6 +522,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-message.is-user { align-self: flex-end; width: auto; max-width: 90%; }
 .assistant-live-message.is-user > p { border-radius: 14px 5px 14px 14px; background: var(--teal); color: #fff; }
 .assistant-live-message.is-error > p { background: #fff0e8; color: #9b5c46; }
+.assistant-live-fallback-note { color: var(--muted); font-size: 9px; }
 .assistant-live-pending, .assistant-live-notice { margin: 0 12px 8px; color: var(--muted); font-size: 11px; }
 .assistant-live-form { display: flex; align-items: flex-end; gap: 8px; margin: 0 11px 11px; padding: 8px; border: 1px solid #dce7dd; border-radius: 13px; background: #fff; }
 .assistant-live-form:focus-within { border-color: #8eb8a2; box-shadow: 0 0 0 3px #e7f2e9; }

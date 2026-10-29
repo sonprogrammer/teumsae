@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName } from '@/lib/assistant-chat'
+import { createToolLimitFallback, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName } from '@/lib/assistant-chat'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -77,6 +77,8 @@ export async function POST(request: Request) {
   let modelCalls = 0
   let totalTokens = 0
   let assistantText = ''
+  let answerSource: 'model' | 'server_fallback' = 'model'
+  let modelReturnedFinal = false
   let requestFailure: { code: string; message: string; status: number } | null = null
 
   try {
@@ -113,6 +115,7 @@ export async function POST(request: Request) {
       const content = typeof modelMessage.content === 'string' ? modelMessage.content : ''
       if (!toolCalls.length) {
         assistantText = content.trim()
+        modelReturnedFinal = true
         break
       }
       modelMessages.push({ role: 'assistant', content: content || null, tool_calls: toolCalls })
@@ -155,6 +158,13 @@ export async function POST(request: Request) {
       }
       if (requestFailure) break
     }
+    if (!requestFailure && !assistantText && !modelReturnedFinal && modelCalls >= maxModelCalls) {
+      const fallback = createToolLimitFallback(cards.length, toolLog.map(tool => tool.status))
+      if (fallback) {
+        assistantText = fallback
+        answerSource = 'server_fallback'
+      }
+    }
     if (!requestFailure && !assistantText) requestFailure = { code: 'MODEL_CALL_LIMIT', message: 'AI 응답이 복잡해 요청을 끝내지 못했어요. 조건을 나누어 다시 시도해 주세요.', status: 429 }
   } catch {
     requestFailure = controller.signal.aborted
@@ -173,5 +183,5 @@ export async function POST(request: Request) {
   const { data: saved, error: saveError } = await save
   if (saveError) return responseError('CONVERSATION_SAVE_FAILED', 'AI 답변은 받았지만 대화 상태를 저장하지 못했어요. 다시 시도해 주세요.', 500, { response: assistantText, model, usage: { totalTokens }, cards, toolCalls: toolLog })
   if (!saved) return responseError('CONVERSATION_CONFLICT', '다른 요청에서 대화가 바뀌었어요. 최신 응답을 확인해 주세요.', 409, { response: assistantText, model, usage: { totalTokens }, cards, toolCalls: toolLog })
-  return NextResponse.json({ response: assistantText, conversationId, version: version + 1, cards, toolCalls: toolLog, model, usage: { totalTokens } }, { headers: privateHeaders })
+  return NextResponse.json({ response: assistantText, answerSource, conversationId, version: version + 1, cards, toolCalls: toolLog, model, usage: { totalTokens } }, { headers: privateHeaders })
 }
