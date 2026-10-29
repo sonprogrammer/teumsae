@@ -43,6 +43,11 @@ export default function AssistantPanel() {
   const endRef = useRef<HTMLDivElement>(null)
   const launcherRef = useRef<HTMLButtonElement>(null)
 
+  function closePanel() {
+    setOpen(false)
+    requestAnimationFrame(() => launcherRef.current?.focus())
+  }
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, pending])
@@ -95,7 +100,7 @@ export default function AssistantPanel() {
 
   return <>
     <aside id="assistant-live-panel" className={'assistant-live-panel' + (open ? ' is-open' : '')} aria-label="AI 일정 도우미">
-      <div className="assistant-live-header"><span className="assistant-live-avatar" aria-hidden="true">✦</span><div><strong>틈새 AI 도우미</strong><small>실제 일정 조회 · 등록은 아직 지원하지 않아요</small></div><button type="button" className="assistant-live-close" aria-label="AI 도우미 닫기" onClick={() => { setOpen(false); requestAnimationFrame(() => launcherRef.current?.focus()) }}>×</button></div>
+      <div className="assistant-live-header"><span className="assistant-live-avatar" aria-hidden="true">✦</span><div><strong>틈새 AI 도우미</strong><small>실제 일정 조회 · 등록은 아직 지원하지 않아요</small></div><button type="button" className="assistant-live-close" aria-label="AI 도우미 닫기" onClick={closePanel}>×</button></div>
       <div className="assistant-live-messages" aria-live="polite">{messages.map((message, index) => <article className={'assistant-live-message is-' + message.role + (message.error ? ' is-error' : '')} key={index}><MessageBody message={message} />{message.answerSource === 'server_fallback' && <small className="assistant-live-fallback-note">서버 고정 안내 · AI 최종 문구는 생성되지 않았어요.</small>}{message.cards?.map((card, cardIndex) => <Card key={cardIndex} card={card} onChoose={choice => void sendMessage(choice)} />)}{/*
         개발 검증용 실행 기록: AI가 실제로 호출한 도구, 전달한 검색 조건, 결과 건수를 확인합니다.
         일반 사용자 화면에는 노출하지 않습니다. 필요하면 진단 타입과 표시 함수를 복원한 뒤 이 영역을 활성화하세요.
@@ -103,6 +108,7 @@ export default function AssistantPanel() {
       */}</article>)}{pending && <p className="assistant-live-pending" role="status">일정 정보를 확인하고 있어요…</p>}<div ref={endRef} /></div>
       <form className="assistant-live-form" onSubmit={submit}><label className="sr-only" htmlFor="assistant-live-input">일정 질문</label><textarea id="assistant-live-input" ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={1000} placeholder="예: 다음 주 월요일 오후 한 시간 비는 때 찾아줘" rows={2} disabled={pending} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /><button type="submit" disabled={pending || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button></form>
     </aside>
-    <button type="button" ref={launcherRef} className="assistant-live-launcher" aria-controls="assistant-live-panel" aria-expanded={open} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 150) }}><span aria-hidden="true">✦</span> AI에게 물어보기</button>
+    <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
+    <button type="button" ref={launcherRef} className="assistant-live-launcher" aria-controls="assistant-live-panel" aria-expanded={open} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><span aria-hidden="true">✦</span> AI에게 물어보기</button>
   </>
 }

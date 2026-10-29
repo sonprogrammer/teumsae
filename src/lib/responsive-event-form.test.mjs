@@ -23,6 +23,21 @@ function declarationsForSelector(selector, mediaCondition) {
   return declarations
 }
 
+function declarationsForBaseSelector(selector) {
+  const declarations = {}
+  stylesheet.walkRules(selector, rule => {
+    let parent = rule.parent
+    while (parent && parent.type !== 'root') {
+      if (parent.type === 'atrule') return
+      parent = parent.parent
+    }
+    rule.walkDecls(declaration => {
+      declarations[declaration.prop] = declaration.value
+    })
+  })
+  return declarations
+}
+
 test('lets the edit form use the full event card width', () => {
   const declarations = declarationsForSelector('.real-event-form')
   assert.equal(declarations['grid-column'], '1 / -1')
@@ -38,8 +53,24 @@ test('stacks the calendar and agenda when the viewport cannot fit both panels', 
   assert.equal(declarations['grid-template-columns'], 'minmax(0, 1fr)')
 })
 
-test('opens the AI panel from a mobile launcher without showing an inactive drawer', () => {
-  assert.equal(declarationsForSelector('.assistant-live-panel', '(max-width: 700px)')['display'], 'none')
-  assert.equal(declarationsForSelector('.assistant-live-panel.is-open', '(max-width: 700px)')['display'], 'flex')
-  assert.equal(declarationsForSelector('.assistant-live-launcher', '(max-width: 700px)')['display'], 'flex')
+test('keeps the desktop AI conversation collapsed beside a persistent floating launcher', () => {
+  const panel = declarationsForBaseSelector('.assistant-live-panel')
+  const openPanel = declarationsForBaseSelector('.assistant-live-panel.is-open')
+  assert.equal(panel['position'], 'fixed')
+  assert.equal(panel['visibility'], 'hidden')
+  assert.equal(panel['transform-origin'], 'bottom right')
+  assert.equal(openPanel['visibility'], 'visible')
+  assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['position'], 'fixed')
+  assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['display'], 'flex')
+})
+
+test('opens the mobile AI panel as an animated bottom sheet with a dismissible backdrop', () => {
+  const panel = declarationsForSelector('.assistant-live-panel', '(max-width: 700px)')
+  const openPanel = declarationsForSelector('.assistant-live-panel.is-open', '(max-width: 700px)')
+  assert.equal(panel['transform'], 'translate3d(0, 100%, 0)')
+  assert.equal(openPanel['transform'], 'translate3d(0, 0, 0)')
+  assert.equal(declarationsForSelector('.assistant-live-backdrop', '(max-width: 700px)')['display'], 'block')
+  assert.equal(declarationsForBaseSelector('.assistant-live-panel')['visibility'], 'hidden')
+  assert.equal(declarationsForBaseSelector('.assistant-live-panel.is-open')['visibility'], 'visible')
+  assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['display'], 'flex')
 })
