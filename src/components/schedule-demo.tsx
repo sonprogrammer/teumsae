@@ -68,7 +68,7 @@ function findDemoSlots(events: SampleEvent[], date: string) {
 }
 
 export default function ScheduleDemo({ today }: { today: string }) {
-  const firstDate = today
+  const firstDate = addDays(today, 1)
   const [events, setEvents] = useState<SampleEvent[]>(() => sampleEvents(today))
   const [selectedDate, setSelectedDate] = useState(firstDate)
   const [calendarView, setCalendarView] = useState<CalendarView>('week')
