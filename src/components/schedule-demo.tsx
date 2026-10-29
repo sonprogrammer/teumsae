@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { findSampleSlots, type SampleSlot } from '@/lib/sample-schedule'
+import { availabilityWindowsForDate, DEFAULT_SCHEDULE_AVAILABILITY, findAvailabilitySlots } from '@/lib/availability'
+import type { SampleSlot } from '@/lib/sample-schedule'
 import { monthGrid, shiftMonth } from '@/lib/calendar-grid'
 
 type EventKind = 'teal' | 'coral' | 'lilac'
@@ -57,13 +58,22 @@ function sampleEvents(today: string): SampleEvent[] {
   ]
 }
 
+function findDemoSlots(events: SampleEvent[], date: string) {
+  return findAvailabilitySlots({
+    windows: availabilityWindowsForDate(date, DEFAULT_SCHEDULE_AVAILABILITY),
+    events: events.filter(event => event.date === date),
+    request: { start: '13:00', end: '18:00', durationMinutes: 60 },
+    limit: 3
+  })
+}
+
 export default function ScheduleDemo({ today }: { today: string }) {
   const firstDate = addDays(today, 1)
   const [events, setEvents] = useState<SampleEvent[]>(() => sampleEvents(today))
   const [selectedDate, setSelectedDate] = useState(firstDate)
   const [calendarView, setCalendarView] = useState<CalendarView>('week')
   const [candidateDate, setCandidateDate] = useState(firstDate)
-  const [candidates, setCandidates] = useState<SampleSlot[]>(() => findSampleSlots(sampleEvents(today), firstDate))
+  const [candidates, setCandidates] = useState<SampleSlot[]>(() => findDemoSlots(sampleEvents(today), firstDate))
   const [awaitingSearch, setAwaitingSearch] = useState(false)
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(1)
   const [prompt, setPrompt] = useState(samplePrompt)
@@ -150,7 +160,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
     setIsSearching(true)
     window.setTimeout(() => {
       setCandidateDate(selectedDate)
-      setCandidates(findSampleSlots(events, selectedDate))
+      setCandidates(findDemoSlots(events, selectedDate))
       setAwaitingSearch(false)
       setIsSearching(false)
     }, 500)
