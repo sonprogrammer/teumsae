@@ -85,3 +85,54 @@ export function availabilityWindowsForDate(date: string, schedule: Pick<Schedule
   const dayOfWeek = dateValue.getUTCDay() || 7
   return schedule.weekly.find(day => day.weekday === dayOfWeek)?.windows.map(window => ({ ...window })) ?? []
 }
+
+export type BusyInterval = { start: string; end: string }
+export type AvailabilitySlot = { start: string; end: string }
+export type AvailabilitySlotRequest = { start: string; end: string; durationMinutes: number }
+
+function toMinutes(time: string) {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function toTime(minutes: number) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+function isTime(value: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
+}
+
+export function findAvailabilitySlots({ windows, events, request, limit }: { windows: AvailabilityWindow[]; events: BusyInterval[]; request: AvailabilitySlotRequest; limit: number }): AvailabilitySlot[] {
+  if (!isTime(request.start) || !isTime(request.end) || request.start >= request.end || !Number.isInteger(request.durationMinutes) || request.durationMinutes <= 0 || request.durationMinutes % 15 !== 0 || !Number.isInteger(limit) || limit <= 0) return []
+
+  const requestStart = toMinutes(request.start)
+  const requestEnd = toMinutes(request.end)
+  const duration = request.durationMinutes
+  const busy = events
+    .filter(event => isTime(event.start) && isTime(event.end) && event.start < event.end)
+    .map(event => ({ start: toMinutes(event.start), end: toMinutes(event.end) }))
+    .sort((left, right) => left.start - right.start)
+  const slots: AvailabilitySlot[] = []
+
+  for (const window of [...windows].sort((left, right) => left.start.localeCompare(right.start))) {
+    if (!isTime(window.start) || !isTime(window.end) || window.start >= window.end) continue
+    const windowStart = Math.max(requestStart, toMinutes(window.start))
+    const windowEnd = Math.min(requestEnd, toMinutes(window.end))
+    let start = Math.ceil(windowStart / 15) * 15
+
+    while (start + duration <= windowEnd && slots.length < limit) {
+      const end = start + duration
+      const conflict = busy.find(event => event.start < end && event.end > start)
+      if (conflict) {
+        start = Math.ceil(Math.max(start + 15, conflict.end) / 15) * 15
+        continue
+      }
+      slots.push({ start: toTime(start), end: toTime(end) })
+      start = end
+    }
+    if (slots.length >= limit) break
+  }
+
+  return slots
+}
