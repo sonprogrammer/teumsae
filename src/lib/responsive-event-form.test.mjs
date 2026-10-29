@@ -37,3 +37,9 @@ test('stacks the calendar and agenda when the viewport cannot fit both panels', 
   const declarations = declarationsForSelector('.real-schedule-workspace', '(max-width: 1200px)')
   assert.equal(declarations['grid-template-columns'], 'minmax(0, 1fr)')
 })
+
+test('opens the AI panel from a mobile launcher without showing an inactive drawer', () => {
+  assert.equal(declarationsForSelector('.assistant-live-panel', '(max-width: 700px)')['display'], 'none')
+  assert.equal(declarationsForSelector('.assistant-live-panel.is-open', '(max-width: 700px)')['display'], 'flex')
+  assert.equal(declarationsForSelector('.assistant-live-launcher', '(max-width: 700px)')['display'], 'flex')
+})
