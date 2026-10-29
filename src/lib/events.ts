@@ -72,7 +72,6 @@ export function parseEventInput(input: EventInput, now = new Date(), options: { 
   if (durationMinutes < 15 || durationMinutes > 240 || durationMinutes % 15 !== 0 || koreaDate(startsAt) !== koreaDate(endsAt)) {
     return { ok: false, field: 'endsAt', message: '종료 시각은 같은 날짜의 시작 이후 15~240분으로 설정해 주세요.' }
   }
-
   return {
     ok: true,
     value: {

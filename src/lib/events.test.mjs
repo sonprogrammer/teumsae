@@ -41,6 +41,12 @@ test('requires a 15 to 240 minute duration in 15 minute increments', () => {
   assert.equal(parseEventInput({ ...input, endsAt: '2026-10-28T15:00:00+09:00' }, now).field, 'endsAt')
 })
 
+test('manual event validation allows times outside recommendation windows', () => {
+  const hours = { dayStart: '09:00', dayEnd: '21:00' }
+  assert.equal(parseEventInput({ title: '출근', startsAt: '2026-10-28T08:45', endsAt: '2026-10-28T09:45' }, now, { activityHours: hours }).ok, true)
+  assert.equal(parseEventInput({ title: '야간 작업', startsAt: '2026-10-28T21:00', endsAt: '2026-10-28T22:00' }, now, { activityHours: hours }).ok, true)
+})
+
 test('rejects end before start, a different Korea date, and a past start', () => {
   assert.equal(parseEventInput({ title: '작업', startsAt: '2026-10-28T11:00:00+09:00', endsAt: '2026-10-28T10:00:00+09:00' }, now).field, 'endsAt')
   assert.equal(parseEventInput({ title: '작업', startsAt: '2026-10-28T23:00:00+09:00', endsAt: '2026-10-29T00:00:00+09:00' }, now).field, 'endsAt')

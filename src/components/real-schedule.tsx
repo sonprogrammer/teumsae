@@ -286,7 +286,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
   return <main className="real-schedule-shell">
     <header className="real-schedule-header"><Link href="/" className="real-schedule-brand">틈새 <small>TEUMSAE</small></Link><div className="real-header-actions"><Link className="real-sample-link" href="/">샘플 화면 보기</Link><SignOutButton /></div></header>
     <section className="real-schedule-content">
-      <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div></div>
+      <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div><Link className="real-availability-link" href="/schedule/settings">일정 가능 시간 설정</Link></div>
       <div className="real-schedule-workspace">
         <section className="real-calendar-card" aria-label="일정 달력">
           <div className="real-calendar-toolbar"><div className="real-period-switch" role="group" aria-label="달력 보기"><button type="button" className={view === 'week' ? 'is-active' : ''} aria-pressed={view === 'week'} onClick={() => navigate(selectedDate, 'week')}>주</button><button type="button" className={view === 'month' ? 'is-active' : ''} aria-pressed={view === 'month'} onClick={() => navigate(selectedDate, 'month')}>월</button></div><div className="real-period-controls"><button type="button" className="real-period-arrow" aria-label="이전" onClick={() => changePeriod(-1)}>‹</button><button type="button" className="real-today-button" onClick={() => navigate(today)}>오늘</button><button type="button" className="real-period-arrow" aria-label="다음" onClick={() => changePeriod(1)}>›</button></div></div>
