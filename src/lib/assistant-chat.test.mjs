@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, validateAssistantToolArguments } from './assistant-chat.ts'
+import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ' }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null } })
@@ -49,6 +49,16 @@ test('uses Seoul local date for natural language reference context', () => {
 test('converts UTC timestamps to Korean date and time before sending them to the model', () => {
   assert.deepEqual(formatKoreaDateTime('2026-10-29T15:30:00.000Z'), { date: '2026-10-30', time: '00:30' })
   assert.deepEqual(formatKoreaDateTime('2026-11-02T00:00:00.000Z'), { date: '2026-11-02', time: '09:00' })
+})
+
+test('keeps a compact Korean-time event result for follow-up questions', () => {
+  const events = Array.from({ length: 22 }, (_, index) => ({ title: '일정 ' + index, starts_at: '2026-11-02T00:00:00.000Z', ends_at: '2026-11-02T01:00:00.000Z' }))
+  const summary = summarizeAssistantEvents(events)
+  assert.equal(summary.events.length, 20)
+  assert.equal(summary.events[0].date, '2026-11-02')
+  assert.equal(summary.events[0].startTime, '09:00')
+  assert.equal(summary.events[0].endTime, '10:00')
+  assert.equal(summary.hasMore, true)
 })
 
 test('returns a clearly identified server fallback only when tool results are successful', () => {

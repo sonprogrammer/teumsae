@@ -79,3 +79,14 @@ export function formatKoreaDateTime(value: string): { date: string; time: string
   if (!fields.year || !fields.month || !fields.day || !fields.hour || !fields.minute) return null
   return { date: `${fields.year}-${fields.month}-${fields.day}`, time: `${fields.hour}:${fields.minute}` }
 }
+
+export function summarizeAssistantEvents(events: Array<{ title: string; starts_at: string; ends_at: string }>, limit = 20) {
+  return {
+    events: events.slice(0, limit).flatMap(event => {
+      const start = formatKoreaDateTime(event.starts_at)
+      const end = formatKoreaDateTime(event.ends_at)
+      return start && end ? [{ title: event.title, date: start.date, startTime: start.time, endDate: end.date, endTime: end.time }] : []
+    }),
+    hasMore: events.length > limit
+  }
+}
