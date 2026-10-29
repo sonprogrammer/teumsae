@@ -300,7 +300,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
               const outerCell = (index >= dates.length - 7 ? ' is-last-row' : '') + (index % 7 === 0 ? ' is-first-column' : '') + (index % 7 === 6 ? ' is-last-column' : '')
               return <button type="button" key={date} className={'real-calendar-day' + outerCell + (selected ? ' is-selected' : '') + (date === today ? ' is-today' : '') + (outsideMonth ? ' is-outside' : '')} aria-pressed={selected} onClick={() => navigate(date)}>
                 <span className="real-day-number">{Number(date.slice(-2))}</span>
-                <span className="real-calendar-events">{dateEvents.slice(0, view === 'week' ? 3 : 2).map(event => <span className="real-calendar-event" key={event.id} data-tooltip={eventTime(event.starts_at) + ' · ' + event.title}><span className="real-calendar-event-label">{eventTime(event.starts_at)} {event.title}</span></span>)}{dateEvents.length > (view === 'week' ? 3 : 2) && <span className="real-more-events">+{dateEvents.length - (view === 'week' ? 3 : 2)}개</span>}</span>
+                <span className="real-calendar-events">{dateEvents.slice(0, view === 'week' ? 3 : 2).map(event => <span className="real-calendar-event" key={event.id}>{eventTime(event.starts_at)} {event.title}</span>)}{dateEvents.length > (view === 'week' ? 3 : 2) && <span className="real-more-events">+{dateEvents.length - (view === 'week' ? 3 : 2)}개</span>}</span>
               </button>
             })}
           </div>
