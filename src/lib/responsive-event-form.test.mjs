@@ -67,6 +67,7 @@ test('uses the provided Teumsae AI artwork in the floating launcher', async () =
 
 test('keeps the launcher label close to the artwork despite its transparent padding', () => {
   assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['gap'], '3px')
+  assert.equal(declarationsForBaseSelector('.assistant-live-launcher img')['margin-left'], '-14px')
   assert.equal(declarationsForBaseSelector('.assistant-live-launcher img')['margin-right'], '-14px')
 })
 
