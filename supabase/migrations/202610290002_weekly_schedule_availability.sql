@@ -266,17 +266,17 @@ begin
   insert into public.weekly_availability_windows (owner_id, weekday, starts_at, ends_at)
   select v_owner_id,
          (day.value->>'weekday')::smallint,
-         (window.value->>'start')::time,
-         (window.value->>'end')::time
+         (availability_window.value->>'start')::time,
+         (availability_window.value->>'end')::time
   from jsonb_array_elements(p_weekly) as day(value)
-  cross join lateral jsonb_array_elements(day.value->'windows') as window(value);
+  cross join lateral jsonb_array_elements(day.value->'windows') as availability_window(value);
 
   insert into public.availability_exceptions (owner_id, start_date, end_date, label)
   select v_owner_id,
-         (exception.value->>'startDate')::date,
-         (exception.value->>'endDate')::date,
-         nullif(btrim(exception.value->>'label'), '')
-  from jsonb_array_elements(p_exceptions) as exception(value);
+         (availability_exception.value->>'startDate')::date,
+         (availability_exception.value->>'endDate')::date,
+         nullif(btrim(availability_exception.value->>'label'), '')
+  from jsonb_array_elements(p_exceptions) as availability_exception(value);
 
   update public.user_availability as settings
   set version = settings.version + 1,
