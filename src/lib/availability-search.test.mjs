@@ -13,6 +13,8 @@ test('accepts search ranges longer than a week and validates times and duration'
     assert.equal(result.mode, 'intervals')
     if (result.mode === 'intervals') assert.equal(result.intervals.length, 8)
   }
+  assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', endDate: '2027-10-29' }, beforeToday).ok, true)
+  assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', endDate: '2027-10-30' }, beforeToday).ok, false)
   assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', startTime: '09:10', endTime: '18:00' }, beforeToday).ok, false)
   assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', durationMinutes: 50 }, beforeToday).ok, false)
 })

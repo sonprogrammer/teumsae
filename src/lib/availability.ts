@@ -139,6 +139,7 @@ export function findAvailabilitySlots({ windows, events, request, limit }: { win
 
 const searchTimezone = 'Asia/Seoul'
 const dayMinutes = 24 * 60
+const maxSearchDays = 366
 const maxEvents = 100
 const maxCandidates = 3
 
@@ -226,6 +227,7 @@ export function parseAvailabilitySearchRequest(input: unknown, now = new Date())
   if (!isSearchDate(startDate) || !isSearchDate(endDate) || startDate > endDate || startDate < today) {
     return { ok: false, message: '오늘부터의 올바른 날짜 범위를 입력해 주세요.' }
   }
+  if (searchDayCount(startDate, endDate) > maxSearchDays) return { ok: false, message: '한 번에 검색할 수 있는 기간은 최대 366일이에요.' }
   if (hasStartTime !== hasEndTime || !isSearchTime(startTime) || !isSearchTime(endTime, true) || !isSearchQuarterHour(startTime) || !isSearchQuarterHour(endTime) || searchTimeToMinutes(startTime) >= searchTimeToMinutes(endTime)) {
     return { ok: false, message: '검색 시간은 15분 단위의 올바른 시간 범위로 입력해 주세요.' }
   }
