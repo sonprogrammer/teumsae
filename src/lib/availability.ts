@@ -136,3 +136,187 @@ export function findAvailabilitySlots({ windows, events, request, limit }: { win
 
   return slots
 }
+
+const searchTimezone = 'Asia/Seoul'
+const dayMinutes = 24 * 60
+const maxSearchDays = 7
+const maxEvents = 100
+const maxCandidates = 3
+
+export type AvailabilitySearchRequest = {
+  startDate: string
+  endDate: string
+  startTime: string
+  endTime: string
+  durationMinutes?: number
+}
+
+export type SearchEvent = { starts_at: string; ends_at: string }
+export type SearchCandidate = { date: string; start: string; end: string }
+export type SearchInterval = { date: string; start: string; end: string }
+export type AvailabilitySearchResult =
+  | { mode: 'candidates'; candidates: SearchCandidate[]; hasMore: boolean }
+  | { mode: 'intervals'; intervals: SearchInterval[] }
+
+export type AvailabilitySearchParseResult = { ok: true; value: AvailabilitySearchRequest } | { ok: false; message: string }
+
+function isSearchDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(value + 'T00:00:00.000Z')
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+function isSearchTime(value: unknown, allowEndOfDay = false): value is string {
+  return typeof value === 'string' && (allowEndOfDay && value === '24:00' || /^([01]\d|2[0-3]):[0-5]\d$/.test(value))
+}
+
+function isSearchQuarterHour(value: string) {
+  return value === '24:00' || Number(value.slice(3)) % 15 === 0
+}
+
+function searchTimeToMinutes(value: string) {
+  if (value === '24:00') return dayMinutes
+  const [hours, minutes] = value.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function searchMinutesToTime(value: number) {
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+}
+
+function koreaParts(value: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: searchTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(value)
+  const fields = Object.fromEntries(parts.map(part => [part.type, part.value]))
+  return {
+    date: `${fields.year}-${fields.month}-${fields.day}`,
+    minutes: Number(fields.hour) * 60 + Number(fields.minute) + Number(fields.second) / 60 + value.getUTCMilliseconds() / 60000
+  }
+}
+
+function addSearchDays(value: string, amount: number) {
+  const date = new Date(value + 'T00:00:00.000Z')
+  date.setUTCDate(date.getUTCDate() + amount)
+  return date.toISOString().slice(0, 10)
+}
+
+function searchDayCount(startDate: string, endDate: string) {
+  return (Date.parse(endDate + 'T00:00:00.000Z') - Date.parse(startDate + 'T00:00:00.000Z')) / 86400000 + 1
+}
+
+export function parseAvailabilitySearchRequest(input: unknown, now = new Date()): AvailabilitySearchParseResult {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return { ok: false, message: '빈 시간 검색 조건을 확인해 주세요.' }
+  const value = input as Record<string, unknown>
+  const startDate = value.startDate
+  const endDate = value.endDate ?? startDate
+  const hasStartTime = value.startTime !== undefined
+  const hasEndTime = value.endTime !== undefined
+  const startTime = hasStartTime ? value.startTime : '00:00'
+  const endTime = hasEndTime ? value.endTime : '24:00'
+  const durationMinutes = value.durationMinutes
+  const today = koreaParts(now).date
+
+  if (!isSearchDate(startDate) || !isSearchDate(endDate) || startDate > endDate || startDate < today || searchDayCount(startDate, endDate) > maxSearchDays) {
+    return { ok: false, message: '오늘부터 7일 이내의 날짜 범위를 입력해 주세요.' }
+  }
+  if (hasStartTime !== hasEndTime || !isSearchTime(startTime) || !isSearchTime(endTime, true) || !isSearchQuarterHour(startTime) || !isSearchQuarterHour(endTime) || searchTimeToMinutes(startTime) >= searchTimeToMinutes(endTime)) {
+    return { ok: false, message: '검색 시간은 15분 단위의 올바른 시간 범위로 입력해 주세요.' }
+  }
+  if (durationMinutes !== undefined && durationMinutes !== null && (!Number.isInteger(durationMinutes) || Number(durationMinutes) < 15 || Number(durationMinutes) > 240 || Number(durationMinutes) % 15 !== 0)) {
+    return { ok: false, message: '소요 시간은 15~240분 사이의 15분 단위로 입력해 주세요.' }
+  }
+
+  return {
+    ok: true,
+    value: {
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      ...(durationMinutes === undefined || durationMinutes === null ? {} : { durationMinutes: Number(durationMinutes) })
+    }
+  }
+}
+
+function searchEventTime(value: string) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return null
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: searchTimezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date)
+  const fields = Object.fromEntries(parts.map(part => [part.type, part.value]))
+  return { date: koreaParts(date).date, minutes: Number(fields.hour) * 60 + Number(fields.minute) }
+}
+
+function searchBusyIntervals(date: string, events: SearchEvent[]) {
+  return events.map(event => {
+    const start = searchEventTime(event.starts_at)
+    const end = searchEventTime(event.ends_at)
+    if (!start || !end || start.date !== end.date || start.minutes >= end.minutes) throw new Error('INVALID_EVENT_INTERVAL')
+    return { date: start.date, start: start.minutes, end: end.minutes }
+  }).filter(event => event.date === date).sort((left, right) => left.start - right.start)
+}
+
+function findFreeIntervals(start: number, end: number, busy: Array<{ start: number; end: number }>) {
+  const result: Array<{ start: number; end: number }> = []
+  let cursor = start
+  for (const event of busy) {
+    if (event.end <= cursor) continue
+    if (event.start >= end) break
+    if (event.start > cursor) result.push({ start: cursor, end: Math.min(event.start, end) })
+    cursor = Math.max(cursor, event.end)
+    if (cursor >= end) break
+  }
+  if (cursor < end) result.push({ start: cursor, end })
+  return result.filter(interval => interval.start < interval.end)
+}
+
+export function searchAvailability({ request, schedule, events, now = new Date() }: { request: AvailabilitySearchRequest; schedule: ScheduleAvailability; events: SearchEvent[]; now?: Date }): AvailabilitySearchResult {
+  if (events.length > maxEvents) throw new Error('AVAILABILITY_EVENT_LIMIT')
+  const today = koreaParts(now).date
+  const nowMinutes = koreaParts(now).minutes
+  const candidates: SearchCandidate[] = []
+  const intervals: SearchInterval[] = []
+  let hasMore = false
+
+  for (let offset = 0; offset < searchDayCount(request.startDate, request.endDate); offset += 1) {
+    const date = addSearchDays(request.startDate, offset)
+    const requestStart = Math.max(searchTimeToMinutes(request.startTime), date === today ? Math.ceil(nowMinutes / 15) * 15 : 0)
+    const requestEnd = searchTimeToMinutes(request.endTime)
+    if (requestStart >= requestEnd) continue
+    const windows = availabilityWindowsForDate(date, schedule)
+      .map(window => ({ start: Math.max(requestStart, searchTimeToMinutes(window.start)), end: Math.min(requestEnd, searchTimeToMinutes(window.end)) }))
+      .filter(window => window.start < window.end)
+    const busy = searchBusyIntervals(date, events)
+
+    if (request.durationMinutes !== undefined) {
+      for (const window of windows) {
+        const found = findAvailabilitySlots({
+          windows: [{ start: searchMinutesToTime(window.start), end: searchMinutesToTime(window.end) }],
+          events: busy.map(event => ({ start: searchMinutesToTime(event.start), end: searchMinutesToTime(event.end) })),
+          request: { start: searchMinutesToTime(window.start), end: searchMinutesToTime(window.end), durationMinutes: request.durationMinutes },
+          limit: maxCandidates + 1 - candidates.length
+        })
+        for (const slot of found) {
+          if (candidates.length < maxCandidates) candidates.push({ date, start: slot.start, end: slot.end })
+          else hasMore = true
+        }
+        if (hasMore) break
+      }
+      if (hasMore) break
+      continue
+    }
+
+    for (const window of windows) {
+      intervals.push(...findFreeIntervals(window.start, window.end, busy).map(interval => ({ date, start: searchMinutesToTime(interval.start), end: searchMinutesToTime(interval.end) })))
+    }
+  }
+
+  return request.durationMinutes === undefined ? { mode: 'intervals', intervals } : { mode: 'candidates', candidates, hasMore }
+}
