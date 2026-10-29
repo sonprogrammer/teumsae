@@ -232,7 +232,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
                 <div className="calendar-body">
                   <div className="time-gutter">{hours.map(hour => <span key={hour} style={{ top: (hour - 9) * 56 }}>{String(hour).padStart(2, '0')}:00</span>)}</div>
                   {days.map(date => <div key={date} className={'day-track' + (date === selectedDate ? ' is-selected' : '')}>
-                    {events.filter(event => event.date === date).map(event => <button key={event.id} className={'event-block event-' + event.kind} style={{ top: (minutes(event.start) - 540) / 60 * 56 + 3, height: Math.max((minutes(event.end) - minutes(event.start)) / 60 * 56 - 6, 42) }} onClick={() => selectDate(date)} title={event.title + ' · ' + event.start + '–' + event.end}>
+                    {events.filter(event => event.date === date).map(event => <button key={event.id} className={'event-block event-' + event.kind} style={{ top: (minutes(event.start) - 540) / 60 * 56 + 3, height: Math.max((minutes(event.end) - minutes(event.start)) / 60 * 56 - 6, 42) }} onClick={() => selectDate(date)} aria-label={event.title + ' · ' + event.start + '–' + event.end} data-tooltip={event.title + ' · ' + event.start + '–' + event.end}>
                       <strong>{event.title}</strong><span>{event.start}–{event.end}</span>
                     </button>)}
                     {date === candidateDate && selectedSlot && displayMode === 'normal' && <div className="candidate-preview" style={{ top: (minutes(selectedSlot.start) - 540) / 60 * 56 + 3, height: 50 }}><span>✦ 선택한 틈새</span><strong>{selectedSlot.start}–{selectedSlot.end}</strong></div>}

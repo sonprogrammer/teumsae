@@ -102,6 +102,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .day-track.is-selected { background-color: #f7faf5; }
 .event-block, .candidate-preview { position: absolute; left: 4px; right: 4px; z-index: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; overflow: hidden; border-radius: 7px; text-align: left; }
 .event-block { padding: 8px 7px; border: 0; border-left: 3px solid; }
+.event-block { overflow: visible; }
+.event-block::before { position: absolute; bottom: calc(100% + 4px); left: 50%; z-index: 8; width: 8px; height: 8px; background: #214c40; content: ''; opacity: 0; pointer-events: none; visibility: hidden; transform: translateX(-50%) rotate(45deg); transition: opacity .16s ease, visibility .16s ease; }
+.event-block::after { position: absolute; top: auto; bottom: calc(100% + 8px); left: 50%; z-index: 8; width: max-content; max-width: min(240px, 70vw); padding: 8px 10px; border: 1px solid #214c40; border-radius: 10px; background: #214c40; box-shadow: 0 8px 22px #18393435; color: #fffefa; content: attr(data-tooltip); font-size: 11px; font-weight: 750; line-height: 1.5; text-align: center; white-space: normal; opacity: 0; pointer-events: none; visibility: hidden; transform: translate(-50%, 4px); transition: opacity .16s ease, transform .16s ease, visibility .16s ease; }
+.event-block:hover, .event-block:focus-visible { z-index: 5; }
+.event-block:hover::before, .event-block:focus-visible::before, .event-block:hover::after, .event-block:focus-visible::after { opacity: 1; visibility: visible; }
+.event-block:hover::after, .event-block:focus-visible::after { transform: translate(-50%, 0); }
 .event-block strong, .candidate-preview strong { overflow: hidden; font-size: 10px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .event-block span, .candidate-preview span { overflow: hidden; font-size: 9px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .event-teal { border-color: #258b78; background: #dff3e9; color: #166152; }
@@ -362,7 +368,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-day-number { display: grid; place-items: center; align-self: flex-start; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: 700; }
 .real-calendar-day.is-today .real-day-number { background: var(--teal); color: #fff; }
 .real-calendar-events { display: grid; gap: 3px; margin-top: 4px; }
-.real-calendar-event { overflow: hidden; padding: 3px 5px; border-radius: 5px; background: #e8f3eb; color: #356b58; font-size: 9px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.real-calendar-event { position: relative; z-index: 1; display: block; overflow: visible; padding: 3px 5px; border-radius: 5px; background: #e8f3eb; color: #356b58; font-size: 9px; font-weight: 650; }
+.real-calendar-event-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.real-calendar-event::before { position: absolute; bottom: calc(100% + 4px); left: 50%; z-index: 8; width: 8px; height: 8px; background: #214c40; content: ''; opacity: 0; pointer-events: none; visibility: hidden; transform: translateX(-50%) rotate(45deg); transition: opacity .16s ease, visibility .16s ease; }
+.real-calendar-event::after { position: absolute; top: auto; bottom: calc(100% + 8px); left: 50%; z-index: 8; width: max-content; max-width: min(240px, 70vw); padding: 8px 10px; border: 1px solid #214c40; border-radius: 10px; background: #214c40; box-shadow: 0 8px 22px #18393435; color: #fffefa; content: attr(data-tooltip); font-size: 11px; font-weight: 750; line-height: 1.5; text-align: center; white-space: normal; opacity: 0; pointer-events: none; visibility: hidden; transform: translate(-50%, 4px); transition: opacity .16s ease, transform .16s ease, visibility .16s ease; }
+.real-calendar-event:hover { z-index: 8; }
+.real-calendar-event:hover::before, .real-calendar-event:hover::after { opacity: 1; visibility: visible; }
+.real-calendar-event:hover::after { transform: translate(-50%, 0); }
 .real-calendar-event:nth-child(3n + 2) { background: #fbefe7; color: #a3634d; }
 .real-calendar-event:nth-child(3n) { background: #f0edf8; color: #736398; }
 .real-more-events { color: var(--muted); font-size: 9px; }
@@ -478,6 +490,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-day-number { width: 23px; height: 23px; font-size: 11px; }
   .real-calendar-grid.is-month .real-calendar-events { display: flex; justify-content: center; }
   .real-calendar-grid.is-month .real-calendar-event { width: 5px; height: 5px; padding: 0; border-radius: 50%; font-size: 0; }
+  .real-calendar-grid.is-month .real-calendar-event-label { display: none; }
   .real-calendar-grid.is-month .real-more-events { display: none; }
   .real-weekday { height: 34px; font-size: 10px; }
   .real-agenda-card { padding: 15px; }
