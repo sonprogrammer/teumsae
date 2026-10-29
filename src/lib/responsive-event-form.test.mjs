@@ -53,6 +53,18 @@ test('stacks the calendar and agenda when the viewport cannot fit both panels', 
   assert.equal(declarations['grid-template-columns'], 'minmax(0, 1fr)')
 })
 
+test('centers a wider two-column schedule layout on desktop', () => {
+  assert.equal(declarationsForBaseSelector('.real-schedule-content')['max-width'], '1500px')
+  assert.equal(declarationsForBaseSelector('.real-schedule-header')['max-width'], '1500px')
+  assert.equal(declarationsForBaseSelector('.real-schedule-workspace')['grid-template-columns'], 'minmax(0, 1.7fr) minmax(340px, .9fr)')
+})
+
+test('uses the provided Teumsae AI artwork in the floating launcher', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /src="\/teumsaeAI\.png"/)
+  assert.match(source, /alt=""/)
+})
+
 test('keeps the desktop AI conversation collapsed beside a persistent floating launcher', () => {
   const panel = declarationsForBaseSelector('.assistant-live-panel')
   const openPanel = declarationsForBaseSelector('.assistant-live-panel.is-open')
