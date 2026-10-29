@@ -17,4 +17,6 @@ test('shows calendar event details in a project-styled custom tooltip', () => {
   assert.doesNotMatch(demo, /title=\{event\.title/)
   assert.match(demo, /data-tooltip=\{event\.title/)
   assert.match(stylesheet, /\.event-block::after[\s\S]*?content: attr\(data-tooltip\)/)
+  assert.match(stylesheet, /\.event-block::after \{[^}]*bottom: calc\(100% \+ 8px\)/)
+  assert.match(stylesheet, /\.event-block::before \{[^}]*transform: translateX\(-50%\) rotate\(45deg\)/)
 })
