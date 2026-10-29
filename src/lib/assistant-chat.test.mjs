@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, validateAssistantToolArguments } from './assistant-chat.ts'
+import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ' }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null } })
@@ -69,6 +69,16 @@ test('returns only Korean-time events that overlap the requested availability wi
     { title: '점심 일정', starts_at: '2026-10-31T03:00:00.000Z', ends_at: '2026-10-31T04:00:00.000Z' }
   ], { startDate: '2026-10-31', endDate: '2026-10-31', startTime: '08:00', endTime: '10:00' })
   assert.deepEqual(conflicts, [{ title: '아침 미팅', date: '2026-10-31', startTime: '09:00', endDate: '2026-10-31', endTime: '10:00' }])
+})
+
+test('summarizes tool inputs without exposing title search text', () => {
+  assert.deepEqual(summarizeAssistantToolInput('findAvailability', { startDate: '2026-10-31', endDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 120 }), { startDate: '2026-10-31', endDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 120 })
+  assert.deepEqual(summarizeAssistantToolInput('listEvents', { startDate: '2026-10-31', query: '민감한 제목' }), { startDate: '2026-10-31', hasTitleFilter: true })
+})
+
+test('summarizes tool result counts without exposing event details', () => {
+  assert.deepEqual(summarizeAssistantToolOutput({ type: 'events', events: [{ title: '비공개 일정' }], hasMore: false }), { eventCount: 1, hasMore: false })
+  assert.deepEqual(summarizeAssistantToolOutput({ type: 'availability', result: { mode: 'candidates', candidates: [{ date: '2026-10-31', start: '10:00', end: '12:00' }], hasMore: false }, conflicts: [{ title: '비공개 일정' }] }), { candidateCount: 1, hasMore: false, conflictCount: 1 })
 })
 
 test('returns a clearly identified server fallback only when tool results are successful', () => {

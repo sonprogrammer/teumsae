@@ -562,7 +562,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-log { color: var(--muted); font-size: 9px; }
 .assistant-live-log summary { cursor: pointer; }
 .assistant-live-log ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
-.assistant-live-log li { display: flex; justify-content: space-between; gap: 8px; }
+.assistant-live-log li { display: grid; gap: 4px; padding: 6px 0; border-top: 1px solid #e8eee7; }
+.assistant-live-log-heading { display: flex; justify-content: space-between; gap: 8px; }
+.assistant-live-log-details { display: grid; gap: 2px; color: var(--ink-soft); font-size: 9px; overflow-wrap: anywhere; }
 .assistant-live-launcher { display: none; }
 
 @media (max-width: 1200px) {

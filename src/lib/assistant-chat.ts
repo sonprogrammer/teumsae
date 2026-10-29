@@ -101,3 +101,46 @@ export function summarizeAssistantConflicts(events: Array<{ title: string; start
     return [{ title: event.title, date: start.date, startTime: start.time, endDate: end.date, endTime: end.time }]
   })
 }
+
+export type AssistantToolInputSummary = { startDate?: string; endDate?: string; startTime?: string; endTime?: string; durationMinutes?: number; hasTitleFilter?: boolean; invalidFields?: string[] }
+export type AssistantToolOutputSummary = { eventCount?: number; candidateCount?: number; intervalCount?: number; conflictCount?: number; hasMore?: boolean }
+export type AssistantToolCallLog = { name: AssistantToolName; status: 'success' | 'failed'; durationMs: number; input: AssistantToolInputSummary; output?: AssistantToolOutputSummary; errorCode?: string }
+
+export function summarizeAssistantToolInput(name: AssistantToolName, args: Record<string, unknown>): AssistantToolInputSummary {
+  const summary: AssistantToolInputSummary = {}
+  const invalidFields: string[] = []
+  if (args.startDate !== undefined) {
+    if (isToolDate(args.startDate)) summary.startDate = args.startDate
+    else invalidFields.push('startDate')
+  }
+  if (args.endDate !== undefined) {
+    if (isToolDate(args.endDate)) summary.endDate = args.endDate
+    else invalidFields.push('endDate')
+  }
+  if (args.startTime !== undefined) {
+    if (isToolTime(args.startTime)) summary.startTime = args.startTime
+    else invalidFields.push('startTime')
+  }
+  if (args.endTime !== undefined) {
+    if (isToolTime(args.endTime, true)) summary.endTime = args.endTime
+    else invalidFields.push('endTime')
+  }
+  if (args.durationMinutes !== undefined) {
+    if (Number.isInteger(args.durationMinutes) && Number(args.durationMinutes) >= 15 && Number(args.durationMinutes) <= 240 && Number(args.durationMinutes) % 15 === 0) summary.durationMinutes = Number(args.durationMinutes)
+    else invalidFields.push('durationMinutes')
+  }
+  if (name === 'listEvents' && args.query !== undefined) summary.hasTitleFilter = typeof args.query === 'string' && args.query.trim().length > 0
+  if (invalidFields.length) summary.invalidFields = invalidFields
+  return summary
+}
+
+export function summarizeAssistantToolOutput(card: unknown): AssistantToolOutputSummary {
+  if (!card || typeof card !== 'object') return {}
+  const value = card as Record<string, unknown>
+  if (value.type === 'events' && Array.isArray(value.events)) return { eventCount: value.events.length, hasMore: value.hasMore === true }
+  if (value.type !== 'availability' || !value.result || typeof value.result !== 'object') return {}
+  const result = value.result as Record<string, unknown>
+  if (result.mode === 'candidates' && Array.isArray(result.candidates)) return { candidateCount: result.candidates.length, hasMore: result.hasMore === true, conflictCount: Array.isArray(value.conflicts) ? value.conflicts.length : 0 }
+  if (result.mode === 'intervals' && Array.isArray(result.intervals)) return { intervalCount: result.intervals.length, conflictCount: Array.isArray(value.conflicts) ? value.conflicts.length : 0 }
+  return {}
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName } from '@/lib/assistant-chat'
+import { createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     { role: 'user', content: parsed.value.message }
   ]
   const cards: AssistantCard[] = []
-  const toolLog: Array<{ name: string; status: 'success' | 'failed'; durationMs: number }> = []
+  const toolLog: AssistantToolCallLog[] = []
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), requestBudgetMs)
   let modelCalls = 0
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
           requestFailure = { code: 'AI_TIMEOUT', message: 'AI 응답 시간이 길어져 요청을 마쳤어요. 다시 시도해 주세요.', status: 504 }
           break
         }
-        toolLog.push({ name, status: result.ok ? 'success' : 'failed', durationMs: Date.now() - startedAt })
+        toolLog.push({ name, status: result.ok ? 'success' : 'failed', durationMs: Date.now() - startedAt, input: summarizeAssistantToolInput(name, args), ...(result.ok ? { output: summarizeAssistantToolOutput(result.card) } : { errorCode: result.code }) })
         if (!result.ok) {
           if (result.fatal) {
             requestFailure = { code: result.code, message: result.message, status: result.code === 'EVENT_LIMIT_EXCEEDED' ? 422 : 500 }
