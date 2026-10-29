@@ -143,8 +143,8 @@ function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; ini
         <button type="button" className="availability-remove-window" aria-label={(exception.label || '일정 불가') + ' 삭제'} onClick={() => { setExceptions(current => current.filter(item => item.id !== exception.id)); onNotice('', '') }}>삭제</button>
       </div>) : <p className="availability-no-exceptions">등록된 휴가나 일정 불가일이 없어요.</p>}</div>
       <div className="availability-exception-form">
-        <label>시작일<input type="date" value={exceptionStart} required onChange={event => setExceptionStart(event.target.value)} /></label>
-        <label>종료일<input type="date" value={exceptionEnd} min={exceptionStart || undefined} required onChange={event => setExceptionEnd(event.target.value)} /></label>
+        <label>시작일<input type="date" value={exceptionStart} onChange={event => setExceptionStart(event.target.value)} /></label>
+        <label>종료일<input type="date" value={exceptionEnd} min={exceptionStart || undefined} onChange={event => setExceptionEnd(event.target.value)} /></label>
         <label className="availability-exception-label">이름 <span>선택</span><input type="text" value={exceptionLabel} maxLength={100} placeholder="예: 휴가" onChange={event => setExceptionLabel(event.target.value)} /></label>
         <button type="button" className="real-secondary-button" onClick={addException}>불가일 추가</button>
       </div>
