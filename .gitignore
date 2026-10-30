@@ -11,3 +11,4 @@ test-results/
 .playwright/
 supabase/.temp/
 .DS_Store
+.vercel/
