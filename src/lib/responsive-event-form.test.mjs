@@ -93,6 +93,19 @@ test('opens the mobile AI panel as an animated bottom sheet with a dismissible b
   assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['display'], 'flex')
 })
 
+test('closes the AI panel when clicking outside it', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /!panelRef\.current\?\.contains\(target\)/)
+  assert.match(source, /document\.addEventListener\('pointerdown', closeOnOutsideClick\)/)
+  assert.match(source, /document\.removeEventListener\('pointerdown', closeOnOutsideClick\)/)
+})
+
+test('keeps the AI textarea at a fixed height without manual resizing', () => {
+  const input = declarationsForBaseSelector('.assistant-live-form textarea')
+  assert.equal(input['height'], '54px')
+  assert.equal(input['resize'], 'none')
+})
+
 test('suggests checking availability settings when no free intervals or candidates exist', async () => {
   const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
   assert.match(source, /해당 날짜가 불가일로 설정됐는지 확인해 주세요/)

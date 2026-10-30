@@ -94,6 +94,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   const retryRequest = useRef<{ message: string; selectedCandidateId: string | null; id: string } | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
   const launcherRef = useRef<HTMLButtonElement>(null)
 
   function closePanel() {
@@ -113,8 +114,19 @@ export default function AssistantPanel({ userId }: { userId: string }) {
         requestAnimationFrame(() => launcherRef.current?.focus())
       }
     }
+    function closeOnOutsideClick(event: PointerEvent) {
+      const target = event.target
+      if (target instanceof Node && !panelRef.current?.contains(target) && !launcherRef.current?.contains(target)) {
+        setOpen(false)
+        requestAnimationFrame(() => launcherRef.current?.focus())
+      }
+    }
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      document.removeEventListener('pointerdown', closeOnOutsideClick)
+    }
   }, [open])
 
   async function sendMessage(message: string) {
@@ -182,7 +194,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   }
 
   return <>
-    <aside id="assistant-live-panel" className={'assistant-live-panel' + (open ? ' is-open' : '')} aria-label="AI 일정 도우미">
+    <aside id="assistant-live-panel" ref={panelRef} className={'assistant-live-panel' + (open ? ' is-open' : '')} aria-label="AI 일정 도우미">
       <div className="assistant-live-header"><span className="assistant-live-avatar" aria-hidden="true">✦</span><div><strong>틈새 AI 도우미</strong><small>등록 전에 내용을 확인하고 직접 저장할 수 있어요</small></div><button type="button" className="assistant-live-close" aria-label="AI 도우미 닫기" onClick={closePanel}>×</button></div>
       <div className="assistant-live-messages" aria-live="polite">{messages.map((message, index) => <article className={'assistant-live-message is-' + message.role + (message.error ? ' is-error' : '')} key={index}><MessageBody message={message} />{message.answerSource === 'server_fallback' && <small className="assistant-live-fallback-note">서버 고정 안내 · AI 최종 문구는 생성되지 않았어요.</small>}{message.cards?.map((card, cardIndex) => <Card key={cardIndex} card={card} onChoose={candidateId => setSelectedCandidateId(current => current === candidateId ? null : candidateId)} selectedCandidateId={selectedCandidateId} onProposalAction={(proposal, action) => void mutateProposal(proposal, action)} proposalPending={card.type === 'proposal' && Boolean(proposalActions[card.id])} proposalNotice={card.type === 'proposal' ? proposalNotices[card.id] : undefined} />)}{/*
         개발 검증용 실행 기록: AI가 실제로 호출한 도구, 전달한 검색 조건, 결과 건수를 확인합니다.
