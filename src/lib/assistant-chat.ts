@@ -119,6 +119,29 @@ export function getKoreaToday(now = new Date()) {
   return fields.year + '-' + fields.month + '-' + fields.day
 }
 
+export function resolveRelativeDateToolArguments(args: Record<string, unknown>, message: string, now = new Date()) {
+  if (/\d{4}[-년]\s*\d{1,2}[-월]\s*\d{1,2}일?|\d{1,2}\s*월\s*\d{1,2}\s*일|다음\s*날|다음\s*주|이번\s*주|지난\s*주|오는\s*주|월요일|화요일|수요일|목요일|금요일|토요일|일요일/u.test(message)) return args
+  const relativeDates = [...message.matchAll(/내일\s*모레|오늘|내일|모레|글피/gu)].map(match => match[0])
+  if (relativeDates.length !== 1) return args
+  const relativeDate = relativeDates[0].replace(/\s/g, '')
+  const offset = relativeDate === '오늘' ? 0 : relativeDate === '내일' ? 1 : relativeDate === '글피' ? 3 : 2
+  const today = getKoreaToday(now)
+  const target = new Date(today + 'T00:00:00.000Z')
+  target.setUTCDate(target.getUTCDate() + offset)
+  const targetDate = target.toISOString().slice(0, 10)
+  const dateField = typeof args.startDate === 'string' ? 'startDate' : typeof args.date === 'string' ? 'date' : null
+  if (!dateField || !isToolDate(args[dateField])) return args
+  const currentStart = args[dateField] as string
+  const dayOffset = (Date.parse(targetDate + 'T00:00:00.000Z') - Date.parse(currentStart + 'T00:00:00.000Z')) / 86400000
+  const normalized = { ...args, [dateField]: targetDate }
+  if (dateField === 'startDate' && typeof args.endDate === 'string' && isToolDate(args.endDate)) {
+    const endDate = new Date(args.endDate + 'T00:00:00.000Z')
+    endDate.setUTCDate(endDate.getUTCDate() + dayOffset)
+    normalized.endDate = endDate.toISOString().slice(0, 10)
+  }
+  return normalized
+}
+
 export function formatKoreaDateTime(value: string): { date: string; time: string } | null {
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return null
