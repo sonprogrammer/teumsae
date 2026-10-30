@@ -124,7 +124,12 @@ export async function POST(request: Request) {
 
   const { data: withinUsageLimit, error: usageError } = await supabase.rpc('consume_ai_request')
   if (usageError) return responseError('AI_USAGE_CHECK_FAILED', 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
-  if (withinUsageLimit !== true) return responseError('AI_USAGE_LIMIT', '틈새 AI 사용 한도에 도달했어요. 분당·일일 이용 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.', 429)
+  if (withinUsageLimit !== true) return responseError('AI_USAGE_LIMIT', '분당 AI 이용 한도를 초과했어요. 잠시 후 다시 시도해 주세요.', 429)
+
+  const contextTimestamp = typeof context.lastResultAt === 'string' ? Date.parse(context.lastResultAt) : typeof context.lastSearchAt === 'string' ? Date.parse(context.lastSearchAt) : null
+  if (contextTimestamp !== null && Number.isFinite(contextTimestamp) && Date.now() - contextTimestamp > 10 * 60 * 1000) {
+    context = { ...context, activeCandidates: [], lastDateRange: null, lastResult: null }
+  }
   const now = new Date()
   const nowKorea = getKoreaToday(now)
   const modelMessages: GroqMessage[] = [
