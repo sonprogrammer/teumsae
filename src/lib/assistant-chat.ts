@@ -78,6 +78,11 @@ export function normalizeAvailabilityToolArguments(args: Record<string, unknown>
   return normalized
 }
 
+export function shouldForceAvailabilityTool(message: string) {
+  if (!/(?:빈\s*시간|가능한?\s*시간)/u.test(message)) return false
+  return !/(?:그리고|또한|함께|같이|동시에|고려|무리|다음\s*날|일정.*(?:확인|조회|알려)|스케줄.*(?:확인|조회|알려)|찾아주고|알려주고|등록|저장|추가|넣어|만들어)/u.test(message)
+}
+
 export function validateAssistantToolArguments(name: AssistantToolName, args: Record<string, unknown>) {
   if (name === 'prepareEvent') {
     const allowedArgs = ['title', 'note', 'searchId', 'candidateId', 'date', 'startTime', 'endTime']

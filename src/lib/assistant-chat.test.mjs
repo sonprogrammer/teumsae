@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
+import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, shouldForceAvailabilityTool, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   const requestId = '10000000-0000-4000-8000-000000000001'
@@ -125,4 +125,12 @@ test('removes an AI-assumed duration but keeps a duration explicitly stated by t
   assert.deepEqual(normalizeAvailabilityToolArguments({ startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 60 }, '내일 빈 시간 알려줘'), { startDate: '2026-10-31' })
   assert.deepEqual(normalizeAvailabilityToolArguments({ startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 90 }, '내일 오전 1시간 반 빈 시간 찾아줘'), { startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 90 })
   assert.deepEqual(normalizeAvailabilityToolArguments({ startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 120 }, '내일 2시간 가능한 때 찾아줘'), { startDate: '2026-10-31', durationMinutes: 120 })
+})
+
+test('forces the availability tool for a simple request but leaves compound requests to tool selection', () => {
+  assert.equal(shouldForceAvailabilityTool('내일 빈 시간 알려줘'), true)
+  assert.equal(shouldForceAvailabilityTool('내일 오후 2시간 가능한 시간 찾아줘'), true)
+  assert.equal(shouldForceAvailabilityTool('내일 일정 확인하고 빈 시간 알려줘'), false)
+  assert.equal(shouldForceAvailabilityTool('내일 운동하기 좋은 시간 추천해줘'), false)
+  assert.equal(shouldForceAvailabilityTool('내일 일정 알려줘'), false)
 })

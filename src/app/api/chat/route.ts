@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
+import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, shouldForceAvailabilityTool, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
       const response = await fetch(modelUrl, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages: modelMessages, tools: assistantToolDefinitions, tool_choice: 'auto', max_completion_tokens: 1200 }),
+        body: JSON.stringify({ model, messages: modelMessages, tools: assistantToolDefinitions, tool_choice: modelCalls === 1 && shouldForceAvailabilityTool(parsed.value.message) ? { type: 'function', function: { name: 'findAvailability' } } : 'auto', max_completion_tokens: 1200 }),
         signal: controller.signal
       })
       if (!response.ok) {
