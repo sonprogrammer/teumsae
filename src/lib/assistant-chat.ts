@@ -1,4 +1,4 @@
-export type AssistantRequest = { message: string; conversationId: string | null; version: number | null; requestId: string }
+export type AssistantRequest = { message: string; conversationId: string | null; version: number | null; requestId: string; selectedCandidateId?: string }
 export type AssistantRequestResult = { ok: true; value: AssistantRequest } | { ok: false; message: string }
 export type AssistantToolName = 'listEvents' | 'findAvailability' | 'prepareEvent'
 
@@ -13,7 +13,9 @@ export function parseAssistantRequest(input: unknown): AssistantRequestResult {
   if (conversationId !== null && (typeof conversationId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId))) return { ok: false, message: '대화 정보를 확인해 주세요.' }
   if (version !== null && (!Number.isSafeInteger(version) || Number(version) < 1)) return { ok: false, message: '대화 버전을 확인해 주세요.' }
   if ((conversationId === null) !== (version === null)) return { ok: false, message: '대화 정보를 다시 불러와 주세요.' }
-  return { ok: true, value: { message: value.message.trim(), conversationId: conversationId as string | null, version: version as number | null, requestId } }
+  const selectedCandidateId = value.selectedCandidateId
+  if (selectedCandidateId !== undefined && (typeof selectedCandidateId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedCandidateId))) return { ok: false, message: '선택한 빈 시간 후보를 확인해 주세요.' }
+  return { ok: true, value: { message: value.message.trim(), conversationId: conversationId as string | null, version: version as number | null, requestId, ...(typeof selectedCandidateId === 'string' ? { selectedCandidateId } : {}) } }
 }
 
 export function parseToolName(value: unknown): AssistantToolName | null {

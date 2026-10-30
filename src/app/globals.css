@@ -570,9 +570,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .chat-conflict-list li strong { color: #70442f; font-size: 10px; }
 .chat-candidate-list button { display: grid; grid-template-columns: 25px minmax(0, 1fr); align-items: center; gap: 3px 7px; padding: 8px; border: 1px solid #e2eadd; border-radius: 9px; background: #fff; color: var(--ink); text-align: left; }
 .chat-candidate-list button:hover { border-color: #a9ccb8; background: #f2f8f1; }
+.chat-candidate-list button[aria-pressed="true"] { border-color: var(--teal); background: #edf6ed; box-shadow: 0 0 0 1px var(--teal); }
+.chat-candidate-list button:disabled { opacity: .55; cursor: not-allowed; }
 .chat-candidate-list button > span { display: grid; place-items: center; grid-row: span 2; width: 23px; height: 23px; border-radius: 50%; background: #e9f5ec; color: var(--teal); font-size: 10px; font-weight: 800; }
 .chat-candidate-list button strong { font-size: 10px; }
 .chat-candidate-list button time { color: var(--ink-soft); font-size: 9px; }
+.chat-candidate-list button small { grid-column: 2; color: var(--teal-dark); font-size: 9px; }
 .assistant-live-log { color: var(--muted); font-size: 9px; }
 .assistant-live-log summary { cursor: pointer; }
 .assistant-live-log ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }

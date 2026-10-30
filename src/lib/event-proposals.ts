@@ -35,6 +35,14 @@ export type EventProposalPayload = {
 export type EventProposalResult = { ok: true; value: EventProposalPayload } | { ok: false; code: string; message: string }
 export type EventProposalState = 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale'
 
+export function resolveSelectedCandidate(candidateId: string, candidates: EventCandidate[], settingsVersion: number, now = new Date()): { ok: true; value: EventCandidate } | { ok: false; code: 'CANDIDATE_NOT_FOUND' | 'CANDIDATE_EXPIRED' | 'STALE_AVAILABILITY' } {
+  const candidate = candidates.find(item => item.id === candidateId)
+  if (!candidate) return { ok: false, code: 'CANDIDATE_NOT_FOUND' }
+  if (Date.parse(candidate.expiresAt) <= now.getTime()) return { ok: false, code: 'CANDIDATE_EXPIRED' }
+  if (candidate.settingsVersion !== settingsVersion) return { ok: false, code: 'STALE_AVAILABILITY' }
+  return { ok: true, value: candidate }
+}
+
 export function resolveProposalMutation(value: unknown, action: 'confirm' | 'cancel'): { ok: true; state: EventProposalState; eventId?: string; message: string } | { ok: false; state?: EventProposalState; message: string } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return { ok: false, message: '등록 제안 응답을 확인하지 못했어요.' }
   const result = value as Record<string, unknown>

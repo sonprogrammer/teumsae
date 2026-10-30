@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseEventCandidates, parsePrepareEventArguments, resolveEventProposal, resolveProposalMutation } from './event-proposals.ts'
+import { parseEventCandidates, parsePrepareEventArguments, resolveEventProposal, resolveProposalMutation, resolveSelectedCandidate } from './event-proposals.ts'
 
 const candidateId = '10000000-0000-4000-8000-000000000001'
 const searchId = '20000000-0000-4000-8000-000000000002'
@@ -25,6 +25,13 @@ test('resolves a selected candidate from server context and captures its setting
     ok: true,
     value: { title: '운동', note: null, startsAt: '2026-11-02T01:00:00.000Z', endsAt: '2026-11-02T02:00:00.000Z', settingsVersion: 3, candidateId, searchId }
   })
+})
+
+test('validates a client-selected candidate against active server context', () => {
+  assert.deepEqual(resolveSelectedCandidate(candidateId, [candidate], 3, new Date('2026-11-01T00:00:00.000Z')), { ok: true, value: candidate })
+  assert.deepEqual(resolveSelectedCandidate('30000000-0000-4000-8000-000000000003', [candidate], 3, new Date('2026-11-01T00:00:00.000Z')), { ok: false, code: 'CANDIDATE_NOT_FOUND' })
+  assert.deepEqual(resolveSelectedCandidate(candidateId, [candidate], 4, new Date('2026-11-01T00:00:00.000Z')), { ok: false, code: 'STALE_AVAILABILITY' })
+  assert.deepEqual(resolveSelectedCandidate(candidateId, [candidate], 3, new Date('2026-11-02T00:10:00.000Z')), { ok: false, code: 'CANDIDATE_EXPIRED' })
 })
 
 test('parses persisted candidate IDs and ignores malformed or incomplete context entries', () => {

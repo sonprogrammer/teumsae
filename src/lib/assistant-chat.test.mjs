@@ -7,6 +7,13 @@ test('accepts a new chat message and trims surrounding whitespace', () => {
   assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ', requestId }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null, requestId } })
 })
 
+test('accepts a selected candidate ID and rejects malformed IDs', () => {
+  const requestId = '10000000-0000-4000-8000-000000000001'
+  const selectedCandidateId = '30000000-0000-4000-8000-000000000003'
+  assert.deepEqual(parseAssistantRequest({ message: '운동으로 등록해줘', requestId, selectedCandidateId }), { ok: true, value: { message: '운동으로 등록해줘', conversationId: null, version: null, requestId, selectedCandidateId } })
+  assert.equal(parseAssistantRequest({ message: '운동으로 등록해줘', requestId, selectedCandidateId: 'not-a-uuid' }).ok, false)
+})
+
 test('rejects empty, oversized, and incomplete conversation requests', () => {
   const requestId = '10000000-0000-4000-8000-000000000001'
   assert.equal(parseAssistantRequest({ message: ' ', requestId }).ok, false)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
 import { createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
+import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
   const parsed = parseAssistantRequest(body)
   if (!parsed.ok) return responseError('INVALID_REQUEST', parsed.message, 400)
 
-  const requestFingerprint = createHash('sha256').update(parsed.value.message).digest('hex')
+  const requestFingerprint = createHash('sha256').update(parsed.value.selectedCandidateId ? JSON.stringify({ message: parsed.value.message, selectedCandidateId: parsed.value.selectedCandidateId }) : parsed.value.message).digest('hex')
   const { data: priorRequest, error: priorRequestError } = await supabase.rpc('get_event_proposal_for_request', { p_request_id: parsed.value.requestId, p_request_fingerprint: requestFingerprint })
   if (priorRequestError) return responseError('PROPOSAL_LOOKUP_FAILED', '이전 등록 요청을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
   if (priorRequest && typeof priorRequest === 'object') {
@@ -106,14 +107,24 @@ export async function POST(request: Request) {
     if (error) return responseError('CONVERSATION_CREATE_FAILED', '새 대화를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
   }
 
+  const contextTimestamp = typeof context.lastResultAt === 'string' ? Date.parse(context.lastResultAt) : typeof context.lastSearchAt === 'string' ? Date.parse(context.lastSearchAt) : null
+  if (contextTimestamp !== null && Number.isFinite(contextTimestamp) && Date.now() - contextTimestamp > 10 * 60 * 1000) {
+    context = { ...context, activeCandidates: [], selectedCandidate: null, lastDateRange: null, lastResult: null }
+  }
+  if (parsed.value.selectedCandidateId) {
+    const candidates = parseEventCandidates(context.activeCandidates)
+    const settingsVersion = typeof context.settingsVersion === 'number' ? context.settingsVersion : 0
+    const selection = resolveSelectedCandidate(parsed.value.selectedCandidateId, candidates, settingsVersion)
+    if (!selection.ok) {
+      const message = selection.code === 'CANDIDATE_EXPIRED' ? '선택한 빈 시간 후보가 만료됐어요. 다시 검색해 주세요.' : selection.code === 'STALE_AVAILABILITY' ? '일정 가능 시간이 바뀌었어요. 빈 시간을 다시 검색해 주세요.' : '선택한 빈 시간 후보를 찾지 못했어요. 다시 검색해 주세요.'
+      return responseError(selection.code, message, 409, { conversationId, version })
+    }
+    context = { ...context, selectedCandidate: { id: selection.value.id, searchId: selection.value.searchId, date: selection.value.date, start: selection.value.start, end: selection.value.end } }
+  }
+
   const { data: withinUsageLimit, error: usageError } = await supabase.rpc('consume_ai_request')
   if (usageError) return responseError('AI_USAGE_CHECK_FAILED', 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
   if (withinUsageLimit !== true) return responseError('AI_USAGE_LIMIT', '틈새 AI 사용 한도에 도달했어요. 분당·일일 이용 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.', 429)
-
-  const contextTimestamp = typeof context.lastResultAt === 'string' ? Date.parse(context.lastResultAt) : typeof context.lastSearchAt === 'string' ? Date.parse(context.lastSearchAt) : null
-  if (contextTimestamp !== null && Number.isFinite(contextTimestamp) && Date.now() - contextTimestamp > 10 * 60 * 1000) {
-    context = { ...context, activeCandidates: [], lastDateRange: null, lastResult: null }
-  }
   const now = new Date()
   const nowKorea = getKoreaToday(now)
   const modelMessages: GroqMessage[] = [
