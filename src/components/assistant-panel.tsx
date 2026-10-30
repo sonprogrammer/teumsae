@@ -43,6 +43,7 @@ function proposalDateTime(value: string) {
 const proposalStateLabels: Record<EventProposalState, string> = { pending: '저장 전 확인', confirmed: '일정이 저장됐어요', cancelled: '등록 제안을 취소했어요', expired: '확인 시간이 만료됐어요', conflict: '다른 일정과 시간이 겹쳐요', stale: '일정 가능 시간이 변경됐어요' }
 
 function Card({ card, onChoose, selectedCandidateId, onProposalAction, proposalPending, proposalNotice }: { card: AssistantCard; onChoose: (candidateId: string) => void; selectedCandidateId: string | null; onProposalAction: (card: Extract<AssistantCard, { type: 'proposal' }>, action: 'confirm' | 'cancel') => void; proposalPending: boolean; proposalNotice?: string }) {
+  const [visibleCandidateCount, setVisibleCandidateCount] = useState(3)
   if (card.type === 'events') return <section className="chat-result-card" aria-label="일정 조회 결과"><div className="chat-card-heading"><strong>일정 조회</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>{card.events.length ? <ul className="chat-event-results">{card.events.map(event => <li key={event.id}><span>{timeLabel(event.starts_at)}–{timeLabel(event.ends_at)}</span><strong>{event.title}</strong>{event.note && <small>{event.note}</small>}</li>)}</ul> : <p className="chat-card-empty">조회한 기간에 등록된 일정이 없어요.</p>}</section>
   if (card.type === 'proposal') {
     const starts = proposalDateTime(card.startsAt)
@@ -51,11 +52,32 @@ function Card({ card, onChoose, selectedCandidateId, onProposalAction, proposalP
     return <section className={'chat-result-card chat-proposal-card is-' + card.state} aria-label="일정 등록 확인"><div className="chat-card-heading"><strong>일정 등록 확인</strong><span>{proposalStateLabels[card.state]}</span></div><div className="chat-proposal-details"><strong>{card.title}</strong>{card.note && <p>{card.note}</p>}<time>{starts.date} · {starts.time}–{ends.time}</time></div>{card.state === 'pending' && <p className="chat-card-empty">확인 버튼을 눌러야 실제 일정으로 저장돼요.</p>}{proposalNotice && <p className="chat-proposal-notice" role="status">{proposalNotice}</p>}{card.state === 'pending' && <div className="chat-proposal-actions"><button type="button" className="chat-proposal-cancel" disabled={!canAct} onClick={() => onProposalAction(card, 'cancel')}>취소</button><button type="button" className="chat-proposal-confirm" disabled={!canAct} onClick={() => onProposalAction(card, 'confirm')}>{proposalPending ? '처리 중…' : '이 일정으로 등록'}</button></div>}</section>
   }
   const result = card.result
-  if (result.mode === 'candidates') return <section className="chat-result-card" aria-label="빈 시간 후보"><div className="chat-card-heading"><strong>빈 시간 후보</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>{result.candidates.length ? <div className="chat-candidate-list">{result.candidates.map((candidate, index) => {
-    const candidateId = card.candidateIds[index]
-    const selected = candidateId === selectedCandidateId
-    return <button type="button" key={candidate.date + candidate.start} aria-pressed={selected} disabled={!candidateId} onClick={() => candidateId && onChoose(candidateId)}><span>{index + 1}</span><strong>{dateLabel(candidate.date)}</strong><time>{candidate.start} – {candidate.end}</time><small>{selected ? '선택됨 · 다음 메시지에서 등록 요청' : '선택'}</small></button>
-  })}</div> : <><AvailabilityEmptyState /><ConflictList conflicts={card.conflicts} /></>}</section>
+  if (result.mode === 'candidates') {
+    const visibleCandidates = result.candidates.slice(0, visibleCandidateCount)
+    return (
+      <section className="chat-result-card" aria-label="빈 시간 후보">
+        <div className="chat-card-heading"><strong>빈 시간 후보</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>
+        {result.candidates.length ? (
+          <>
+            <div className="chat-candidate-list">
+              {visibleCandidates.map((candidate, index) => {
+                const candidateId = card.candidateIds[index]
+                const selected = candidateId === selectedCandidateId
+                return <button type="button" key={candidate.date + candidate.start} aria-pressed={selected} disabled={!candidateId} onClick={() => candidateId && onChoose(candidateId)}><span>{index + 1}</span><strong>{dateLabel(candidate.date)}</strong><time>{candidate.start} – {candidate.end}</time><small>{selected ? '선택됨 · 다음 메시지에서 등록 요청' : '선택'}</small></button>
+              })}
+            </div>
+            {visibleCandidateCount < result.candidates.length && <button type="button" className="chat-candidate-more" onClick={() => setVisibleCandidateCount(current => current + 3)}>후보 {Math.min(3, result.candidates.length - visibleCandidateCount)}개 더 보기</button>}
+            {visibleCandidateCount >= result.candidates.length && result.hasMore && <p className="chat-card-empty-hint">후보 12개를 표시했어요. 더 찾으려면 검색 날짜나 조건을 좁혀 주세요.</p>}
+          </>
+        ) : (
+          <>
+            <AvailabilityEmptyState />
+            <ConflictList conflicts={card.conflicts} />
+          </>
+        )}
+      </section>
+    )
+  }
   return <section className="chat-result-card" aria-label="빈 시간 결과"><div className="chat-card-heading"><strong>빈 시간 확인</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>{result.intervals.length ? <ul className="chat-event-results">{result.intervals.map(interval => <li key={interval.date + interval.start}><span>{dateLabel(interval.date)}</span><strong>{interval.start} – {interval.end}</strong></li>)}</ul> : <><AvailabilityEmptyState /><ConflictList conflicts={card.conflicts} /></>}</section>
 }
 

@@ -141,7 +141,7 @@ const searchTimezone = 'Asia/Seoul'
 const dayMinutes = 24 * 60
 const maxSearchDays = 366
 const maxEvents = 100
-const maxCandidates = 3
+const maxCandidates = 12
 
 export type AvailabilitySearchRequest = {
   startDate: string

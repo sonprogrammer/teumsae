@@ -98,3 +98,11 @@ test('suggests checking availability settings when no free intervals or candidat
   assert.match(source, /해당 날짜가 불가일로 설정됐는지 확인해 주세요/)
   assert.equal((source.match(/<AvailabilityEmptyState \/>/g) ?? []).length, 2)
 })
+
+test('shows candidates three at a time without another request', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /visibleCandidateCount, setVisibleCandidateCount\] = useState\(3\)/)
+  assert.match(source, /candidates\.slice\(0, visibleCandidateCount\)/)
+  assert.match(source, /setVisibleCandidateCount\(current => current \+ 3\)/)
+  assert.match(source, /후보 \{Math\.min\(3, result\.candidates\.length - visibleCandidateCount\)\}개 더 보기/)
+})

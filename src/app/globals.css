@@ -578,6 +578,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .chat-candidate-list button strong { font-size: 10px; }
 .chat-candidate-list button time { color: var(--ink-soft); font-size: 9px; }
 .chat-candidate-list button small { grid-column: 2; color: var(--teal-dark); font-size: 9px; }
+.chat-candidate-more { justify-self: center; min-height: 34px; padding: 0 12px; border: 1px solid #d9e6d9; border-radius: 9px; background: #f6faf4; color: var(--teal-dark); font: inherit; font-size: 10px; font-weight: 700; }
+.chat-candidate-more:hover { border-color: #a9ccb8; background: #f2f8f1; }
 .assistant-live-log { color: var(--muted); font-size: 9px; }
 .assistant-live-log summary { cursor: pointer; }
 .assistant-live-log ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
