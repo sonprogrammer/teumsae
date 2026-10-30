@@ -31,6 +31,13 @@ supabase test db
 
 ## 데이터 경로 확인
 
+## SQL 작성 규칙
+
+- PostgreSQL 예약어를 테이블·컬럼 별칭으로 사용하지 않는다. 특히 `window`는 SQL 예약 키워드이므로 `as window`, `window.column` 형태를 절대 작성하지 않는다.
+- 시간대 테이블 별칭은 `availability_window`, `schedule_window`처럼 의미가 분명한 이름을 사용한다.
+- 새 마이그레이션을 만들거나 수정한 뒤 예약어 별칭 검사를 실행한다: `rg -n -i '\bas\s+window\b|\bwindow\.' supabase/migrations`.
+- 이 검사는 공백·대소문자 차이도 잡아야 하며 결과가 없어야 한다. 기존 컬럼·테이블 이름에 포함된 단어(예: `weekly_availability_windows`)는 별칭이 아니므로 검사 대상과 구분한다.
+
 | 작업 | 서버의 책임 |
 | --- | --- |
 | 조회 | 검증된 인증에서 소유자를 결정하고 본인 범위 조회와 RLS를 적용한다. 개인 응답을 공유 캐시에 두지 않는다. |

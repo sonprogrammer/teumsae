@@ -533,12 +533,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-markdown a { color: var(--teal-dark); text-decoration: underline; text-underline-offset: 2px; }
 .assistant-live-message.is-user { align-self: flex-end; width: auto; max-width: 90%; }
 .assistant-live-message.is-user > p { border-radius: 14px 5px 14px 14px; background: var(--teal); color: #fff; }
+.assistant-live-date-divider { display: flex; align-items: center; gap: 10px; margin: 3px 0; color: var(--muted); font-size: 10px; font-weight: 650; }
+.assistant-live-date-divider::before, .assistant-live-date-divider::after { height: 1px; flex: 1; background: #e7ece5; content: ''; }
+.assistant-live-message-time { margin-top: -5px; color: #87958b; font-size: 9px; }
+.assistant-live-message.is-user .assistant-live-message-time { justify-self: end; }
 .assistant-live-message.is-error > p, .assistant-live-message.is-error .assistant-live-markdown { background: #fff0e8; color: #9b5c46; }
 .assistant-live-fallback-note { color: var(--muted); font-size: 9px; }
 .assistant-live-pending, .assistant-live-notice { margin: 0 12px 8px; color: var(--muted); font-size: 11px; }
+.assistant-live-history-status { margin: auto 12px; color: var(--muted); font-size: 11px; text-align: center; }
+.assistant-live-history-status button { margin-left: 5px; padding: 4px 8px; border: 1px solid #dce7dd; border-radius: 8px; background: #fff; color: var(--teal-dark); font: inherit; }
 .assistant-live-form { display: flex; align-items: flex-end; gap: 8px; margin: 0 11px 11px; padding: 8px; border: 1px solid #dce7dd; border-radius: 13px; background: #fff; }
 .assistant-live-form:focus-within { border-color: #8eb8a2; box-shadow: 0 0 0 3px #e7f2e9; }
-.assistant-live-form textarea { flex: 1; min-width: 0; max-height: 110px; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; line-height: 1.5; }
+.assistant-live-form textarea { flex: 1; min-width: 0; height: 54px; min-height: 54px; max-height: 54px; overflow-y: auto; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; line-height: 1.5; }
 .assistant-live-form textarea::placeholder { color: #91a097; }
 .assistant-live-form button { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border: 0; border-radius: 10px; background: var(--teal); color: #fff; font-size: 21px; }
 .assistant-live-form button:disabled { background: #c6d5cb; cursor: not-allowed; }
@@ -551,15 +557,38 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .chat-event-results li > span, .chat-event-results li small { color: var(--muted); font-size: 9px; }
 .chat-event-results li strong { color: var(--ink); font-size: 11px; }
 .chat-card-empty { margin: 0; color: var(--ink-soft); font-size: 10px; line-height: 1.6; }
+.chat-card-empty-state { display: grid; gap: 3px; }
+.chat-card-empty-hint { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.chat-proposal-card { border-color: #cfe1d1; background: linear-gradient(145deg, #fffefa, #f5faf3); }
+.chat-proposal-card.is-confirmed { border-color: #a9cfb1; background: #f1f8ef; }
+.chat-proposal-card.is-conflict, .chat-proposal-card.is-expired, .chat-proposal-card.is-stale { border-color: #ead2bf; background: #fff8f1; }
+.chat-proposal-card.is-missing { border-color: #e7d8b7; background: #fffaf0; }
+.chat-proposal-details { display: grid; gap: 5px; padding: 10px; border-radius: 10px; background: #fff; }
+.chat-proposal-details > strong { color: var(--ink); font-size: 13px; }
+.chat-proposal-details p { margin: 0; color: var(--ink-soft); font-size: 10px; }
+.chat-proposal-details time { color: var(--teal-dark); font-size: 11px; font-weight: 700; }
+.chat-proposal-notice { margin: 0; color: #9b5c46; font-size: 10px; line-height: 1.5; }
+.chat-proposal-confirmed { margin: 0; color: #326d57; font-size: 10px; font-weight: 700; }
+.chat-proposal-actions { display: flex; gap: 7px; }
+.chat-proposal-actions button, .chat-proposal-retry { min-height: 36px; border: 0; border-radius: 9px; font: inherit; font-size: 10px; font-weight: 750; }
+.chat-proposal-cancel { padding: 0 12px; background: #edf1ea; color: var(--ink-soft); }
+.chat-proposal-confirm { flex: 1; background: var(--teal); color: #fff; }
+.chat-proposal-retry { padding: 0 12px; background: #eaf3e8; color: #326d57; }
+.chat-proposal-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .chat-conflict-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .chat-conflict-list li { display: grid; gap: 3px; padding: 8px; border-radius: 9px; background: #fff3e9; }
 .chat-conflict-list li span { color: #9a6c52; font-size: 9px; }
 .chat-conflict-list li strong { color: #70442f; font-size: 10px; }
 .chat-candidate-list button { display: grid; grid-template-columns: 25px minmax(0, 1fr); align-items: center; gap: 3px 7px; padding: 8px; border: 1px solid #e2eadd; border-radius: 9px; background: #fff; color: var(--ink); text-align: left; }
 .chat-candidate-list button:hover { border-color: #a9ccb8; background: #f2f8f1; }
+.chat-candidate-list button[aria-pressed="true"] { border-color: var(--teal); background: #edf6ed; box-shadow: 0 0 0 1px var(--teal); }
+.chat-candidate-list button:disabled { opacity: .55; cursor: not-allowed; }
 .chat-candidate-list button > span { display: grid; place-items: center; grid-row: span 2; width: 23px; height: 23px; border-radius: 50%; background: #e9f5ec; color: var(--teal); font-size: 10px; font-weight: 800; }
 .chat-candidate-list button strong { font-size: 10px; }
 .chat-candidate-list button time { color: var(--ink-soft); font-size: 9px; }
+.chat-candidate-list button small { grid-column: 2; color: var(--teal-dark); font-size: 9px; }
+.chat-candidate-more { justify-self: center; min-height: 34px; padding: 0 12px; border: 1px solid #d9e6d9; border-radius: 9px; background: #f6faf4; color: var(--teal-dark); font: inherit; font-size: 10px; font-weight: 700; }
+.chat-candidate-more:hover { border-color: #a9ccb8; background: #f2f8f1; }
 .assistant-live-log { color: var(--muted); font-size: 9px; }
 .assistant-live-log summary { cursor: pointer; }
 .assistant-live-log ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }

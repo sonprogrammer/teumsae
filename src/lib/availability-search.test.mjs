@@ -19,7 +19,7 @@ test('accepts search ranges longer than a week and validates times and duration'
   assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', durationMinutes: 50 }, beforeToday).ok, false)
 })
 
-test('clips today to the next quarter hour and returns three ordered candidates with hasMore', () => {
+test('clips today to the next quarter hour and returns all ordered candidates when fewer than twelve exist', () => {
   const parsed = parseAvailabilitySearchRequest({ startDate: '2026-10-29', startTime: '09:00', endTime: '18:00', durationMinutes: 60 }, new Date('2026-10-29T01:07:00.000Z'))
   assert.equal(parsed.ok, true)
   if (!parsed.ok) return
@@ -29,10 +29,28 @@ test('clips today to the next quarter hour and returns three ordered candidates 
     candidates: [
       { date: '2026-10-29', start: '11:30', end: '12:30' },
       { date: '2026-10-29', start: '12:30', end: '13:30' },
-      { date: '2026-10-29', start: '13:30', end: '14:30' }
+      { date: '2026-10-29', start: '13:30', end: '14:30' },
+      { date: '2026-10-29', start: '14:30', end: '15:30' },
+      { date: '2026-10-29', start: '15:30', end: '16:30' },
+      { date: '2026-10-29', start: '16:30', end: '17:30' }
     ],
-    hasMore: true
+    hasMore: false
   })
+})
+
+test('returns up to twelve chronological candidates before indicating more results', () => {
+  const parsed = parseAvailabilitySearchRequest({ startDate: '2026-10-30', durationMinutes: 15 }, beforeToday)
+  assert.equal(parsed.ok, true)
+  if (!parsed.ok) return
+  const result = searchAvailability({ request: parsed.value, schedule: DEFAULT_SCHEDULE_AVAILABILITY, events: [], now: beforeToday })
+  assert.equal(result.mode, 'candidates')
+  if (result.mode !== 'candidates') return
+  assert.deepEqual(result.candidates, Array.from({ length: 12 }, (_, index) => {
+    const startMinutes = 9 * 60 + index * 15
+    const format = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+    return { date: '2026-10-30', start: format(startMinutes), end: format(startMinutes + 15) }
+  }))
+  assert.equal(result.hasMore, true)
 })
 
 test('returns no candidates when the requested time has already passed today', () => {
@@ -105,7 +123,7 @@ test('applies availability exceptions and crosses month, year and weekday bounda
     ...DEFAULT_SCHEDULE_AVAILABILITY,
     exceptions: [{ id: 'new-year', startDate: '2027-01-01', endDate: '2027-01-01', label: '휴가' }]
   }
-  const parsed = parseAvailabilitySearchRequest({ startDate: '2026-12-31', endDate: '2027-01-06', startTime: '09:00', endTime: '11:00', durationMinutes: 60 }, beforeToday)
+  const parsed = parseAvailabilitySearchRequest({ startDate: '2026-12-31', endDate: '2027-01-06', startTime: '09:00', endTime: '12:00', durationMinutes: 60 }, beforeToday)
   assert.equal(parsed.ok, true)
   if (!parsed.ok) return
   const result = searchAvailability({ request: parsed.value, schedule, events: [], now: beforeToday })

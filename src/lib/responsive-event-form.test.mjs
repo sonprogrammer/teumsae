@@ -92,3 +92,51 @@ test('opens the mobile AI panel as an animated bottom sheet with a dismissible b
   assert.equal(declarationsForBaseSelector('.assistant-live-panel.is-open')['visibility'], 'visible')
   assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['display'], 'flex')
 })
+
+test('closes the AI panel when clicking outside it', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /!panelRef\.current\?\.contains\(target\)/)
+  assert.match(source, /document\.addEventListener\('pointerdown', closeOnOutsideClick\)/)
+  assert.match(source, /document\.removeEventListener\('pointerdown', closeOnOutsideClick\)/)
+})
+
+test('keeps the AI textarea at a fixed height without manual resizing', () => {
+  const input = declarationsForBaseSelector('.assistant-live-form textarea')
+  assert.equal(input['height'], '54px')
+  assert.equal(input['resize'], 'none')
+})
+
+test('restores the recent assistant conversation through the user-scoped query cache', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /useQuery\(/)
+  assert.match(source, /assistantConversationQueryKeys\.recent\(userId\)/)
+  assert.match(source, /recentConversationQuery\.data\?\.conversation/)
+  assert.match(source, /recentConversationQuery\.refetch\(\)/)
+  assert.match(source, /최근 대화를 불러오는 중/)
+  assert.match(source, /최근 대화를 불러오지 못했어요/)
+})
+
+test('shows Korean message times, day dividers and authoritative registration recovery states', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /formatTranscriptTime\(message\.createdAt\)/)
+  assert.match(source, /formatTranscriptDay\(message\.createdAt/)
+  assert.match(source, /assistant-live-date-divider/)
+  assert.match(source, /일정에 추가됨/)
+  assert.match(source, /아직 저장되지 않았어요/)
+  assert.match(source, /이 내용으로 다시 제안/)
+  assert.match(source, /onProposalRetry/)
+})
+
+test('suggests checking availability settings when no free intervals or candidates exist', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /해당 날짜가 불가일로 설정됐는지 확인해 주세요/)
+  assert.equal((source.match(/<AvailabilityEmptyState \/>/g) ?? []).length, 2)
+})
+
+test('shows candidates three at a time without another request', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /visibleCandidateCount, setVisibleCandidateCount\] = useState\(3\)/)
+  assert.match(source, /candidates\.slice\(0, visibleCandidateCount\)/)
+  assert.match(source, /setVisibleCandidateCount\(current => current \+ 3\)/)
+  assert.match(source, /후보 \{Math\.min\(3, result\.candidates\.length - visibleCandidateCount\)\}개 더 보기/)
+})

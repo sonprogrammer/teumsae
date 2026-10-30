@@ -86,6 +86,39 @@ export function availabilityWindowsForDate(date: string, schedule: Pick<Schedule
   return schedule.weekly.find(day => day.weekday === dayOfWeek)?.windows.map(window => ({ ...window })) ?? []
 }
 
+type RecreatedProposalInput = { state: string; startsAt: string; endsAt: string }
+type ProposalRecreationResult = { ok: true; date: string; startsAt: string; endsAt: string; settingsVersion: number } | { ok: false; reason: 'not_recoverable' | 'invalid_time' | 'past' | 'outside_availability' | 'invalid_schedule' }
+const recoverableProposalStates = ['cancelled', 'expired', 'conflict', 'stale']
+
+export function isProposalRecoverable(state: string) {
+  return recoverableProposalStates.includes(state)
+}
+
+function koreaDateTimeParts(value: string) {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(value))
+  return Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]))
+}
+
+export function validateProposalRecreation(card: RecreatedProposalInput, rawSchedule: unknown, now = new Date()): ProposalRecreationResult {
+  if (!isProposalRecoverable(card.state)) return { ok: false, reason: 'not_recoverable' }
+  const starts = Date.parse(card.startsAt)
+  const ends = Date.parse(card.endsAt)
+  if (!Number.isFinite(starts) || !Number.isFinite(ends) || starts >= ends || ends - starts < 15 * 60_000 || ends - starts > 240 * 60_000 || (ends - starts) % (15 * 60_000) !== 0 || starts % (15 * 60_000) !== 0 || ends % (15 * 60_000) !== 0) return { ok: false, reason: 'invalid_time' }
+  if (starts <= now.getTime()) return { ok: false, reason: 'past' }
+  const startParts = koreaDateTimeParts(card.startsAt)
+  const endParts = koreaDateTimeParts(card.endsAt)
+  if (startParts.year !== endParts.year || startParts.month !== endParts.month || startParts.day !== endParts.day) return { ok: false, reason: 'invalid_time' }
+  const parsed = parseScheduleAvailability(rawSchedule)
+  const version = rawSchedule && typeof rawSchedule === 'object' ? (rawSchedule as Record<string, unknown>).version : undefined
+  if (!parsed.ok || typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1) return { ok: false, reason: 'invalid_schedule' }
+  const date = `${startParts.year}-${startParts.month}-${startParts.day}`
+  const startTime = `${startParts.hour}:${startParts.minute}`
+  const endTime = `${endParts.hour}:${endParts.minute}`
+  const windows = availabilityWindowsForDate(date, parsed.value)
+  if (!windows.some(window => startTime >= window.start && endTime <= window.end)) return { ok: false, reason: 'outside_availability' }
+  return { ok: true, date, startsAt: new Date(starts).toISOString(), endsAt: new Date(ends).toISOString(), settingsVersion: version }
+}
+
 export type BusyInterval = { start: string; end: string }
 export type AvailabilitySlot = { start: string; end: string }
 export type AvailabilitySlotRequest = { start: string; end: string; durationMinutes: number }
@@ -141,7 +174,7 @@ const searchTimezone = 'Asia/Seoul'
 const dayMinutes = 24 * 60
 const maxSearchDays = 366
 const maxEvents = 100
-const maxCandidates = 3
+const maxCandidates = 12
 
 export type AvailabilitySearchRequest = {
   startDate: string
