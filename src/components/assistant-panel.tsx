@@ -3,14 +3,26 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { eventQueryKeys } from '@/lib/event-query-keys'
 import { resolveProposalMutation, type EventProposalState } from '@/lib/event-proposals'
 import type { AssistantCard } from '@/lib/assistant-tools'
+import { assistantConversationQueryKeys, type AssistantTranscriptMessage } from '@/lib/assistant-transcript'
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string; cards?: AssistantCard[]; answerSource?: 'model' | 'server_fallback' | 'tool_summary'; error?: boolean }
-type ChatResponse = { response: string; answerSource: 'model' | 'server_fallback' | 'tool_summary'; conversationId: string; version: number; cards: AssistantCard[] }
+type ChatMessage = AssistantTranscriptMessage
+type RecentConversation = { id: string; version: number; messages: ChatMessage[] }
+type RecentConversationResponse = { conversation: RecentConversation | null }
+type ChatResponse = { response: string; answerSource: 'model' | 'server_fallback' | 'tool_summary'; conversationId: string; version: number; cards: AssistantCard[]; messages: ChatMessage[] }
 type ChatError = { code?: string; message?: string; response?: string; cards?: AssistantCard[]; conversationId?: string; version?: number }
+
+const assistantGreeting: ChatMessage = { role: 'assistant', content: '일정 조회와 빈 시간 검색을 도와드려요. 등록 전에 날짜와 시간을 확인 카드로 보여드릴게요.' }
+const assistantGreetingMessages: ChatMessage[] = [assistantGreeting]
+
+async function fetchRecentConversation(): Promise<RecentConversationResponse> {
+  const response = await fetch('/api/chat', { cache: 'no-store' })
+  if (!response.ok) throw new Error('최근 대화를 불러오지 못했어요.')
+  return await response.json() as RecentConversationResponse
+}
 
 function dateLabel(date: string) {
   return new Intl.DateTimeFormat('ko-KR', { timeZone: 'UTC', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(date + 'T00:00:00.000Z'))
@@ -83,11 +95,11 @@ function Card({ card, onChoose, selectedCandidateId, onProposalAction, proposalP
 
 export default function AssistantPanel({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
+  const recentConversationQuery = useQuery({ queryKey: assistantConversationQueryKeys.recent(userId), queryFn: fetchRecentConversation })
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', content: '일정 조회와 빈 시간 검색을 도와드려요. 등록 전에 날짜와 시간을 확인 카드로 보여드릴게요.' }])
-  const [conversation, setConversation] = useState<{ id: string; version: number } | null>(null)
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
+  const [optimisticTranscript, setOptimisticTranscript] = useState<{ userId: string; messages: ChatMessage[] } | null>(null)
+  const [candidateSelection, setCandidateSelection] = useState<{ userId: string; candidateId: string | null }>({ userId, candidateId: null })
   const [pending, setPending] = useState(false)
   const [proposalActions, setProposalActions] = useState<Record<string, boolean>>({})
   const [proposalNotices, setProposalNotices] = useState<Record<string, string>>({})
@@ -96,6 +108,14 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   const endRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
   const launcherRef = useRef<HTMLButtonElement>(null)
+  const conversation = recentConversationQuery.data?.conversation ?? null
+  const messages = optimisticTranscript?.userId === userId ? optimisticTranscript.messages : conversation?.messages.length ? conversation.messages : assistantGreetingMessages
+  const selectedCandidateId = candidateSelection.userId === userId ? candidateSelection.candidateId : null
+
+  function updateMessages(updater: (previous: ChatMessage[]) => ChatMessage[]) {
+    setOptimisticTranscript(current => current?.userId === userId ? { userId, messages: updater(current.messages) } : current)
+    queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), current => current?.conversation ? { conversation: { ...current.conversation, messages: updater(current.conversation.messages) } } : current)
+  }
 
   function closePanel() {
     setOpen(false)
@@ -131,10 +151,11 @@ export default function AssistantPanel({ userId }: { userId: string }) {
 
   async function sendMessage(message: string) {
     const trimmed = message.trim()
-    if (!trimmed || pending) return
+    if (!trimmed || pending || recentConversationQuery.isPending || recentConversationQuery.isError) return
     const requestId = retryRequest.current?.message === trimmed && retryRequest.current.selectedCandidateId === selectedCandidateId ? retryRequest.current.id : crypto.randomUUID()
     retryRequest.current = { message: trimmed, selectedCandidateId, id: requestId }
-    setMessages(previous => [...previous, { role: 'user', content: trimmed }])
+    const messagesWithUserTurn = [...messages, { role: 'user' as const, content: trimmed }]
+    setOptimisticTranscript({ userId, messages: messagesWithUserTurn })
     setInput('')
     setPending(true)
     try {
@@ -142,24 +163,24 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       const payload = await response.json() as ChatResponse & ChatError
       if (!response.ok) {
         setInput(trimmed)
-        if (payload.conversationId && typeof payload.version === 'number') setConversation({ id: payload.conversationId, version: payload.version })
+        if (payload.conversationId && typeof payload.version === 'number') queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), current => ({ conversation: { id: payload.conversationId!, version: payload.version!, messages: current?.conversation?.messages ?? [] } }))
         if (payload.code === 'CONVERSATION_EXPIRED' || payload.code === 'CONVERSATION_NOT_FOUND' || payload.code === 'CONVERSATION_CONFLICT') {
-          setConversation(null)
-          setSelectedCandidateId(null)
-          setMessages([{ role: 'assistant', content: '대화가 만료되었거나 다른 요청에서 변경되어 새 대화로 전환했어요. 이전 후보는 이어지지 않으니 질문을 다시 보내 주세요.' }])
+          queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), { conversation: null })
+          setCandidateSelection({ userId, candidateId: null })
+          setOptimisticTranscript({ userId, messages: [...messagesWithUserTurn, { role: 'assistant', content: '대화가 만료되었거나 다른 요청에서 변경되어 새 대화로 전환했어요. 이전 후보는 이어지지 않으니 질문을 다시 보내 주세요.' }] })
           return
         }
-        if (payload.code === 'CANDIDATE_NOT_FOUND' || payload.code === 'CANDIDATE_EXPIRED' || payload.code === 'STALE_AVAILABILITY') setSelectedCandidateId(null)
-        setMessages(previous => [...previous, { role: 'assistant', content: payload.response ? `${payload.message || '대화 상태를 저장하지 못했어요.'}\n\n${payload.response}` : payload.message || '요청을 처리하지 못했어요. 다시 시도해 주세요.', cards: payload.cards, error: true }])
+        if (payload.code === 'CANDIDATE_NOT_FOUND' || payload.code === 'CANDIDATE_EXPIRED' || payload.code === 'STALE_AVAILABILITY') setCandidateSelection({ userId, candidateId: null })
+        setOptimisticTranscript({ userId, messages: [...messagesWithUserTurn, { role: 'assistant', content: payload.response ? `${payload.message || '대화 상태를 저장하지 못했어요.'}\n\n${payload.response}` : payload.message || '요청을 처리하지 못했어요. 다시 시도해 주세요.', cards: payload.cards, error: true }] })
         return
       }
       retryRequest.current = null
-      setConversation({ id: payload.conversationId, version: payload.version })
-      if (payload.cards.length) setSelectedCandidateId(null)
-      setMessages(previous => [...previous, { role: 'assistant', content: payload.response, answerSource: payload.answerSource, cards: payload.cards }])
+      queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), { conversation: { id: payload.conversationId, version: payload.version, messages: payload.messages } })
+      setOptimisticTranscript(null)
+      if (payload.cards.length) setCandidateSelection({ userId, candidateId: null })
     } catch {
       setInput(trimmed)
-      setMessages(previous => [...previous, { role: 'assistant', content: '서버와 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', error: true }])
+      setOptimisticTranscript({ userId, messages: [...messagesWithUserTurn, { role: 'assistant', content: '서버와 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', error: true }] })
     } finally {
       setPending(false)
     }
@@ -174,11 +195,11 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       const payload = await response.json() as unknown
       const result = resolveProposalMutation(payload, action)
       if (!result.ok) {
-        setMessages(previous => previous.map(message => ({ ...message, cards: message.cards?.map(item => item.type === 'proposal' && item.id === card.id && result.state ? { ...item, state: result.state } : item) })))
+        updateMessages(previous => previous.map(message => ({ ...message, cards: message.cards?.map(item => item.type === 'proposal' && item.id === card.id && result.state ? { ...item, state: result.state } : item) })))
         setProposalNotices(previous => ({ ...previous, [card.id]: result.message }))
         return
       }
-      setMessages(previous => previous.map(message => ({ ...message, cards: message.cards?.map(item => item.type === 'proposal' && item.id === card.id ? { ...item, state: result.state, ...(result.eventId ? { eventId: result.eventId } : {}) } : item) })))
+      updateMessages(previous => previous.map(message => ({ ...message, cards: message.cards?.map(item => item.type === 'proposal' && item.id === card.id ? { ...item, state: result.state, ...(result.eventId ? { eventId: result.eventId } : {}) } : item) })))
       setProposalNotices(previous => ({ ...previous, [card.id]: result.message }))
       if (action === 'confirm') await queryClient.invalidateQueries({ queryKey: eventQueryKeys.all(userId) })
     } catch {
@@ -196,12 +217,12 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   return <>
     <aside id="assistant-live-panel" ref={panelRef} className={'assistant-live-panel' + (open ? ' is-open' : '')} aria-label="AI 일정 도우미">
       <div className="assistant-live-header"><span className="assistant-live-avatar" aria-hidden="true">✦</span><div><strong>틈새 AI 도우미</strong><small>등록 전에 내용을 확인하고 직접 저장할 수 있어요</small></div><button type="button" className="assistant-live-close" aria-label="AI 도우미 닫기" onClick={closePanel}>×</button></div>
-      <div className="assistant-live-messages" aria-live="polite">{messages.map((message, index) => <article className={'assistant-live-message is-' + message.role + (message.error ? ' is-error' : '')} key={index}><MessageBody message={message} />{message.answerSource === 'server_fallback' && <small className="assistant-live-fallback-note">서버 고정 안내 · AI 최종 문구는 생성되지 않았어요.</small>}{message.cards?.map((card, cardIndex) => <Card key={cardIndex} card={card} onChoose={candidateId => setSelectedCandidateId(current => current === candidateId ? null : candidateId)} selectedCandidateId={selectedCandidateId} onProposalAction={(proposal, action) => void mutateProposal(proposal, action)} proposalPending={card.type === 'proposal' && Boolean(proposalActions[card.id])} proposalNotice={card.type === 'proposal' ? proposalNotices[card.id] : undefined} />)}{/*
+      <div className="assistant-live-messages" aria-live="polite">{recentConversationQuery.isPending ? <p className="assistant-live-history-status" role="status">최근 대화를 불러오는 중…</p> : recentConversationQuery.isError ? <p className="assistant-live-history-status" role="status">최근 대화를 불러오지 못했어요. <button type="button" onClick={() => void recentConversationQuery.refetch()}>다시 시도</button></p> : messages.map((message, index) => <article className={'assistant-live-message is-' + message.role + (message.error ? ' is-error' : '')} key={index}><MessageBody message={message} />{message.answerSource === 'server_fallback' && <small className="assistant-live-fallback-note">서버 고정 안내 · AI 최종 문구는 생성되지 않았어요.</small>}{message.cards?.map((card, cardIndex) => <Card key={cardIndex} card={card} onChoose={candidateId => setCandidateSelection(current => ({ userId, candidateId: current.userId === userId && current.candidateId === candidateId ? null : candidateId }))} selectedCandidateId={selectedCandidateId} onProposalAction={(proposal, action) => void mutateProposal(proposal, action)} proposalPending={card.type === 'proposal' && Boolean(proposalActions[card.id])} proposalNotice={card.type === 'proposal' ? proposalNotices[card.id] : undefined} />)}{/*
         개발 검증용 실행 기록: AI가 실제로 호출한 도구, 전달한 검색 조건, 결과 건수를 확인합니다.
         일반 사용자 화면에는 노출하지 않습니다. 필요하면 진단 타입과 표시 함수를 복원한 뒤 이 영역을 활성화하세요.
         {message.model || message.toolCalls?.length ? <details className="assistant-live-log"><summary>실행 기록 · 실제 호출 결과</summary>{message.model && <p>모델 {message.model} · {message.totalTokens ?? 0} tokens</p>}<ul>{message.toolCalls?.map((tool, toolIndex) => <li key={toolIndex}><div className="assistant-live-log-heading"><span>{tool.name}</span><small>{tool.status === 'success' ? '성공' : '실패'} · {tool.durationMs}ms</small></div><div className="assistant-live-log-details"><span>입력 · {toolInputLabel(tool)}</span><span>결과 · {toolOutputLabel(tool)}</span></div></li>)}</ul></details> : null}
       */}</article>)}{pending && <p className="assistant-live-pending" role="status">일정 정보를 확인하고 있어요…</p>}<div ref={endRef} /></div>
-      <form className="assistant-live-form" onSubmit={submit}><label className="sr-only" htmlFor="assistant-live-input">일정 질문</label><textarea id="assistant-live-input" ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={1000} placeholder="예: 다음 주 월요일 오후 한 시간 비는 때 찾아줘" rows={2} disabled={pending} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /><button type="submit" disabled={pending || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button></form>
+      <form className="assistant-live-form" onSubmit={submit}><label className="sr-only" htmlFor="assistant-live-input">일정 질문</label><textarea id="assistant-live-input" ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={1000} placeholder="예: 다음 주 월요일 오후 한 시간 비는 때 찾아줘" rows={2} disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /><button type="submit" disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button></form>
     </aside>
     <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
     <button type="button" ref={launcherRef} className="assistant-live-launcher" aria-controls="assistant-live-panel" aria-expanded={open} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>

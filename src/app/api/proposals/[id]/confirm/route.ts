@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { persistProposalTranscriptState } from '@/lib/assistant-transcript-store'
 
 const privateHeaders = { 'Cache-Control': 'private, no-store' }
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -18,7 +19,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!uuidPattern.test(id)) return NextResponse.json({ status: 'invalid', message: '등록 제안 정보를 확인해 주세요.' }, { status: 400, headers: privateHeaders })
   const supabase = await createServerSupabaseClient()
   const { data: authData, error: authError } = await supabase.auth.getClaims()
-  if (authError || typeof authData?.claims?.sub !== 'string') return NextResponse.json({ status: 'unauthenticated', message: '로그인이 필요해요.' }, { status: 401, headers: privateHeaders })
+  const userId = authData?.claims?.sub
+  if (authError || typeof userId !== 'string') return NextResponse.json({ status: 'unauthenticated', message: '로그인이 필요해요.' }, { status: 401, headers: privateHeaders })
   const { data, error } = await supabase.rpc('confirm_event_proposal', { p_proposal_id: id })
   if (error) {
     const status = error.code === 'P0002' ? 404 : error.code === '42501' ? 401 : error.code === '22023' ? 400 : 500
@@ -26,6 +28,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }
   const result = data && typeof data === 'object' ? data as Record<string, unknown> : {}
   const resultStatus = typeof result.status === 'string' ? result.status : 'error'
+  const event = result.event && typeof result.event === 'object' ? result.event as Record<string, unknown> : null
+  if (['confirmed', 'cancelled', 'expired', 'conflict', 'stale'].includes(resultStatus)) await persistProposalTranscriptState({ supabase, userId, proposalId: id, state: resultStatus as 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale', ...(typeof event?.id === 'string' ? { eventId: event.id } : {}) })
   const httpStatus = resultStatus === 'confirmed' ? 200 : resultStatus === 'expired' ? 410 : resultStatus === 'conflict' || resultStatus === 'stale' || resultStatus === 'cancelled' ? 409 : 500
   return NextResponse.json({ ...result, message: messageForStatus(resultStatus) }, { status: httpStatus, headers: privateHeaders })
 }

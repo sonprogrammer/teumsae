@@ -106,6 +106,16 @@ test('keeps the AI textarea at a fixed height without manual resizing', () => {
   assert.equal(input['resize'], 'none')
 })
 
+test('restores the recent assistant conversation through the user-scoped query cache', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /useQuery\(/)
+  assert.match(source, /assistantConversationQueryKeys\.recent\(userId\)/)
+  assert.match(source, /recentConversationQuery\.data\?\.conversation/)
+  assert.match(source, /recentConversationQuery\.refetch\(\)/)
+  assert.match(source, /최근 대화를 불러오는 중/)
+  assert.match(source, /최근 대화를 불러오지 못했어요/)
+})
+
 test('suggests checking availability settings when no free intervals or candidates exist', async () => {
   const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
   assert.match(source, /해당 날짜가 불가일로 설정됐는지 확인해 주세요/)

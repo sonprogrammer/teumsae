@@ -4,6 +4,7 @@ import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, 
 import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, shouldForceAvailabilityTool, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { appendAssistantTurn, parseAssistantTranscript, type AssistantTranscriptMessage } from '@/lib/assistant-transcript'
 
 export const dynamic = 'force-dynamic'
 const privateHeaders = { 'Cache-Control': 'private, no-store' }
@@ -44,6 +45,19 @@ function modelToolResult(card: AssistantCard) {
   }
 }
 
+export async function GET() {
+  const supabase = await createServerSupabaseClient()
+  const { data: authData, error: authError } = await supabase.auth.getClaims()
+  const userId = authData?.claims?.sub
+  if (authError || typeof userId !== 'string') return responseError('AUTH_REQUIRED', '로그인이 필요해요.', 401)
+
+  const { data, error } = await supabase.from('conversations').select('id, version, messages, display_messages').eq('owner_id', userId).gt('expires_at', new Date().toISOString()).gt('version', 1).order('updated_at', { ascending: false }).limit(1).maybeSingle()
+  if (error) return responseError('CONVERSATION_LOOKUP_FAILED', '최근 대화를 불러오지 못했어요.', 500)
+  if (!data) return NextResponse.json({ conversation: null }, { headers: privateHeaders })
+  const displayMessages = parseAssistantTranscript(data.display_messages)
+  return NextResponse.json({ conversation: { id: data.id, version: data.version, messages: displayMessages.length ? displayMessages : asMessages(data.messages) } }, { headers: privateHeaders })
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient()
   const { data: authData, error: authError } = await supabase.auth.getClaims()
@@ -72,12 +86,14 @@ export async function POST(request: Request) {
       const card: AssistantCard = { type: 'proposal', id: proposal.id, title: String(proposal.title ?? ''), note: typeof proposal.note === 'string' ? proposal.note : null, startsAt: proposal.startsAt, endsAt: proposal.endsAt, expiresAt: proposal.expiresAt, settingsVersion: proposal.settingsVersion, state, ...(state === 'confirmed' && typeof event?.id === 'string' ? { eventId: event.id } : {}) }
       const conversationId = typeof proposal.conversationId === 'string' ? proposal.conversationId : parsed.value.conversationId
       let version = parsed.value.version ?? 1
+      let messages: AssistantTranscriptMessage[] = []
       if (conversationId) {
-        const { data: conversation } = await supabase.from('conversations').select('version').eq('id', conversationId).eq('owner_id', userId).maybeSingle()
+        const { data: conversation } = await supabase.from('conversations').select('version, display_messages').eq('id', conversationId).eq('owner_id', userId).maybeSingle()
         if (typeof conversation?.version === 'number') version = conversation.version
+        messages = parseAssistantTranscript(conversation?.display_messages)
       }
       const response = state === 'confirmed' ? '이 요청으로 등록한 일정이 이미 저장되어 있어요.' : state === 'pending' ? '같은 등록 제안이 이미 준비되어 있어요. 아래 카드에서 확인해 주세요.' : '이 등록 제안은 이미 ' + (state === 'cancelled' ? '취소' : state === 'expired' ? '만료' : state === 'conflict' ? '충돌' : '무효') + ' 처리됐어요.'
-      return NextResponse.json({ response, answerSource: 'server_fallback', conversationId, version, cards: [card] }, { headers: privateHeaders })
+      return NextResponse.json({ response, answerSource: 'server_fallback', conversationId, version, cards: [card], messages }, { headers: privateHeaders })
     }
   }
 
@@ -91,19 +107,21 @@ export async function POST(request: Request) {
   const conversationId = parsed.value.conversationId ?? crypto.randomUUID()
   let version = 1
   let conversationMessages: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  let displayMessages: AssistantTranscriptMessage[] = []
   let context: Record<string, unknown> = {}
 
   if (parsed.value.conversationId) {
-    const { data: conversation, error } = await supabase.from('conversations').select('id, messages, context, version, expires_at').eq('id', conversationId).eq('owner_id', userId).maybeSingle()
+    const { data: conversation, error } = await supabase.from('conversations').select('id, messages, display_messages, context, version, expires_at').eq('id', conversationId).eq('owner_id', userId).maybeSingle()
     if (error) return responseError('CONVERSATION_LOOKUP_FAILED', '대화 정보를 불러오지 못했어요.', 500)
     if (!conversation) return responseError('CONVERSATION_NOT_FOUND', '대화를 찾을 수 없어요. 새 대화로 시작해 주세요.', 404)
     if (Date.parse(conversation.expires_at) <= Date.now()) return responseError('CONVERSATION_EXPIRED', '대화가 만료됐어요. 새 대화로 시작해 주세요.', 410)
     if (conversation.version !== parsed.value.version) return responseError('CONVERSATION_CONFLICT', '다른 요청에서 대화가 바뀌었어요. 최신 응답을 확인해 주세요.', 409)
     version = conversation.version
     conversationMessages = asMessages(conversation.messages)
+    displayMessages = parseAssistantTranscript(conversation.display_messages)
     context = conversation.context && typeof conversation.context === 'object' && !Array.isArray(conversation.context) ? conversation.context as Record<string, unknown> : {}
   } else {
-    const { error } = await supabase.from('conversations').insert({ id: conversationId, owner_id: userId, messages: [], context: {}, version: 1, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() })
+    const { error } = await supabase.from('conversations').insert({ id: conversationId, owner_id: userId, messages: [], display_messages: [], context: {}, version: 1, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() })
     if (error) return responseError('CONVERSATION_CREATE_FAILED', '새 대화를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
   }
 
@@ -249,10 +267,11 @@ export async function POST(request: Request) {
 
   if (requestFailure) return responseError(requestFailure.code, requestFailure.message, requestFailure.status, { conversationId, version, model, usage: { totalTokens }, ...diagnosticDetails(), cards })
   const nextMessages = [...conversationMessages, { role: 'user' as const, content: parsed.value.message }, { role: 'assistant' as const, content: assistantText }].slice(-8)
+  const nextDisplayMessages = appendAssistantTurn(displayMessages, parsed.value.message, { content: assistantText, answerSource, cards })
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-  const save = supabase.from('conversations').update({ messages: nextMessages, context, version: version + 1, expires_at: expiresAt, updated_at: new Date().toISOString() }).eq('id', conversationId).eq('owner_id', userId).eq('version', version).select('id').maybeSingle()
+  const save = supabase.from('conversations').update({ messages: nextMessages, display_messages: nextDisplayMessages, context, version: version + 1, expires_at: expiresAt, updated_at: new Date().toISOString() }).eq('id', conversationId).eq('owner_id', userId).eq('version', version).select('id').maybeSingle()
   const { data: saved, error: saveError } = await save
   if (saveError) return responseError('CONVERSATION_SAVE_FAILED', 'AI 답변은 받았지만 대화 상태를 저장하지 못했어요. 다시 시도해 주세요.', 500, { response: assistantText, model, usage: { totalTokens }, cards, ...diagnosticDetails() })
   if (!saved) return responseError('CONVERSATION_CONFLICT', '다른 요청에서 대화가 바뀌었어요. 최신 응답을 확인해 주세요.', 409, { response: assistantText, model, usage: { totalTokens }, cards, ...diagnosticDetails() })
-  return NextResponse.json({ response: assistantText, answerSource, conversationId, version: version + 1, cards, ...diagnosticDetails(), model, usage: { totalTokens } }, { headers: privateHeaders })
+  return NextResponse.json({ response: assistantText, answerSource, conversationId, version: version + 1, cards, messages: nextDisplayMessages, ...diagnosticDetails(), model, usage: { totalTokens } }, { headers: privateHeaders })
 }

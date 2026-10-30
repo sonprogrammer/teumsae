@@ -536,6 +536,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-message.is-error > p, .assistant-live-message.is-error .assistant-live-markdown { background: #fff0e8; color: #9b5c46; }
 .assistant-live-fallback-note { color: var(--muted); font-size: 9px; }
 .assistant-live-pending, .assistant-live-notice { margin: 0 12px 8px; color: var(--muted); font-size: 11px; }
+.assistant-live-history-status { margin: auto 12px; color: var(--muted); font-size: 11px; text-align: center; }
+.assistant-live-history-status button { margin-left: 5px; padding: 4px 8px; border: 1px solid #dce7dd; border-radius: 8px; background: #fff; color: var(--teal-dark); font: inherit; }
 .assistant-live-form { display: flex; align-items: flex-end; gap: 8px; margin: 0 11px 11px; padding: 8px; border: 1px solid #dce7dd; border-radius: 13px; background: #fff; }
 .assistant-live-form:focus-within { border-color: #8eb8a2; box-shadow: 0 0 0 3px #e7f2e9; }
 .assistant-live-form textarea { flex: 1; min-width: 0; height: 54px; min-height: 54px; max-height: 54px; overflow-y: auto; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; line-height: 1.5; }
