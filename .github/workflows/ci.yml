@@ -32,4 +32,6 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run lint
       - run: pnpm run test
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e --project=sample-desktop --project=sample-mobile
       - run: pnpm run build

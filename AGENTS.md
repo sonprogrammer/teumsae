@@ -32,3 +32,13 @@
 - 변경에 맞는 검사를 실행한다. 해당하면 `test`, `typecheck`, `lint`, `build`를 실행하고 실제 결과를 보고한다.
 - 로컬 검사, GitHub Actions 검사, 실제 서비스 검사를 구분한다. 미실행 검사를 통과했다고 표현하지 않는다.
 - 화면을 변경했다면 영향받는 흐름을 데스크톱과 모바일에서 확인한다.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
