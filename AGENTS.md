@@ -11,6 +11,7 @@
 - 일정 UI, 달력, 폼, AI 패널 작업에는 `.agents/skills/teumsae-frontend/SKILL.md`를 사용한다.
 - 인증, DB, 시간 계산, API 작업에는 `.agents/skills/teumsae-backend/SKILL.md`를 사용한다.
 - 기능 검증 계획이나 PR 리뷰에는 `.agents/skills/teumsae-qa/SKILL.md`를 사용한다.
+- 보안 리뷰 요청에는 `.agents/skills/project-security-review/SKILL.md`를 사용한다.
 - 작업에 해당하는 스킬만 읽는다. 제품 규칙의 원본은 `docs/spec.md`다.
 
 ## 코드 스타일
