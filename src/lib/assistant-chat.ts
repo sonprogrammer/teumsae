@@ -1,7 +1,7 @@
 export type AssistantRequest = { message: string; conversationId: string | null; version: number | null; requestId: string; selectedCandidateId?: string }
 export type AssistantRequestResult = { ok: true; value: AssistantRequest } | { ok: false; message: string }
 export type AssistantToolName = 'listEvents' | 'findAvailability' | 'prepareEvent'
-export const assistantCardConcisenessInstruction = '카드에 표시된 날짜와 시간은 답변 문장에서 반복하지 마세요.'
+export const assistantCardConcisenessInstruction = '카드에 표시된 날짜와 시간은 답변에서 반복하지 마세요. 빈 시간 검색에 소요 시간이 명시되지 않으면 durationMinutes를 생략하고 설정 시간에서 기존 일정을 뺀 모든 구간을 찾으세요. 선택 후보가 있어도 사용자가 다른 시작·종료 시각을 명시하면 그 시간으로 prepareEvent를 호출하세요.'
 
 export function parseAssistantRequest(input: unknown): AssistantRequestResult {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { ok: false, message: '요청 내용을 확인해 주세요.' }
@@ -53,16 +53,29 @@ export function createToolLimitFallback(cardCount: number, toolStatuses: string[
   return '조회 결과는 위 카드에 표시했어요. 더 궁금한 점이 있으면 이어서 물어봐 주세요.'
 }
 
-export function createAvailabilityCandidateSummary(cards: unknown[], toolCalls: Array<{ name: string; status: string }>, message: string, hasConversationHistory: boolean): string | null {
-  if (hasConversationHistory || cards.length !== 1 || toolCalls.length !== 1 || toolCalls[0].name !== 'findAvailability' || toolCalls[0].status !== 'success') return null
+export function createAvailabilityResultSummary(cards: unknown[], toolCalls: Array<{ name: string; status: string }>, message: string): string | null {
+  if (cards.length !== 1 || toolCalls.length !== 1 || toolCalls[0].name !== 'findAvailability' || toolCalls[0].status !== 'success') return null
   if (/(그리고|또한|함께|같이|동시에|비교|고려|무리|다음\s*날|그\s*다음날|일정도|스케줄도|찾아주고|알려주고|추천|좋은\s*시간|가장|최적|등록|저장|추가|넣어|만들어)/u.test(message)) return null
   const card = cards[0]
   if (!card || typeof card !== 'object' || Array.isArray(card)) return null
   const result = (card as Record<string, unknown>).result
   if ((card as Record<string, unknown>).type !== 'availability' || !result || typeof result !== 'object' || Array.isArray(result)) return null
   const availability = result as Record<string, unknown>
-  if (availability.mode !== 'candidates' || !Array.isArray(availability.candidates) || !availability.candidates.length) return null
-  return '조건에 맞는 빈 시간을 찾았어요. 아래 후보를 확인해 주세요.'
+  if (availability.mode === 'intervals' && Array.isArray(availability.intervals)) return availability.intervals.length ? '설정한 가능 시간과 일정을 반영한 빈 구간을 아래 카드에 표시했어요.' : '검색 결과를 아래 카드에 표시했어요.'
+  if (availability.mode === 'candidates' && Array.isArray(availability.candidates)) return availability.candidates.length ? '요청한 시간 길이에 맞는 후보를 아래 카드에 표시했어요.' : '검색 결과를 아래 카드에 표시했어요.'
+  return null
+}
+
+export function normalizeAvailabilityToolArguments(args: Record<string, unknown>, message: string) {
+  const normalized = { ...args }
+  const durationSpecified = /(?:\d+\s*(?:시간|분)|(?:한|두|세|네|다섯|여섯|일|이|삼|사|오)\s*시간)(?:\s*반)?/u.test(message)
+  const timeRangeSpecified = /(?:오전|아침|오후|저녁|밤|새벽|\d{1,2}\s*시(?!간)|\d{1,2}:\d{2})/u.test(message)
+  if (!durationSpecified) delete normalized.durationMinutes
+  if (!timeRangeSpecified) {
+    delete normalized.startTime
+    delete normalized.endTime
+  }
+  return normalized
 }
 
 export function validateAssistantToolArguments(name: AssistantToolName, args: Record<string, unknown>) {

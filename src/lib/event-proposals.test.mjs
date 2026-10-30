@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseEventCandidates, parsePrepareEventArguments, resolveEventProposal, resolveProposalMutation, resolveSelectedCandidate } from './event-proposals.ts'
+import { matchesSelectedCandidateOrDirectTime, parseEventCandidates, parsePrepareEventArguments, resolveEventProposal, resolveProposalMutation, resolveSelectedCandidate } from './event-proposals.ts'
 
 const candidateId = '10000000-0000-4000-8000-000000000001'
 const searchId = '20000000-0000-4000-8000-000000000002'
@@ -32,6 +32,13 @@ test('validates a client-selected candidate against active server context', () =
   assert.deepEqual(resolveSelectedCandidate('30000000-0000-4000-8000-000000000003', [candidate], 3, new Date('2026-11-01T00:00:00.000Z')), { ok: false, code: 'CANDIDATE_NOT_FOUND' })
   assert.deepEqual(resolveSelectedCandidate(candidateId, [candidate], 4, new Date('2026-11-01T00:00:00.000Z')), { ok: false, code: 'STALE_AVAILABILITY' })
   assert.deepEqual(resolveSelectedCandidate(candidateId, [candidate], 3, new Date('2026-11-02T00:10:00.000Z')), { ok: false, code: 'CANDIDATE_EXPIRED' })
+})
+
+test('allows a directly specified time to replace the selected candidate while keeping candidate IDs bound', () => {
+  const selected = { id: candidateId, searchId }
+  assert.equal(matchesSelectedCandidateOrDirectTime({ title: '운동', note: null, date: '2026-11-02', startTime: '14:00', endTime: '15:00' }, selected), true)
+  assert.equal(matchesSelectedCandidateOrDirectTime({ title: '운동', note: null, candidateId, searchId }, selected), true)
+  assert.equal(matchesSelectedCandidateOrDirectTime({ title: '운동', note: null, candidateId: '30000000-0000-4000-8000-000000000003', searchId }, selected), false)
 })
 
 test('parses persisted candidate IDs and ignores malformed or incomplete context entries', () => {

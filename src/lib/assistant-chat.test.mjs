@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityCandidateSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
+import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   const requestId = '10000000-0000-4000-8000-000000000001'
@@ -102,19 +102,27 @@ test('returns a clearly identified server fallback only when tool results are su
   assert.equal(createToolLimitFallback(0, ['success']), null)
 })
 
-test('uses a short server response for a single availability candidate result', () => {
+test('uses a short server response when a single availability card contains the complete result', () => {
   const cards = [{ type: 'availability', result: { mode: 'candidates', candidates: [{ date: '2026-10-31', start: '10:00', end: '12:00' }] } }]
   const toolCalls = [{ name: 'findAvailability', status: 'success' }]
-  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '내일 빈 시간 찾아줘', false), '조건에 맞는 빈 시간을 찾았어요. 아래 후보를 확인해 주세요.')
-  assert.equal(createAvailabilityCandidateSummary([...cards, { type: 'events' }], toolCalls, '내일 빈 시간 찾아줘', false), null)
-  assert.equal(createAvailabilityCandidateSummary([{ type: 'availability', result: { mode: 'intervals', candidates: [] } }], toolCalls, '내일 빈 시간 찾아줘', false), null)
-  assert.equal(createAvailabilityCandidateSummary(cards, [{ name: 'findAvailability', status: 'success' }, { name: 'listEvents', status: 'success' }], '내일 빈 시간 찾아줘', false), null)
-  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '빈 시간 찾아주고 다음 날 일정도 고려해줘', false), null)
-  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '내일 운동하기 좋은 시간 추천해줘', false), null)
-  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '빈 시간 찾아서 운동 일정으로 등록해줘', false), null)
-  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '그럼 빈 시간도 찾아줘', true), null)
+  const intervalCards = [{ type: 'availability', result: { mode: 'intervals', intervals: [{ date: '2026-10-31', start: '09:00', end: '12:00' }, { date: '2026-10-31', start: '13:00', end: '21:00' }] } }]
+  assert.equal(createAvailabilityResultSummary(cards, toolCalls, '내일 빈 시간 찾아줘'), '요청한 시간 길이에 맞는 후보를 아래 카드에 표시했어요.')
+  assert.equal(createAvailabilityResultSummary(intervalCards, toolCalls, '내일 빈 시간 알려줘'), '설정한 가능 시간과 일정을 반영한 빈 구간을 아래 카드에 표시했어요.')
+  assert.equal(createAvailabilityResultSummary([...cards, { type: 'events' }], toolCalls, '내일 빈 시간 찾아줘'), null)
+  assert.equal(createAvailabilityResultSummary(cards, [{ name: 'findAvailability', status: 'success' }, { name: 'listEvents', status: 'success' }], '내일 빈 시간 찾아줘'), null)
+  assert.equal(createAvailabilityResultSummary(intervalCards, toolCalls, '빈 시간 찾아주고 다음 날 일정도 고려해줘'), null)
+  assert.equal(createAvailabilityResultSummary(intervalCards, toolCalls, '내일 운동하기 좋은 시간 추천해줘'), null)
+  assert.equal(createAvailabilityResultSummary(intervalCards, toolCalls, '빈 시간 찾아서 운동 일정으로 등록해줘'), null)
 })
 
 test('asks the AI to avoid repeating dates and times already shown in cards', () => {
-  assert.equal(assistantCardConcisenessInstruction, '카드에 표시된 날짜와 시간은 답변 문장에서 반복하지 마세요.')
+  assert.match(assistantCardConcisenessInstruction, /카드에 표시된 날짜와 시간은 답변에서 반복하지 마세요/)
+  assert.match(assistantCardConcisenessInstruction, /durationMinutes를 생략하고 설정 시간에서 기존 일정을 뺀 모든 구간을 찾으세요/)
+  assert.match(assistantCardConcisenessInstruction, /선택 후보가 있어도 사용자가 다른 시작·종료 시각을 명시하면 그 시간으로 prepareEvent를 호출하세요/)
+})
+
+test('removes an AI-assumed duration but keeps a duration explicitly stated by the user', () => {
+  assert.deepEqual(normalizeAvailabilityToolArguments({ startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 60 }, '내일 빈 시간 알려줘'), { startDate: '2026-10-31' })
+  assert.deepEqual(normalizeAvailabilityToolArguments({ startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 90 }, '내일 오전 1시간 반 빈 시간 찾아줘'), { startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 90 })
+  assert.deepEqual(normalizeAvailabilityToolArguments({ startDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 120 }, '내일 2시간 가능한 때 찾아줘'), { startDate: '2026-10-31', durationMinutes: 120 })
 })

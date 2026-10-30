@@ -35,6 +35,11 @@ export type EventProposalPayload = {
 export type EventProposalResult = { ok: true; value: EventProposalPayload } | { ok: false; code: string; message: string }
 export type EventProposalState = 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale'
 
+export function matchesSelectedCandidateOrDirectTime(input: PrepareEventInput, selectedCandidate: Record<string, unknown> | null) {
+  if (!selectedCandidate || !('candidateId' in input)) return true
+  return input.candidateId === selectedCandidate.id && input.searchId === selectedCandidate.searchId
+}
+
 export function resolveSelectedCandidate(candidateId: string, candidates: EventCandidate[], settingsVersion: number, now = new Date()): { ok: true; value: EventCandidate } | { ok: false; code: 'CANDIDATE_NOT_FOUND' | 'CANDIDATE_EXPIRED' | 'STALE_AVAILABILITY' } {
   const candidate = candidates.find(item => item.id === candidateId)
   if (!candidate) return { ok: false, code: 'CANDIDATE_NOT_FOUND' }

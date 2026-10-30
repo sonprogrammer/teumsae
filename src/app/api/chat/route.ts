@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { assistantCardConcisenessInstruction, createAvailabilityCandidateSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
+import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
@@ -196,7 +196,8 @@ export async function POST(request: Request) {
         const toolCall = call as Record<string, unknown>
         const fn = toolCall.function && typeof toolCall.function === 'object' ? toolCall.function as Record<string, unknown> : {}
         const name = parseToolName(fn.name)
-        const args = parseToolArguments(fn.arguments)
+        const parsedArgs = parseToolArguments(fn.arguments)
+        const args = parsedArgs && name === 'findAvailability' ? normalizeAvailabilityToolArguments(parsedArgs, parsed.value.message) : parsedArgs
         const callId = typeof toolCall.id === 'string' ? toolCall.id : ''
         if (!name || !args || !callId) {
           requestFailure = { code: 'MODEL_INVALID_TOOL_CALL', message: 'AI가 만든 조회 요청을 확인하지 못했어요.', status: 502 }
@@ -222,7 +223,7 @@ export async function POST(request: Request) {
         modelMessages.push({ role: 'tool', tool_call_id: callId, name, content: JSON.stringify(modelToolResult(result.card)) })
       }
       if (requestFailure) break
-      const availabilitySummary = createAvailabilityCandidateSummary(cards, toolLog, parsed.value.message, conversationMessages.length > 0)
+      const availabilitySummary = createAvailabilityResultSummary(cards, toolLog, parsed.value.message)
       if (availabilitySummary) {
         assistantText = availabilitySummary
         answerSource = 'tool_summary'
