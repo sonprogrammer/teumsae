@@ -1,6 +1,7 @@
 export type AssistantRequest = { message: string; conversationId: string | null; version: number | null; requestId: string; selectedCandidateId?: string }
 export type AssistantRequestResult = { ok: true; value: AssistantRequest } | { ok: false; message: string }
 export type AssistantToolName = 'listEvents' | 'findAvailability' | 'prepareEvent'
+export const assistantCardConcisenessInstruction = '카드에 표시된 날짜와 시간은 답변 문장에서 반복하지 마세요.'
 
 export function parseAssistantRequest(input: unknown): AssistantRequestResult {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { ok: false, message: '요청 내용을 확인해 주세요.' }
@@ -50,6 +51,18 @@ export function countInclusiveDays(startDate: string, endDate: string) {
 export function createToolLimitFallback(cardCount: number, toolStatuses: string[]): string | null {
   if (!Number.isSafeInteger(cardCount) || cardCount < 1 || !toolStatuses.length || toolStatuses.some(status => status !== 'success')) return null
   return '조회 결과는 위 카드에 표시했어요. 더 궁금한 점이 있으면 이어서 물어봐 주세요.'
+}
+
+export function createAvailabilityCandidateSummary(cards: unknown[], toolCalls: Array<{ name: string; status: string }>, message: string, hasConversationHistory: boolean): string | null {
+  if (hasConversationHistory || cards.length !== 1 || toolCalls.length !== 1 || toolCalls[0].name !== 'findAvailability' || toolCalls[0].status !== 'success') return null
+  if (/(그리고|또한|함께|같이|동시에|비교|고려|무리|다음\s*날|그\s*다음날|일정도|스케줄도|찾아주고|알려주고|추천|좋은\s*시간|가장|최적|등록|저장|추가|넣어|만들어)/u.test(message)) return null
+  const card = cards[0]
+  if (!card || typeof card !== 'object' || Array.isArray(card)) return null
+  const result = (card as Record<string, unknown>).result
+  if ((card as Record<string, unknown>).type !== 'availability' || !result || typeof result !== 'object' || Array.isArray(result)) return null
+  const availability = result as Record<string, unknown>
+  if (availability.mode !== 'candidates' || !Array.isArray(availability.candidates) || !availability.candidates.length) return null
+  return '조건에 맞는 빈 시간을 찾았어요. 아래 후보를 확인해 주세요.'
 }
 
 export function validateAssistantToolArguments(name: AssistantToolName, args: Record<string, unknown>) {

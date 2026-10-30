@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
+import { assistantCardConcisenessInstruction, createAvailabilityCandidateSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
   const now = new Date()
   const nowKorea = getKoreaToday(now)
   const modelMessages: GroqMessage[] = [
-    { role: 'system', content: assistantSystemPrompt({ ...context, today: nowKorea }, now) },
+    { role: 'system', content: assistantSystemPrompt({ ...context, today: nowKorea }, now) + ' ' + assistantCardConcisenessInstruction },
     ...conversationMessages.map(message => ({ ...message })),
     { role: 'user', content: parsed.value.message }
   ]
@@ -142,7 +142,7 @@ export async function POST(request: Request) {
   let modelCalls = 0
   let totalTokens = 0
   let assistantText = ''
-  let answerSource: 'model' | 'server_fallback' = 'model'
+  let answerSource: 'model' | 'server_fallback' | 'tool_summary' = 'model'
   let modelReturnedFinal = false
   let requestFailure: { code: string; message: string; status: number } | null = null
 
@@ -222,6 +222,13 @@ export async function POST(request: Request) {
         modelMessages.push({ role: 'tool', tool_call_id: callId, name, content: JSON.stringify(modelToolResult(result.card)) })
       }
       if (requestFailure) break
+      const availabilitySummary = createAvailabilityCandidateSummary(cards, toolLog, parsed.value.message, conversationMessages.length > 0)
+      if (availabilitySummary) {
+        assistantText = availabilitySummary
+        answerSource = 'tool_summary'
+        modelReturnedFinal = true
+        break
+      }
     }
     if (!requestFailure && !assistantText && !modelReturnedFinal && modelCalls >= maxModelCalls) {
       const fallback = createToolLimitFallback(cards.length, toolLog.map(tool => tool.status))

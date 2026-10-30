@@ -8,8 +8,8 @@ import { eventQueryKeys } from '@/lib/event-query-keys'
 import { resolveProposalMutation, type EventProposalState } from '@/lib/event-proposals'
 import type { AssistantCard } from '@/lib/assistant-tools'
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string; cards?: AssistantCard[]; answerSource?: 'model' | 'server_fallback'; error?: boolean }
-type ChatResponse = { response: string; answerSource: 'model' | 'server_fallback'; conversationId: string; version: number; cards: AssistantCard[] }
+type ChatMessage = { role: 'user' | 'assistant'; content: string; cards?: AssistantCard[]; answerSource?: 'model' | 'server_fallback' | 'tool_summary'; error?: boolean }
+type ChatResponse = { response: string; answerSource: 'model' | 'server_fallback' | 'tool_summary'; conversationId: string; version: number; cards: AssistantCard[] }
 type ChatError = { code?: string; message?: string; response?: string; cards?: AssistantCard[]; conversationId?: string; version?: number }
 
 function dateLabel(date: string) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
+import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityCandidateSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   const requestId = '10000000-0000-4000-8000-000000000001'
@@ -100,4 +100,21 @@ test('returns a clearly identified server fallback only when tool results are su
   assert.equal(createToolLimitFallback(2, ['success', 'success']), '조회 결과는 위 카드에 표시했어요. 더 궁금한 점이 있으면 이어서 물어봐 주세요.')
   assert.equal(createToolLimitFallback(2, ['success', 'failed']), null)
   assert.equal(createToolLimitFallback(0, ['success']), null)
+})
+
+test('uses a short server response for a single availability candidate result', () => {
+  const cards = [{ type: 'availability', result: { mode: 'candidates', candidates: [{ date: '2026-10-31', start: '10:00', end: '12:00' }] } }]
+  const toolCalls = [{ name: 'findAvailability', status: 'success' }]
+  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '내일 빈 시간 찾아줘', false), '조건에 맞는 빈 시간을 찾았어요. 아래 후보를 확인해 주세요.')
+  assert.equal(createAvailabilityCandidateSummary([...cards, { type: 'events' }], toolCalls, '내일 빈 시간 찾아줘', false), null)
+  assert.equal(createAvailabilityCandidateSummary([{ type: 'availability', result: { mode: 'intervals', candidates: [] } }], toolCalls, '내일 빈 시간 찾아줘', false), null)
+  assert.equal(createAvailabilityCandidateSummary(cards, [{ name: 'findAvailability', status: 'success' }, { name: 'listEvents', status: 'success' }], '내일 빈 시간 찾아줘', false), null)
+  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '빈 시간 찾아주고 다음 날 일정도 고려해줘', false), null)
+  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '내일 운동하기 좋은 시간 추천해줘', false), null)
+  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '빈 시간 찾아서 운동 일정으로 등록해줘', false), null)
+  assert.equal(createAvailabilityCandidateSummary(cards, toolCalls, '그럼 빈 시간도 찾아줘', true), null)
+})
+
+test('asks the AI to avoid repeating dates and times already shown in cards', () => {
+  assert.equal(assistantCardConcisenessInstruction, '카드에 표시된 날짜와 시간은 답변 문장에서 반복하지 마세요.')
 })
