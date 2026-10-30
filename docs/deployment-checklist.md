@@ -52,7 +52,8 @@ Preview 주소: (배포 후 입력)
 - [ ] Production URL에서 카카오 로그인과 핵심 흐름을 다시 확인했다.
 - [ ] README의 배포 상태와 실제 검증 결과를 갱신했다.
 
-Production URL: (배포 후 입력)
+Production 배포 상태: 완료 (손 대표님 확인)
+Production URL: https://teumsae-blush.vercel.app/
 커밋: (배포 후 입력)
 확인 일시: (확인 후 입력)
 결과: (통과/실패/미실행 및 근거를 입력)
