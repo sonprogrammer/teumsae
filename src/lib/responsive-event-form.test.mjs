@@ -92,3 +92,9 @@ test('opens the mobile AI panel as an animated bottom sheet with a dismissible b
   assert.equal(declarationsForBaseSelector('.assistant-live-panel.is-open')['visibility'], 'visible')
   assert.equal(declarationsForBaseSelector('.assistant-live-launcher')['display'], 'flex')
 })
+
+test('suggests checking availability settings when no free intervals or candidates exist', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /해당 날짜가 불가일로 설정됐는지 확인해 주세요/)
+  assert.equal((source.match(/<AvailabilityEmptyState \/>/g) ?? []).length, 2)
+})

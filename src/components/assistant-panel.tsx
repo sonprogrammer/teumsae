@@ -25,6 +25,10 @@ function ConflictList({ conflicts }: { conflicts: Extract<AssistantCard, { type:
   return <ul className="chat-conflict-list">{conflicts.map((event, index) => <li key={event.date + event.startTime + index}><span>{dateLabel(event.date)} {event.startTime}–{event.endTime}</span><strong>{event.title}</strong></li>)}</ul>
 }
 
+function AvailabilityEmptyState() {
+  return <div className="chat-card-empty-state"><p className="chat-card-empty">요청한 조건에 맞는 빈 시간이 없어요.</p><p className="chat-card-empty-hint">일정 가능 시간 설정이 비어 있거나 해당 날짜가 불가일로 설정됐는지 확인해 주세요.</p></div>
+}
+
 function MessageBody({ message }: { message: ChatMessage }) {
   if (message.role === 'user') return <p>{message.content}</p>
   return <div className="assistant-live-markdown"><ReactMarkdown components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>{message.content}</ReactMarkdown></div>
@@ -51,8 +55,8 @@ function Card({ card, onChoose, selectedCandidateId, onProposalAction, proposalP
     const candidateId = card.candidateIds[index]
     const selected = candidateId === selectedCandidateId
     return <button type="button" key={candidate.date + candidate.start} aria-pressed={selected} disabled={!candidateId} onClick={() => candidateId && onChoose(candidateId)}><span>{index + 1}</span><strong>{dateLabel(candidate.date)}</strong><time>{candidate.start} – {candidate.end}</time><small>{selected ? '선택됨 · 다음 메시지에서 등록 요청' : '선택'}</small></button>
-  })}</div> : <><p className="chat-card-empty">요청한 조건에 맞는 빈 시간이 없어요.</p><ConflictList conflicts={card.conflicts} /></>}</section>
-  return <section className="chat-result-card" aria-label="빈 시간 결과"><div className="chat-card-heading"><strong>빈 시간 확인</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>{result.intervals.length ? <ul className="chat-event-results">{result.intervals.map(interval => <li key={interval.date + interval.start}><span>{dateLabel(interval.date)}</span><strong>{interval.start} – {interval.end}</strong></li>)}</ul> : <><p className="chat-card-empty">요청한 조건에 맞는 빈 시간이 없어요.</p><ConflictList conflicts={card.conflicts} /></>}</section>
+  })}</div> : <><AvailabilityEmptyState /><ConflictList conflicts={card.conflicts} /></>}</section>
+  return <section className="chat-result-card" aria-label="빈 시간 결과"><div className="chat-card-heading"><strong>빈 시간 확인</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>{result.intervals.length ? <ul className="chat-event-results">{result.intervals.map(interval => <li key={interval.date + interval.start}><span>{dateLabel(interval.date)}</span><strong>{interval.start} – {interval.end}</strong></li>)}</ul> : <><AvailabilityEmptyState /><ConflictList conflicts={card.conflicts} /></>}</section>
 }
 
 export default function AssistantPanel({ userId }: { userId: string }) {
