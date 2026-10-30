@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, shouldForceAvailabilityTool, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
+import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, resolveRelativeDateToolArguments, shouldForceAvailabilityTool, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { appendAssistantTurn, parseAssistantTranscript, reconcileProposalStates, type AssistantTranscriptMessage, type ProposalStatusRecord } from '@/lib/assistant-transcript'
@@ -231,7 +231,8 @@ export async function POST(request: Request) {
         const fn = toolCall.function && typeof toolCall.function === 'object' ? toolCall.function as Record<string, unknown> : {}
         const name = parseToolName(fn.name)
         const parsedArgs = parseToolArguments(fn.arguments)
-        const args = parsedArgs && name === 'findAvailability' ? normalizeAvailabilityToolArguments(parsedArgs, parsed.value.message) : parsedArgs
+        const normalizedArgs = parsedArgs && name === 'findAvailability' ? normalizeAvailabilityToolArguments(parsedArgs, parsed.value.message) : parsedArgs
+        const args = normalizedArgs ? resolveRelativeDateToolArguments(normalizedArgs, parsed.value.message, now) : null
         const callId = typeof toolCall.id === 'string' ? toolCall.id : ''
         if (!name || !args || !callId) {
           requestFailure = { code: 'MODEL_INVALID_TOOL_CALL', message: 'AI가 만든 조회 요청을 확인하지 못했어요.', status: 502 }

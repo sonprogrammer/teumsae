@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, shouldForceAvailabilityTool, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
+import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, resolveRelativeDateToolArguments, shouldForceAvailabilityTool, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   const requestId = '10000000-0000-4000-8000-000000000001'
@@ -59,6 +59,21 @@ test('validates the model input separately for event and availability tools', ()
 
 test('uses Seoul local date for natural language reference context', () => {
   assert.equal(getKoreaToday(new Date('2026-10-29T15:30:00.000Z')), '2026-10-30')
+})
+
+test('resolves tomorrow from the Seoul date across UTC midnight', () => {
+  const now = new Date('2026-10-30T15:28:00.000Z')
+  assert.deepEqual(resolveRelativeDateToolArguments({ startDate: '2026-10-31', endDate: '2026-10-31' }, '내일 일정 확인해줘', now), { startDate: '2026-11-01', endDate: '2026-11-01' })
+  assert.deepEqual(resolveRelativeDateToolArguments({ date: '2026-10-31' }, '내일 운동 등록 준비해줘', now), { date: '2026-11-01' })
+  assert.deepEqual(resolveRelativeDateToolArguments({ startDate: '2026-10-31', endDate: '2026-11-02' }, '내일부터 3일간 일정 확인해줘', now), { startDate: '2026-11-01', endDate: '2026-11-03' })
+})
+
+test('keeps explicit dates and ambiguous multiple relative dates unchanged', () => {
+  const now = new Date('2026-10-30T15:28:00.000Z')
+  const args = { startDate: '2026-10-31', endDate: '2026-10-31' }
+  assert.deepEqual(resolveRelativeDateToolArguments(args, '2026-10-31 일정 확인해줘', now), args)
+  assert.deepEqual(resolveRelativeDateToolArguments(args, '오늘 일정 확인하고 내일 빈 시간도 찾아줘', now), args)
+  assert.deepEqual(resolveRelativeDateToolArguments(args, '내일 일정 확인하고 그 다음날 빈 시간도 찾아줘', now), args)
 })
 
 test('converts UTC timestamps to Korean date and time before sending them to the model', () => {
