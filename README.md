@@ -1,4 +1,15 @@
-# 틈새 (Teumsae)
+
+<h1>
+  <img
+    width="72"
+    height="60"
+    alt="틈새 로고"
+    src="https://github.com/user-attachments/assets/309a63d8-6e8c-4612-a3df-e7e2c02bc7dc"
+    style="vertical-align: middle; margin-right: 8px;"
+    align="bottom";
+  />
+  틈새 (Teumsae)
+</h1>
 
 개인 일정을 바탕으로 빈 시간을 찾고, AI가 준비한 일정 후보를 확인한 뒤 저장하는 개인용 AI 스케줄러입니다.
 
