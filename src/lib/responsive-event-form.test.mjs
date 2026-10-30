@@ -116,6 +116,17 @@ test('restores the recent assistant conversation through the user-scoped query c
   assert.match(source, /최근 대화를 불러오지 못했어요/)
 })
 
+test('shows Korean message times, day dividers and authoritative registration recovery states', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /formatTranscriptTime\(message\.createdAt\)/)
+  assert.match(source, /formatTranscriptDay\(message\.createdAt/)
+  assert.match(source, /assistant-live-date-divider/)
+  assert.match(source, /일정에 추가됨/)
+  assert.match(source, /아직 저장되지 않았어요/)
+  assert.match(source, /이 내용으로 다시 제안/)
+  assert.match(source, /onProposalRetry/)
+})
+
 test('suggests checking availability settings when no free intervals or candidates exist', async () => {
   const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
   assert.match(source, /해당 날짜가 불가일로 설정됐는지 확인해 주세요/)

@@ -23,7 +23,7 @@ function parseSchedule(value: unknown): ScheduleAvailability | null {
 
 export type AssistantCard = { type: 'events'; startDate: string; endDate: string; events: Array<{ id: string; title: string; note: string | null; starts_at: string; ends_at: string }>; hasMore: boolean }
   | { type: 'availability'; startDate: string; endDate: string; searchId?: string; candidateIds: string[]; result: ReturnType<typeof searchAvailability>; conflicts: Array<{ title: string; date: string; startTime: string; endDate: string; endTime: string }> }
-  | { type: 'proposal'; id: string; title: string; note: string | null; startsAt: string; endsAt: string; settingsVersion: number; expiresAt: string; state: 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale'; eventId?: string }
+  | { type: 'proposal'; id: string; title: string; note: string | null; startsAt: string; endsAt: string; settingsVersion: number; expiresAt: string; state: 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale' | 'missing' | 'recreated'; eventId?: string; replacedById?: string }
 export type AssistantToolResult = { ok: true; card: AssistantCard; context: Record<string, unknown> } | { ok: false; code: string; message: string; fatal: boolean }
 
 function dateTimeAtKorea(date: string, time: string) {

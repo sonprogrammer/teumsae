@@ -33,7 +33,7 @@ export type EventProposalPayload = {
 }
 
 export type EventProposalResult = { ok: true; value: EventProposalPayload } | { ok: false; code: string; message: string }
-export type EventProposalState = 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale'
+export type EventProposalState = 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'conflict' | 'stale' | 'missing' | 'recreated'
 
 export function matchesSelectedCandidateOrDirectTime(input: PrepareEventInput, selectedCandidate: Record<string, unknown> | null) {
   if (!selectedCandidate || !('candidateId' in input)) return true

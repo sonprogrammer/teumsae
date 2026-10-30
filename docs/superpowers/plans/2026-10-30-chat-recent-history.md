@@ -38,10 +38,10 @@
 - Produces `parseAssistantTranscript(value: unknown)`, `appendAssistantTurn(...)`, `updateProposalState(...)`.
 - Transcript entries contain role, content, optional answer source, cards, error state and timestamp; cap persisted entries at 50.
 
-- [ ] **Step 1: Write tests** for valid transcript parsing, malformed entries, 50-entry cap, and proposal state updates.
-- [ ] **Step 2: Run tests and verify the new cases fail.**
-- [ ] **Step 3: Implement the transcript helpers and JSONB-array migration.**
-- [ ] **Step 4: Run focused tests and migration alias regression.**
+- [x] **Step 1: Write tests** for valid transcript parsing, malformed entries, 50-entry cap, and proposal state updates.
+- [x] **Step 2: Run tests and verify the new cases fail.**
+- [x] **Step 3: Implement the transcript helpers and JSONB-array migration.**
+- [x] **Step 4: Run focused tests and migration alias regression.**
 
 ### Task 2: Authenticated recent-conversation API
 
@@ -53,10 +53,10 @@
 - `GET /api/chat` returns `{ conversation: null }` or `{ conversation: { id, version, messages } }` for the authenticated user's newest unexpired row.
 - Successful `POST /api/chat` appends the request and response transcript to the same owner-scoped conversation update.
 
-- [ ] **Step 1: Add tests** for expired-row filtering, empty transcript handling and private no-store response contract.
-- [ ] **Step 2: Verify the new tests fail.**
-- [ ] **Step 3: Implement authenticated GET and transcript persistence on successful POST.**
-- [ ] **Step 4: Run focused tests and typecheck.**
+- [x] **Step 1: Add tests** for expired-row filtering, empty transcript handling and private no-store response contract.
+- [x] **Step 2: Verify the new tests fail.**
+- [x] **Step 3: Implement authenticated GET and transcript persistence on successful POST.**
+- [x] **Step 4: Run focused tests and typecheck.**
 
 ### Task 3: Restore and cache recent conversation in the AI panel
 
@@ -72,16 +72,16 @@
 - Restore messages and conversation id/version without calling the AI endpoint.
 - Update persisted proposal card states after server-confirmed mutation results.
 
-- [ ] **Step 1: Add UI regression assertions** for recent-chat query, restoration, retry/error state and proposal update.
-- [ ] **Step 2: Verify the new assertions fail.**
-- [ ] **Step 3: Implement restoration, loading/error handling and proposal status persistence.**
-- [ ] **Step 4: Run focused tests and inspect desktop/mobile flows.**
+- [x] **Step 1: Add UI regression assertions** for recent-chat query, restoration, retry/error state and proposal update.
+- [x] **Step 2: Verify the new assertions fail.**
+- [x] **Step 3: Implement restoration, loading/error handling and proposal status persistence.**
+- [ ] **Step 4: Run focused tests and inspect desktop/mobile flows.** Browser check is pending for the user.
 
 ### Task 4: Product contract and final verification
 
 **Files:**
 - Modify: `docs/spec.md`
 
-- [ ] **Step 1: Update the conversation retention rule to describe the 24-hour recent-chat restore and defer archives.**
-- [ ] **Step 2: Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, and `git diff --check`.**
-- [ ] **Step 3: Inspect migration and branch diff; keep unrelated `next-env.d.ts` changes unstaged.**
+- [x] **Step 1: Update the conversation retention rule to describe the 24-hour recent-chat restore and defer archives.**
+- [x] **Step 2: Run `pnpm test`, `pnpm exec tsc --noEmit --incremental false`, `pnpm lint`, `pnpm build`, and `git diff --check`.**
+- [x] **Step 3: Inspect migration and branch diff; keep unrelated `next-env.d.ts` changes unstaged.**

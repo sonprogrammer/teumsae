@@ -533,6 +533,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-markdown a { color: var(--teal-dark); text-decoration: underline; text-underline-offset: 2px; }
 .assistant-live-message.is-user { align-self: flex-end; width: auto; max-width: 90%; }
 .assistant-live-message.is-user > p { border-radius: 14px 5px 14px 14px; background: var(--teal); color: #fff; }
+.assistant-live-date-divider { display: flex; align-items: center; gap: 10px; margin: 3px 0; color: var(--muted); font-size: 10px; font-weight: 650; }
+.assistant-live-date-divider::before, .assistant-live-date-divider::after { height: 1px; flex: 1; background: #e7ece5; content: ''; }
+.assistant-live-message-time { margin-top: -5px; color: #87958b; font-size: 9px; }
+.assistant-live-message.is-user .assistant-live-message-time { justify-self: end; }
 .assistant-live-message.is-error > p, .assistant-live-message.is-error .assistant-live-markdown { background: #fff0e8; color: #9b5c46; }
 .assistant-live-fallback-note { color: var(--muted); font-size: 9px; }
 .assistant-live-pending, .assistant-live-notice { margin: 0 12px 8px; color: var(--muted); font-size: 11px; }
@@ -558,15 +562,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .chat-proposal-card { border-color: #cfe1d1; background: linear-gradient(145deg, #fffefa, #f5faf3); }
 .chat-proposal-card.is-confirmed { border-color: #a9cfb1; background: #f1f8ef; }
 .chat-proposal-card.is-conflict, .chat-proposal-card.is-expired, .chat-proposal-card.is-stale { border-color: #ead2bf; background: #fff8f1; }
+.chat-proposal-card.is-missing { border-color: #e7d8b7; background: #fffaf0; }
 .chat-proposal-details { display: grid; gap: 5px; padding: 10px; border-radius: 10px; background: #fff; }
 .chat-proposal-details > strong { color: var(--ink); font-size: 13px; }
 .chat-proposal-details p { margin: 0; color: var(--ink-soft); font-size: 10px; }
 .chat-proposal-details time { color: var(--teal-dark); font-size: 11px; font-weight: 700; }
 .chat-proposal-notice { margin: 0; color: #9b5c46; font-size: 10px; line-height: 1.5; }
+.chat-proposal-confirmed { margin: 0; color: #326d57; font-size: 10px; font-weight: 700; }
 .chat-proposal-actions { display: flex; gap: 7px; }
-.chat-proposal-actions button { min-height: 36px; border: 0; border-radius: 9px; font: inherit; font-size: 10px; font-weight: 750; }
+.chat-proposal-actions button, .chat-proposal-retry { min-height: 36px; border: 0; border-radius: 9px; font: inherit; font-size: 10px; font-weight: 750; }
 .chat-proposal-cancel { padding: 0 12px; background: #edf1ea; color: var(--ink-soft); }
 .chat-proposal-confirm { flex: 1; background: var(--teal); color: #fff; }
+.chat-proposal-retry { padding: 0 12px; background: #eaf3e8; color: #326d57; }
 .chat-proposal-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .chat-conflict-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .chat-conflict-list li { display: grid; gap: 3px; padding: 8px; border-radius: 9px; background: #fff3e9; }
