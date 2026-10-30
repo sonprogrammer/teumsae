@@ -70,7 +70,7 @@
 - [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check`를 실행한다.
 - [x] 마이그레이션의 권한·동시 요청·응답 유실·충돌 경로를 SQL 기준으로 리뷰한다.
 - [ ] 브라우저와 Supabase 원격 SQL 실행은 손 대표님 확인으로 남기고, 미검증 상태를 보고한다.
-- [ ] 한글 PR을 이슈 #9과 연결해 생성한다.
+- [x] 한글 PR을 이슈 #9과 연결해 생성한다.
 
 ## Execution Ledger
 
@@ -84,3 +84,4 @@
 - Verification: Node 24.22.1 경로를 지정해 `pnpm test` 74/74, `pnpm exec tsc --noEmit --tsBuildInfoFile /private/tmp/teumsae-issue9.tsbuildinfo`, `pnpm lint`, `pnpm build`, `git diff --check`가 통과했다. 최초 일반 `pnpm build`는 형제 worktree의 `.next` 쓰기 권한 제한으로 실패했고, 쓰기 승인을 받은 동일 빌드는 통과했다.
 - Limitation: Supabase 로컬 설정이 없어서 마이그레이션을 실제 DB에서 실행하지 않았다. 브라우저 검증도 아직 하지 않았다. 기본 셸 Node는 20.8.0으로 잘못 선택되어 있으므로 이 worktree 명령은 설치된 Node 24.22.1 경로를 지정했다.
 - Review: 독립적인 보안 리뷰에서 제안 생성·확정 RPC 소유권 검사, 트랜잭션, 요청 재시도, 확인·취소 API 상태 처리를 검토했고 차단급 발견은 없었다. DB 실행 검증은 리뷰 범위 밖이다.
+- PR: https://github.com/sonprogrammer/teumsae/pull/38 (`Closes #9`). Supabase 마이그레이션 적용과 데스크톱·모바일 브라우저 검증은 PR 병합 전 사람이 실행한다.
