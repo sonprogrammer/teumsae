@@ -122,10 +122,12 @@ test('두 계정 데이터는 분리되고 두 탭의 같은 시간 저장은 �
     const raceTitles = new Set([...titlesA, ...titlesB].filter(title => title === racingTitleA || title === racingTitleB))
     expect(raceTitles.size).toBe(1)
   } finally {
-    await Promise.all([...new Set([eventDate, raceDate])].map(date => loadEvents(userA.page, date).catch(() => undefined)))
-    await removeTestEvent(userA.page, firstTitle)
-    await removeTestEvent(userA.page, racingTitleA)
-    await removeTestEvent(userA.page, racingTitleB)
+    for (const date of new Set([eventDate, raceDate])) {
+      await loadEvents(userA.page, date).catch(() => undefined)
+      await removeTestEvent(userA.page, firstTitle)
+      await removeTestEvent(userA.page, racingTitleA)
+      await removeTestEvent(userA.page, racingTitleB)
+    }
     await Promise.all([userA.context.close(), userB.context.close()])
   }
 })
