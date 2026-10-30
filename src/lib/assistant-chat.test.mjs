@@ -3,19 +3,22 @@ import test from 'node:test'
 import { countInclusiveDays, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
-  assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ' }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null } })
+  const requestId = '10000000-0000-4000-8000-000000000001'
+  assert.deepEqual(parseAssistantRequest({ message: '  내 일정 알려줘  ', requestId }), { ok: true, value: { message: '내 일정 알려줘', conversationId: null, version: null, requestId } })
 })
 
 test('rejects empty, oversized, and incomplete conversation requests', () => {
-  assert.equal(parseAssistantRequest({ message: ' ' }).ok, false)
-  assert.equal(parseAssistantRequest({ message: 'a'.repeat(1001) }).ok, false)
-  assert.equal(parseAssistantRequest({ message: '다음 일정', conversationId: '00000000-0000-4000-8000-000000000001' }).ok, false)
+  const requestId = '10000000-0000-4000-8000-000000000001'
+  assert.equal(parseAssistantRequest({ message: ' ', requestId }).ok, false)
+  assert.equal(parseAssistantRequest({ message: 'a'.repeat(1001), requestId }).ok, false)
+  assert.equal(parseAssistantRequest({ message: '다음 일정', requestId, conversationId: '00000000-0000-4000-8000-000000000001' }).ok, false)
+  assert.equal(parseAssistantRequest({ message: '다음 일정' }).ok, false)
 })
 
-test('allows only the two read-only schedule tools', () => {
+test('allows only the supported schedule tools', () => {
   assert.equal(parseToolName('listEvents'), 'listEvents')
   assert.equal(parseToolName('findAvailability'), 'findAvailability')
-  assert.equal(parseToolName('prepareEvent'), null)
+  assert.equal(parseToolName('prepareEvent'), 'prepareEvent')
 })
 
 test('rejects malformed or non-object model tool arguments', () => {
@@ -42,6 +45,9 @@ test('validates the model input separately for event and availability tools', ()
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 60 }).ok, true)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 180 }).ok, true)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 3 }).ok, false)
+  assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
+  assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: '10000000-0000-4000-8000-000000000001', searchId: '20000000-0000-4000-8000-000000000002' }).ok, true)
+  assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: 'other-user', searchId: '20000000-0000-4000-8000-000000000002' }).ok, false)
 })
 
 test('uses Seoul local date for natural language reference context', () => {
@@ -79,6 +85,8 @@ test('summarizes tool inputs without exposing title search text', () => {
 test('summarizes tool result counts without exposing event details', () => {
   assert.deepEqual(summarizeAssistantToolOutput({ type: 'events', events: [{ title: '비공개 일정' }], hasMore: false }), { eventCount: 1, hasMore: false })
   assert.deepEqual(summarizeAssistantToolOutput({ type: 'availability', result: { mode: 'candidates', candidates: [{ date: '2026-10-31', start: '10:00', end: '12:00' }], hasMore: false }, conflicts: [{ title: '비공개 일정' }] }), { candidateCount: 1, hasMore: false, conflictCount: 1 })
+  assert.deepEqual(summarizeAssistantToolOutput({ type: 'proposal', state: 'pending', title: '비공개 일정' }), { proposalCreated: true })
+  assert.deepEqual(summarizeAssistantToolInput('prepareEvent', { title: '비공개 일정', candidateId: '10000000-0000-4000-8000-000000000001' }), { hasEventTitle: true, proposalMode: 'candidate' })
 })
 
 test('returns a clearly identified server fallback only when tool results are successful', () => {

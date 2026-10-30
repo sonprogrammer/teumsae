@@ -551,6 +551,19 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .chat-event-results li > span, .chat-event-results li small { color: var(--muted); font-size: 9px; }
 .chat-event-results li strong { color: var(--ink); font-size: 11px; }
 .chat-card-empty { margin: 0; color: var(--ink-soft); font-size: 10px; line-height: 1.6; }
+.chat-proposal-card { border-color: #cfe1d1; background: linear-gradient(145deg, #fffefa, #f5faf3); }
+.chat-proposal-card.is-confirmed { border-color: #a9cfb1; background: #f1f8ef; }
+.chat-proposal-card.is-conflict, .chat-proposal-card.is-expired, .chat-proposal-card.is-stale { border-color: #ead2bf; background: #fff8f1; }
+.chat-proposal-details { display: grid; gap: 5px; padding: 10px; border-radius: 10px; background: #fff; }
+.chat-proposal-details > strong { color: var(--ink); font-size: 13px; }
+.chat-proposal-details p { margin: 0; color: var(--ink-soft); font-size: 10px; }
+.chat-proposal-details time { color: var(--teal-dark); font-size: 11px; font-weight: 700; }
+.chat-proposal-notice { margin: 0; color: #9b5c46; font-size: 10px; line-height: 1.5; }
+.chat-proposal-actions { display: flex; gap: 7px; }
+.chat-proposal-actions button { min-height: 36px; border: 0; border-radius: 9px; font: inherit; font-size: 10px; font-weight: 750; }
+.chat-proposal-cancel { padding: 0 12px; background: #edf1ea; color: var(--ink-soft); }
+.chat-proposal-confirm { flex: 1; background: var(--teal); color: #fff; }
+.chat-proposal-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .chat-conflict-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .chat-conflict-list li { display: grid; gap: 3px; padding: 8px; border-radius: 9px; background: #fff3e9; }
 .chat-conflict-list li span { color: #9a6c52; font-size: 9px; }

@@ -314,7 +314,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
             {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} today={today} userId={userId} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => openCreate(selectedDate)}>일정 추가</button></div>}
           </>}
         </aside>
-        <AssistantPanel />
+        <AssistantPanel userId={userId} />
       </div>
     </section>
   </main>

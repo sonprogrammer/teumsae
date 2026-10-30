@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
 import { createToolLimitFallback, formatKoreaDateTime, getKoreaToday, parseAssistantRequest, parseToolArguments, parseToolName, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
@@ -22,6 +23,11 @@ function asMessages(value: unknown): Array<{ role: 'user' | 'assistant'; content
 }
 
 function modelToolResult(card: AssistantCard) {
+  if (card.type === 'proposal') {
+    const start = formatKoreaDateTime(card.startsAt)
+    const end = formatKoreaDateTime(card.endsAt)
+    return { type: card.type, state: card.state, title: card.title, date: start?.date, startTime: start?.time, endTime: end?.time }
+  }
   if (card.type !== 'events') return card
   return {
     type: card.type,
@@ -42,8 +48,6 @@ export async function POST(request: Request) {
   const { data: authData, error: authError } = await supabase.auth.getClaims()
   const userId = authData?.claims?.sub
   if (authError || typeof userId !== 'string') return responseError('AUTH_REQUIRED', '로그인이 필요해요.', 401)
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) return responseError('AI_NOT_CONFIGURED', 'AI 연결 설정이 아직 준비되지 않았어요. 서버 환경변수를 확인해 주세요.', 503)
 
   let body: unknown
   try {
@@ -54,12 +58,37 @@ export async function POST(request: Request) {
   const parsed = parseAssistantRequest(body)
   if (!parsed.ok) return responseError('INVALID_REQUEST', parsed.message, 400)
 
+  const requestFingerprint = createHash('sha256').update(parsed.value.message).digest('hex')
+  const { data: priorRequest, error: priorRequestError } = await supabase.rpc('get_event_proposal_for_request', { p_request_id: parsed.value.requestId, p_request_fingerprint: requestFingerprint })
+  if (priorRequestError) return responseError('PROPOSAL_LOOKUP_FAILED', '이전 등록 요청을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
+  if (priorRequest && typeof priorRequest === 'object') {
+    const replay = priorRequest as Record<string, unknown>
+    if (replay.status === 'request_conflict') return responseError('REQUEST_ID_CONFLICT', '같은 요청 번호로 다른 내용을 보낼 수 없어요.', 409)
+    const proposal = replay.proposal && typeof replay.proposal === 'object' ? replay.proposal as Record<string, unknown> : null
+    if (proposal && typeof proposal.id === 'string' && typeof proposal.startsAt === 'string' && typeof proposal.endsAt === 'string' && typeof proposal.expiresAt === 'string' && typeof proposal.settingsVersion === 'number') {
+      const state = proposal.state === 'confirmed' || proposal.state === 'cancelled' || proposal.state === 'expired' || proposal.state === 'conflict' || proposal.state === 'stale' ? proposal.state : 'pending'
+      const event = replay.result && typeof replay.result === 'object' ? replay.result as Record<string, unknown> : null
+      const card: AssistantCard = { type: 'proposal', id: proposal.id, title: String(proposal.title ?? ''), note: typeof proposal.note === 'string' ? proposal.note : null, startsAt: proposal.startsAt, endsAt: proposal.endsAt, expiresAt: proposal.expiresAt, settingsVersion: proposal.settingsVersion, state, ...(state === 'confirmed' && typeof event?.id === 'string' ? { eventId: event.id } : {}) }
+      const conversationId = typeof proposal.conversationId === 'string' ? proposal.conversationId : parsed.value.conversationId
+      let version = parsed.value.version ?? 1
+      if (conversationId) {
+        const { data: conversation } = await supabase.from('conversations').select('version').eq('id', conversationId).eq('owner_id', userId).maybeSingle()
+        if (typeof conversation?.version === 'number') version = conversation.version
+      }
+      const response = state === 'confirmed' ? '이 요청으로 등록한 일정이 이미 저장되어 있어요.' : state === 'pending' ? '같은 등록 제안이 이미 준비되어 있어요. 아래 카드에서 확인해 주세요.' : '이 등록 제안은 이미 ' + (state === 'cancelled' ? '취소' : state === 'expired' ? '만료' : state === 'conflict' ? '충돌' : '무효') + ' 처리됐어요.'
+      return NextResponse.json({ response, answerSource: 'server_fallback', conversationId, version, cards: [card] }, { headers: privateHeaders })
+    }
+  }
+
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) return responseError('AI_NOT_CONFIGURED', 'AI 연결 설정이 아직 준비되지 않았어요. 서버 환경변수를 확인해 주세요.', 503)
+
   const { error: cleanupError } = await supabase.from('conversations').delete().eq('owner_id', userId).lt('expires_at', new Date().toISOString())
   if (cleanupError) return responseError('CONVERSATION_CLEANUP_FAILED', '만료된 대화를 정리하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
 
   const model = process.env.GROQ_MODEL || 'openai/gpt-oss-20b'
   const conversationId = parsed.value.conversationId ?? crypto.randomUUID()
-  let version = 0
+  let version = 1
   let conversationMessages: Array<{ role: 'user' | 'assistant'; content: string }> = []
   let context: Record<string, unknown> = {}
 
@@ -72,6 +101,9 @@ export async function POST(request: Request) {
     version = conversation.version
     conversationMessages = asMessages(conversation.messages)
     context = conversation.context && typeof conversation.context === 'object' && !Array.isArray(conversation.context) ? conversation.context as Record<string, unknown> : {}
+  } else {
+    const { error } = await supabase.from('conversations').insert({ id: conversationId, owner_id: userId, messages: [], context: {}, version: 1, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() })
+    if (error) return responseError('CONVERSATION_CREATE_FAILED', '새 대화를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
   }
 
   const { data: withinUsageLimit, error: usageError } = await supabase.rpc('consume_ai_request')
@@ -159,7 +191,7 @@ export async function POST(request: Request) {
           break
         }
         const startedAt = Date.now()
-        const result = await executeAssistantTool({ name, args, supabase, userId, context, signal: controller.signal })
+        const result = await executeAssistantTool({ name, args, supabase, userId, context, conversationId, requestId: parsed.value.requestId, requestFingerprint, signal: controller.signal })
         if (controller.signal.aborted) {
           requestFailure = { code: 'AI_TIMEOUT', message: 'AI 응답 시간이 길어져 요청을 마쳤어요. 다시 시도해 주세요.', status: 504 }
           break
@@ -195,12 +227,10 @@ export async function POST(request: Request) {
     clearTimeout(timer)
   }
 
-  if (requestFailure) return responseError(requestFailure.code, requestFailure.message, requestFailure.status, { model, usage: { totalTokens }, ...diagnosticDetails(), cards })
+  if (requestFailure) return responseError(requestFailure.code, requestFailure.message, requestFailure.status, { conversationId, version, model, usage: { totalTokens }, ...diagnosticDetails(), cards })
   const nextMessages = [...conversationMessages, { role: 'user' as const, content: parsed.value.message }, { role: 'assistant' as const, content: assistantText }].slice(-8)
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-  const save = parsed.value.conversationId
-    ? supabase.from('conversations').update({ messages: nextMessages, context, version: version + 1, expires_at: expiresAt, updated_at: new Date().toISOString() }).eq('id', conversationId).eq('owner_id', userId).eq('version', version).select('id').maybeSingle()
-    : supabase.from('conversations').insert({ id: conversationId, owner_id: userId, messages: nextMessages, context, version: 1, expires_at: expiresAt }).select('id').single()
+  const save = supabase.from('conversations').update({ messages: nextMessages, context, version: version + 1, expires_at: expiresAt, updated_at: new Date().toISOString() }).eq('id', conversationId).eq('owner_id', userId).eq('version', version).select('id').maybeSingle()
   const { data: saved, error: saveError } = await save
   if (saveError) return responseError('CONVERSATION_SAVE_FAILED', 'AI 답변은 받았지만 대화 상태를 저장하지 못했어요. 다시 시도해 주세요.', 500, { response: assistantText, model, usage: { totalTokens }, cards, ...diagnosticDetails() })
   if (!saved) return responseError('CONVERSATION_CONFLICT', '다른 요청에서 대화가 바뀌었어요. 최신 응답을 확인해 주세요.', 409, { response: assistantText, model, usage: { totalTokens }, cards, ...diagnosticDetails() })
