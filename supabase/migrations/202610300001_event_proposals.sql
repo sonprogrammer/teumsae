@@ -131,11 +131,11 @@ begin
         where exception.owner_id = v_owner_id and exception.start_date <= v_date and exception.end_date >= v_date
       )
       or not exists (
-        select 1 from public.weekly_availability_windows as window
-        where window.owner_id = v_owner_id
-          and window.weekday = extract(isodow from v_date)::integer
-          and window.starts_at <= (v_starts_at at time zone 'Asia/Seoul')::time
-          and window.ends_at >= (v_ends_at at time zone 'Asia/Seoul')::time
+        select 1 from public.weekly_availability_windows as availability_window
+        where availability_window.owner_id = v_owner_id
+          and availability_window.weekday = extract(isodow from v_date)::integer
+          and availability_window.starts_at <= (v_starts_at at time zone 'Asia/Seoul')::time
+          and availability_window.ends_at >= (v_ends_at at time zone 'Asia/Seoul')::time
       ) then
       raise exception using errcode = '22023', message = 'invalid_candidate_window';
     end if;

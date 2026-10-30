@@ -85,3 +85,4 @@
 - Limitation: Supabase 로컬 설정이 없어서 마이그레이션을 실제 DB에서 실행하지 않았다. 브라우저 검증도 아직 하지 않았다. 기본 셸 Node는 20.8.0으로 잘못 선택되어 있으므로 이 worktree 명령은 설치된 Node 24.22.1 경로를 지정했다.
 - Review: 독립적인 보안 리뷰에서 제안 생성·확정 RPC 소유권 검사, 트랜잭션, 요청 재시도, 확인·취소 API 상태 처리를 검토했고 차단급 발견은 없었다. DB 실행 검증은 리뷰 범위 밖이다.
 - PR: https://github.com/sonprogrammer/teumsae/pull/38 (`Closes #9`). Supabase 마이그레이션 적용과 데스크톱·모바일 브라우저 검증은 PR 병합 전 사람이 실행한다.
+- Regression fix: 반복된 PostgreSQL 구문 오류의 원인은 `weekly_availability_windows`에 `window` 별칭을 쓴 것이었다. 백엔드 스킬에 해당 예약어 별칭 금지와 `rg` 검사 규칙을 추가했고, 회귀 테스트가 수정 전 실패한 뒤 `availability_window` 변경 후 통과하는 것을 확인했다. 전체 테스트 75/75, lint, diff 검사 통과. 저장소 마이그레이션 전체에서도 `as window` / `window.` 검색 결과가 없다.
