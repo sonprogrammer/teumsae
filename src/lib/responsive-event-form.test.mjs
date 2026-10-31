@@ -140,3 +140,13 @@ test('shows candidates three at a time without another request', async () => {
   assert.match(source, /setVisibleCandidateCount\(current => current \+ 3\)/)
   assert.match(source, /후보 \{Math\.min\(3, result\.candidates\.length - visibleCandidateCount\)\}개 더 보기/)
 })
+
+test('uses Lucide icons for microphone, spoken replies, and stopping speech', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /from 'lucide-react'/)
+  assert.match(source, /<Mic\b/)
+  assert.match(source, /<Volume2\b/)
+  assert.match(source, /<VolumeX\b/)
+  assert.match(source, /음성 답변 중지/)
+  assert.doesNotMatch(source, /🎙|◖/)
+})
