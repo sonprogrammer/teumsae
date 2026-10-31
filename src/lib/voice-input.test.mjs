@@ -19,6 +19,12 @@ test('removes markdown syntax before speech synthesis', () => {
   assert.equal(speechText('**안녕하세요** [일정 보기](https://example.com)'), '안녕하세요 일정 보기')
 })
 
+test('reads ISO dates and 24-hour time ranges as natural Korean speech', () => {
+  assert.equal(speechText('2026‑11‑01 11:00‑14:00'), '2026년 11월 1일 일요일 오전 11시부터 오후 2시까지')
+  assert.equal(speechText('일정은 2026-11-01 09:30–11:00입니다'), '일정은 2026년 11월 1일 일요일 오전 9시 30분부터 오전 11시까지입니다')
+  assert.equal(speechText('오후 2시 2026-11-01 14:00'), '오후 2시 2026년 11월 1일 일요일 오후 2시')
+})
+
 test('ends a voice turn after silence following speech but ignores initial silence', () => {
   assert.equal(resolveVoiceActivity({ rms: 0.001, hasSpeech: false, lastSpeechAt: null, now: 2000 }).shouldSubmit, false)
   const speech = resolveVoiceActivity({ rms: 0.08, hasSpeech: false, lastSpeechAt: null, now: 2000 })
