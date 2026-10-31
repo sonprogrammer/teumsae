@@ -103,7 +103,7 @@ function Card({ card, onChoose, selectedCandidateId, onProposalAction, onProposa
   return <section className="chat-result-card" aria-label="빈 시간 결과"><div className="chat-card-heading"><strong>빈 시간 확인</strong><span>{dateLabel(card.startDate)}{card.endDate !== card.startDate ? ' – ' + dateLabel(card.endDate) : ''}</span></div>{result.intervals.length ? <ul className="chat-event-results">{result.intervals.map(interval => <li key={interval.date + interval.start}><span>{dateLabel(interval.date)}</span><strong>{interval.start} – {interval.end}</strong></li>)}</ul> : <><AvailabilityEmptyState /><ConflictList conflicts={card.conflicts} /></>}</section>
 }
 
-export default function AssistantPanel({ userId }: { userId: string }) {
+export default function AssistantPanel({ userId, hideLauncher = false }: { userId: string; hideLauncher?: boolean }) {
   const queryClient = useQueryClient()
   const recentConversationQuery = useQuery({ queryKey: assistantConversationQueryKeys.recent(userId), queryFn: fetchRecentConversation })
   const [open, setOpen] = useState(false)
@@ -567,6 +567,6 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       </form>
     </aside>
     <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
-    <button type="button" ref={launcherRef} className="assistant-live-launcher" aria-controls="assistant-live-panel" aria-expanded={open} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>
+    <button type="button" ref={launcherRef} className={'assistant-live-launcher' + (hideLauncher ? ' is-context-hidden' : '')} aria-controls="assistant-live-panel" aria-expanded={open} aria-hidden={hideLauncher} tabIndex={hideLauncher ? -1 : undefined} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>
   </>
 }

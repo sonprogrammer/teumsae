@@ -59,6 +59,20 @@ test('centers a wider two-column schedule layout on desktop', () => {
   assert.equal(declarationsForBaseSelector('.real-schedule-workspace')['grid-template-columns'], 'minmax(0, 1.7fr) minmax(340px, .9fr)')
 })
 
+test('hides the AI launcher during manual schedule creation with an accessible fade transition', async () => {
+  const schedule = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  const assistant = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  const hiddenLauncher = declarationsForBaseSelector('.assistant-live-launcher.is-context-hidden')
+  assert.match(schedule, /<AssistantPanel userId=\{userId\} hideLauncher=\{creating\} \/>/)
+  assert.match(assistant, /hideLauncher = false/)
+  assert.match(assistant, /aria-hidden=\{hideLauncher\}/)
+  assert.match(assistant, /tabIndex=\{hideLauncher \? -1 : undefined\}/)
+  assert.equal(hiddenLauncher['opacity'], '0')
+  assert.equal(hiddenLauncher['visibility'], 'hidden')
+  assert.equal(hiddenLauncher['pointer-events'], 'none')
+  assert.match(hiddenLauncher['transition-delay'], /180ms/)
+})
+
 test('uses the provided Teumsae AI artwork in the floating launcher', async () => {
   const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
   assert.match(source, /src="\/teumsaeAI\.png"/)
