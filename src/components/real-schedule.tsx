@@ -297,18 +297,16 @@ function EventCard({ event, selectedDate, today, userId, readOnly }: { event: Ev
 
 export default function RealSchedule({ userId, selectedDate, today, view }: { userId: string; selectedDate: string; today: string; view: CalendarView }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isOnline, setIsOnline] = useState(true)
   const dates = visibleCalendarDates(selectedDate, view)
   const from = dates[0] + 'T00:00:00+09:00'
   const last = new Date(dates[dates.length - 1] + 'T00:00:00.000Z')
   last.setUTCDate(last.getUTCDate() + 1)
   const to = last.toISOString().slice(0, 10) + 'T00:00:00+09:00'
-  const cachedSchedule = browserScheduleCache(userId, from, to)
   const eventsQuery = useQuery({
     queryKey: eventQueryKeys.range(userId, from, to),
-    queryFn: ({ signal }) => fetchEvents({ from, to, signal }),
-    initialData: cachedSchedule?.events,
-    initialDataUpdatedAt: cachedSchedule?.savedAt
+    queryFn: ({ signal }) => fetchEvents({ from, to, signal })
   })
   const events = eventsQuery.data ?? []
   const eventEditor = useScheduleUiStore(state => state.eventEditor)
@@ -319,6 +317,12 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
   const creating = !isReadOnly && eventEditor?.kind === 'create' && eventEditor.date === selectedDate
   const selectedEvents = events.filter(event => koreaDateKey(event.starts_at) === selectedDate).sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const currentMonth = selectedDate.slice(0, 7)
+
+  useEffect(() => {
+    if (eventsQuery.data !== undefined) return
+    const cachedSchedule = browserScheduleCache(userId, from, to)
+    if (cachedSchedule) queryClient.setQueryData(eventQueryKeys.range(userId, from, to), cachedSchedule.events, { updatedAt: cachedSchedule.savedAt })
+  }, [eventsQuery.data, from, queryClient, to, userId])
 
   useEffect(() => {
     function updateOnlineStatus() { setIsOnline(navigator.onLine) }
