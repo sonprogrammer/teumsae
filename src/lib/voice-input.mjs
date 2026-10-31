@@ -55,3 +55,36 @@ function naturalizeKoreanDateTime(value) {
 export function speechText(value) {
   return naturalizeKoreanDateTime(value).replace(/```[\s\S]*?```/g, ' ').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[`*_>#]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1200)
 }
+
+function eventDateForSpeech(value) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return null
+  return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }).format(date)
+}
+
+function eventTimeForSpeech(value) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return null
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(date)
+  const hour = Number(parts.find(part => part.type === 'hour')?.value)
+  const minute = Number(parts.find(part => part.type === 'minute')?.value)
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return null
+  return koreanTimeForSpeech(hour, minute)
+}
+
+export function speechResponse(value, cards = []) {
+  const response = speechText(value)
+  const events = Array.isArray(cards) ? cards.filter(card => card?.type === 'events').flatMap(card => Array.isArray(card.events) ? card.events : []) : []
+  if (!events.length) return response
+  const details = events.slice(0, 5).flatMap(event => {
+    if (typeof event?.title !== 'string') return []
+    const date = eventDateForSpeech(event.starts_at)
+    const start = eventTimeForSpeech(event.starts_at)
+    const end = eventTimeForSpeech(event.ends_at)
+    if (!date || !start || !end || response.includes(start) && response.includes(end)) return []
+    return [`${speechText(event.title)}, ${date} ${start}부터 ${end}까지`]
+  })
+  if (!details.length) return response
+  const remainder = events.length > 5 ? ` 그 밖의 일정 ${events.length - 5}건은 화면에서 확인해 주세요.` : ''
+  return speechText(`${response} ${details.join('. ')}.${remainder}`)
+}

@@ -9,7 +9,7 @@ import { eventQueryKeys } from '@/lib/event-query-keys'
 import { resolveProposalMutation, type EventProposalState } from '@/lib/event-proposals'
 import type { AssistantCard } from '@/lib/assistant-tools'
 import { assistantConversationQueryKeys, formatTranscriptDateKey, formatTranscriptDay, formatTranscriptTime, type AssistantTranscriptMessage } from '@/lib/assistant-transcript'
-import { parseTranscription, resolveVoiceActivity, speechText } from '@/lib/voice-input.mjs'
+import { parseTranscription, resolveVoiceActivity, speechResponse, speechText } from '@/lib/voice-input.mjs'
 
 type ChatMessage = AssistantTranscriptMessage
 type RecentConversation = { id: string; version: number; messages: ChatMessage[] }
@@ -258,7 +258,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       }
       retryRequest.current = null
       const shouldSpeak = speakAnswer && (voiceSessionId === undefined || voiceSessionRef.current && voiceSessionId === voiceSessionIdRef.current && speakRepliesRef.current)
-      if (shouldSpeak) speak(payload.response, voiceSessionId)
+      if (shouldSpeak) speak(speechResponse(payload.response, payload.cards), voiceSessionId)
       messagesRef.current = payload.messages
       queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), { conversation: { id: payload.conversationId, version: payload.version, messages: payload.messages } })
       setOptimisticTranscript(null)

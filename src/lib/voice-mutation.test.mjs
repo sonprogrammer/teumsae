@@ -18,6 +18,10 @@ test('stops continuous listening when speech or chat reaches its minute limit', 
   assert.match(assistantPanel, /payload\.code === 'AI_USAGE_LIMIT'[\s\S]*?stopVoiceSession\(false\)/)
 })
 
+test('uses event details only for synthesized speech', () => {
+  assert.match(assistantPanel, /speak\(speechResponse\(payload\.response, payload\.cards\), voiceSessionId\)/)
+})
+
 test('cancels in-flight voice transcription and chat requests when voice stops', () => {
   assert.match(assistantPanel, /const voiceRequestControllerRef = useRef<AbortController \| null>\(null\)/)
   assert.match(assistantPanel, /voiceRequestControllerRef\.current\?\.abort\(\)/)
