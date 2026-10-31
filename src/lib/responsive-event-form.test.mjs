@@ -202,3 +202,24 @@ test('reduces motion for schedule refresh and inline form transitions', () => {
   assert.equal(refresh['animation-duration'], '.01ms')
   assert.equal(form['animation-duration'], '.01ms')
 })
+
+test('provides loading, retry and background refresh states for availability settings', async () => {
+  const source = await readFile(new URL('../components/availability-settings.tsx', import.meta.url), 'utf8')
+  assert.match(source, /availability-settings-skeleton/)
+  assert.match(source, /settingsQuery\.isFetching && settingsQuery\.data !== undefined/)
+  assert.match(source, /이전 설정을 표시하고 있어요/)
+  assert.match(source, /settingsQuery\.refetch\(\)/)
+})
+
+test('shows a retryable loading error for push reminder settings', async () => {
+  const source = await readFile(new URL('../components/push-reminder-settings.tsx', import.meta.url), 'utf8')
+  assert.match(source, /className="push-reminder-skeleton"/)
+  assert.match(source, /알림 설정을 불러오지 못했어요/)
+  assert.match(source, /다시 시도/)
+})
+
+test('shows the Teumsae logo beside the assistant title', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /<Image className="assistant-live-logo" src="\/teumsae-logo\.png" alt="" width=\{32\} height=\{27\}/)
+  assert.match(source, /className="assistant-live-logo"/)
+})

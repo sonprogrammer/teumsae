@@ -394,6 +394,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .availability-settings-notice.is-error, .availability-settings-state.is-error { background: #fff0e8; color: #a3644c; }
 .availability-settings-state { display: grid; justify-items: center; gap: 10px; padding: 42px 18px; border: 1px solid #e2e9df; border-radius: 16px; background: var(--paper); color: var(--ink-soft); font-size: 12px; text-align: center; }
 .availability-settings-state p { margin: 0; }
+.availability-settings-skeleton { display: grid; gap: 15px; }
+.availability-skeleton-line, .availability-skeleton-day > span, .availability-skeleton-day i, .availability-skeleton-exception, .push-reminder-skeleton > span, .push-reminder-skeleton i { display: block; border-radius: 7px; background: linear-gradient(90deg, #f1f5ef 25%, #e7eee6 42%, #f1f5ef 65%); background-size: 400% 100%; animation: schedule-skeleton 1.3s ease infinite; }
+.availability-skeleton-line.is-title { width: 180px; height: 18px; margin-bottom: 8px; }
+.availability-skeleton-line.is-description { width: min(320px, 70%); height: 12px; margin-bottom: 17px; }
+.availability-skeleton-day { display: flex; align-items: center; gap: 10px; min-height: 53px; padding: 10px 12px; border: 1px solid #edf0e9; border-radius: 11px; background: #fff; }
+.availability-skeleton-day > span { width: 17px; height: 17px; }
+.availability-skeleton-day i { width: 72px; height: 12px; }
+.availability-skeleton-day i:last-child { width: 92px; margin-left: auto; }
+.availability-skeleton-exception { height: 48px; border: 1px solid #edf0e9; background-color: #fff; }
+.availability-refresh-indicator { position: relative; height: 3px; overflow: hidden; border-radius: 999px; background: #e8f1e8; }
+.availability-refresh-indicator::after { position: absolute; inset: 0 auto 0 0; width: 34%; border-radius: inherit; background: var(--teal); content: ''; animation: schedule-refresh 1.1s ease-in-out infinite; }
 .real-calendar-card, .real-agenda-card { min-width: 0; overflow: hidden; border: 1px solid #e2e9df; border-radius: 21px; background: var(--paper); box-shadow: 0 9px 32px #2342360b; }
 .real-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 20px 22px 13px; }
 .real-period-switch, .real-period-controls { display: flex; align-items: center; gap: 5px; }
@@ -409,6 +420,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-offline-status { margin: 0 20px 14px; padding: 11px 13px; border: 1px solid #d6e8dd; border-radius: 12px; background: #eff7f1; color: #315f51; font-size: 12px; line-height: 1.55; }
 .real-offline-dialog-note { padding: 20px; border-radius: 13px; background: #eff7f1; color: #315f51; font-size: 13px; line-height: 1.6; }
 .push-reminder-card { display: grid; gap: 13px; margin-top: 24px; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 12px 30px #193c3508; }
+.push-reminder-skeleton { display: grid; gap: 10px; max-width: 300px; }
+.push-reminder-skeleton > span { width: 110px; height: 14px; }
+.push-reminder-skeleton i { width: 100%; height: 40px; border: 1px solid #edf0e9; background-color: #fff; }
+.push-reminder-skeleton i:last-of-type { width: 58%; height: 12px; border: 0; background-color: transparent; }
+.push-reminder-load-error { display: grid; justify-items: start; gap: 10px; color: #a3644c; font-size: 12px; }
+.push-reminder-load-error p { margin: 0; }
+.push-reminder-message.is-error { color: #a3644c; }
 .push-reminder-copy .section-kicker { margin: 0 0 6px; }
 .push-reminder-copy h2 { margin: 0; font-size: 18px; }
 .push-reminder-copy > p:last-child, .push-reminder-permission, .push-reminder-status, .push-reminder-message { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
@@ -572,7 +590,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-panel { position: fixed; z-index: 60; right: 24px; bottom: calc(84px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; width: min(400px, calc(100vw - 36px)); height: min(640px, calc(100dvh - 122px)); min-width: 0; overflow: hidden; border: 1px solid #e2e9df; border-radius: 21px; background: var(--paper); box-shadow: 0 16px 44px #16352d2b; opacity: 0; visibility: hidden; pointer-events: none; transform: translate3d(12px, 16px, 0) scale(.96); transform-origin: bottom right; transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.8,.2,1), visibility 220ms; }
 .assistant-live-panel.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translate3d(0, 0, 0) scale(1); }
 .assistant-live-header { display: flex; align-items: center; gap: 10px; padding: 15px; border-bottom: 1px solid var(--line); }
-.assistant-live-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 12px; background: #e9f5ec; color: var(--teal); font-size: 19px; }
+.assistant-live-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex: none; overflow: hidden; border-radius: 12px; background: #073c32; }
+.assistant-live-logo { width: 36px; height: 36px; object-fit: cover; }
 .assistant-live-header > div { display: grid; min-width: 0; gap: 4px; }
 .assistant-live-header strong { font-size: 13px; }
 .assistant-live-header small { color: var(--muted); font-size: 9px; line-height: 1.4; }
@@ -758,7 +777,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 @media (prefers-reduced-motion: reduce) {
   .assistant-live-panel, .assistant-live-launcher, .assistant-live-backdrop { animation-duration: .01ms; transition-duration: .01ms; }
-  .real-agenda-skeleton > span, .real-calendar-skeleton i, .real-event-dialog { animation-duration: .01ms; }
+  .real-agenda-skeleton > span, .real-calendar-skeleton i, .availability-skeleton-line, .availability-skeleton-day > span, .availability-skeleton-day i, .availability-skeleton-exception, .push-reminder-skeleton > span, .push-reminder-skeleton i, .availability-refresh-indicator::after, .real-event-dialog { animation-duration: .01ms; }
   .real-refresh-indicator::after { animation-duration: .01ms; }
   .real-event-form { animation-duration: .01ms; }
   .real-event-card, .real-event-action-button { transition-duration: .01ms; }

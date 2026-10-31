@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 type ReminderSettings = { enabled: boolean; minutesBefore: number; vapidPublicKey: string | null }
 const leadTimes = [5, 10, 15, 30, 60]
@@ -39,17 +39,34 @@ export default function PushReminderSettings({ userId }: { userId: string }) {
   const permission = permissionOverride ?? browserPermissionValue
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [retryCount, setRetryCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const loadedUserId = useRef<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
+    const hasSettings = loadedUserId.current === userId
+    setLoading(!hasSettings)
+    setRefreshing(hasSettings)
+    setLoadError('')
     fetch('/api/push-preferences', { cache: 'no-store' }).then(async response => {
       if (!response.ok) throw new Error('알림 설정을 불러오지 못했어요.')
       const next = await response.json() as ReminderSettings
-      if (!cancelled) setSettings(next)
-    }).catch(error => { if (!cancelled) setMessage(error instanceof Error ? error.message : '알림 설정을 불러오지 못했어요.') })
+      if (!cancelled) {
+        setSettings(next)
+        loadedUserId.current = userId
+      }
+    }).catch(error => { if (!cancelled) setLoadError(error instanceof Error ? error.message : '알림 설정을 불러오지 못했어요.') }).finally(() => {
+      if (!cancelled) {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    })
     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(registration => registration?.pushManager.getSubscription() ?? null).then(current => { if (!cancelled) setSubscription(current) }).catch(() => undefined)
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, retryCount])
 
   async function savePreferences(next: ReminderSettings) {
     const response = await fetch('/api/push-preferences', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next.enabled, minutesBefore: next.minutesBefore }) })
@@ -122,10 +139,12 @@ export default function PushReminderSettings({ userId }: { userId: string }) {
   return <section className="push-reminder-card" aria-labelledby="push-reminder-heading">
     <div className="push-reminder-copy"><p className="section-kicker">REMINDERS</p><h2 id="push-reminder-heading">일정 알림</h2><p>선택한 일정이 시작되기 전에 이 기기로 푸시 알림을 보내드려요.</p></div>
     {!supported ? <p className="push-reminder-status" role="status">이 브라우저에서는 푸시 알림을 지원하지 않아요.</p> : settings ? <>
+      {refreshing && <div className="availability-refresh-indicator" role="status" aria-label="알림 설정을 새로 불러오는 중" />}
+      {loadError && <p className="push-reminder-message is-error" role="alert">최근 설정을 불러오지 못해 이전 설정을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => setRetryCount(current => current + 1)}>다시 시도</button></p>}
       <label className="push-reminder-lead-time">알림 시점<select value={settings.minutesBefore} onChange={event => void changeLeadTime(event.target.value)} disabled={pending}><option value={5}>5분 전</option><option value={10}>10분 전</option><option value={15}>15분 전</option><option value={30}>30분 전</option><option value={60}>1시간 전</option></select></label>
       <p className="push-reminder-permission">브라우저 권한: {permission === 'granted' ? '허용됨' : permission === 'denied' ? '차단됨 · 브라우저 설정에서 변경' : '아직 선택하지 않음'}</p>
       <div className="push-reminder-actions">{settings.enabled ? <button type="button" className="real-secondary-button" onClick={() => void disableReminders()} disabled={pending}>{pending ? '저장 중…' : '알림 끄기'}</button> : <button type="button" className="real-primary-button" onClick={() => void enableReminders()} disabled={pending}>{pending ? '설정 중…' : '일정 알림 켜기'}</button>}</div>
-    </> : <p className="push-reminder-status" role="status">알림 설정을 불러오는 중…</p>}
+    </> : loading ? <div className="push-reminder-skeleton" role="status" aria-label="푸시 알림 설정을 불러오는 중"><span /><i /><i /><span className="sr-only">알림 설정을 불러오고 있어요.</span></div> : <div className="push-reminder-load-error" role="alert"><p>{loadError || '알림 설정을 불러오지 못했어요.'}</p><button type="button" className="real-secondary-button" onClick={() => setRetryCount(current => current + 1)}>다시 시도</button></div>}
     {settings?.enabled && <p className="push-reminder-status" role="status">알림이 켜져 있어요. 시작 {settings.minutesBefore}분 전으로 설정되어 있습니다.</p>}
     {message && <p className="push-reminder-message" role="status">{message}</p>}
   </section>
