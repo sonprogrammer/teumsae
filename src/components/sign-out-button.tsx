@@ -34,5 +34,5 @@ export default function SignOutButton() {
     }
   }
 
-  return <div><button type="button" className="sign-out-button" onClick={signOut} disabled={pending}>{pending ? '로그아웃 중...' : '로그아웃'}</button>{message && <p role="alert">{message}</p>}</div>
+  return <div><button type="button" className="sign-out-button" onClick={signOut} disabled={pending}><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M8 3H4.5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1H8"/><path d="M11 6l4 4-4 4M15 10H7"/></svg><span>{pending ? '로그아웃 중...' : '로그아웃'}</span></button>{message && <p role="alert">{message}</p>}</div>
 }

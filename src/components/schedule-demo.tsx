@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { availabilityWindowsForDate, DEFAULT_SCHEDULE_AVAILABILITY, findAvailabilitySlots } from '@/lib/availability'
 import type { SampleSlot } from '@/lib/sample-schedule'
@@ -193,7 +194,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
     <main className="app-shell">
       <header className="site-header">
         <div className="brand" aria-label="틈새">
-          <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
+          <Image src="/teumsae-logo.png" alt="" width={52} height={44} priority />
           <span>틈새<span className="brand-latin">TEUMSAE</span></span>
         </div>
         <div className="header-right">

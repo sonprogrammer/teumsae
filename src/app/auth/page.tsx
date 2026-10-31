@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import KakaoSignInButton from '@/components/kakao-sign-in-button'
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export default async function AuthPage({ searchParams }: { searchParams: Promise
   const { status } = await searchParams
   const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
   return <main className="auth-shell">
-    <Link href="/" className="auth-back">← 샘플 화면으로</Link>
+    <Link href="/" className="auth-back"><Image src="/teumsae-logo.png" alt="" width={42} height={35} priority /><span>샘플 화면으로</span></Link>
     <div className="auth-layout">
       <div className="auth-intro">
         <p className="eyebrow">YOUR TIME, YOUR SPACE</p>
