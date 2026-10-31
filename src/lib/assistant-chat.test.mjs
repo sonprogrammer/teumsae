@@ -26,6 +26,8 @@ test('allows only the supported schedule tools', () => {
   assert.equal(parseToolName('listEvents'), 'listEvents')
   assert.equal(parseToolName('findAvailability'), 'findAvailability')
   assert.equal(parseToolName('prepareEvent'), 'prepareEvent')
+  assert.equal(parseToolName('prepareEventUpdate'), 'prepareEventUpdate')
+  assert.equal(parseToolName('prepareEventDelete'), 'prepareEventDelete')
 })
 
 test('rejects malformed or non-object model tool arguments', () => {
@@ -56,6 +58,10 @@ test('validates the model input separately for event and availability tools', ()
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: '10000000-0000-4000-8000-000000000001', searchId: '20000000-0000-4000-8000-000000000002' }).ok, true)
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: 'other-user', searchId: '20000000-0000-4000-8000-000000000002' }).ok, false)
+  assert.equal(validateAssistantToolArguments('prepareEventUpdate', { eventId: '10000000-0000-4000-8000-000000000001', expectedVersion: 2, title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
+  assert.equal(validateAssistantToolArguments('prepareEventUpdate', { eventId: 'other-user', expectedVersion: 2, title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, false)
+  assert.equal(validateAssistantToolArguments('prepareEventDelete', { eventId: '10000000-0000-4000-8000-000000000001', expectedVersion: 2 }).ok, true)
+  assert.equal(validateAssistantToolArguments('prepareEventDelete', { eventId: '10000000-0000-4000-8000-000000000001' }).ok, false)
 })
 
 test('uses Seoul local date for natural language reference context', () => {

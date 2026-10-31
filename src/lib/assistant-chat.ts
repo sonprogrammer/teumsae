@@ -1,6 +1,6 @@
 export type AssistantRequest = { message: string; conversationId: string | null; version: number | null; requestId: string; selectedCandidateId?: string }
 export type AssistantRequestResult = { ok: true; value: AssistantRequest } | { ok: false; message: string }
-export type AssistantToolName = 'listEvents' | 'findAvailability' | 'prepareEvent'
+export type AssistantToolName = 'listEvents' | 'findAvailability' | 'prepareEvent' | 'prepareEventUpdate' | 'prepareEventDelete'
 export const assistantCardConcisenessInstruction = '카드에 표시된 날짜와 시간은 답변에서 반복하지 마세요. 빈 시간 검색에 소요 시간이 명시되지 않으면 durationMinutes를 생략하고 설정 시간에서 기존 일정을 뺀 모든 구간을 찾으세요. 선택 후보가 있어도 사용자가 다른 시작·종료 시각을 명시하면 그 시간으로 prepareEvent를 호출하세요.'
 
 export function parseAssistantRequest(input: unknown): AssistantRequestResult {
@@ -20,7 +20,7 @@ export function parseAssistantRequest(input: unknown): AssistantRequestResult {
 }
 
 export function parseToolName(value: unknown): AssistantToolName | null {
-  return value === 'listEvents' || value === 'findAvailability' || value === 'prepareEvent' ? value : null
+  return value === 'listEvents' || value === 'findAvailability' || value === 'prepareEvent' || value === 'prepareEventUpdate' || value === 'prepareEventDelete' ? value : null
 }
 
 export function parseToolArguments(value: unknown): Record<string, unknown> | null {
@@ -84,6 +84,23 @@ export function shouldForceAvailabilityTool(message: string) {
 }
 
 export function validateAssistantToolArguments(name: AssistantToolName, args: Record<string, unknown>) {
+  if (name === 'prepareEventUpdate' || name === 'prepareEventDelete') {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (typeof args.eventId !== 'string' || !uuid.test(args.eventId) || !Number.isSafeInteger(args.expectedVersion) || Number(args.expectedVersion) < 1) return { ok: false as const, message: '변경할 일정을 다시 조회해 주세요.' }
+    if (name === 'prepareEventDelete') {
+      if (Object.keys(args).some(key => key !== 'eventId' && key !== 'expectedVersion')) return { ok: false as const, message: '일정 삭제 정보를 확인해 주세요.' }
+      return { ok: true as const, eventId: args.eventId, expectedVersion: Number(args.expectedVersion) }
+    }
+    const allowedArgs = ['eventId', 'expectedVersion', 'title', 'note', 'date', 'startTime', 'endTime']
+    if (Object.keys(args).some(key => !allowedArgs.includes(key))) return { ok: false as const, message: '지원하지 않는 일정 변경 정보가 있어요.' }
+    const title = args.title === undefined ? undefined : typeof args.title === 'string' ? args.title.trim() : ''
+    const note = args.note === undefined || args.note === null ? null : typeof args.note === 'string' ? args.note.trim() : false
+    if (title === '' || (typeof title === 'string' && title.length > 100) || note === false || (typeof note === 'string' && note.length > 500)) return { ok: false as const, message: '일정 제목이나 메모를 확인해 주세요.' }
+    const hasAnyTime = args.date !== undefined || args.startTime !== undefined || args.endTime !== undefined
+    if (hasAnyTime && (!isToolDate(args.date) || !isToolTime(args.startTime) || !isToolTime(args.endTime) || Number(args.startTime.slice(-2)) % 15 !== 0 || Number(args.endTime.slice(-2)) % 15 !== 0)) return { ok: false as const, message: '변경할 날짜와 시작·종료 시간을 함께 확인해 주세요.' }
+    if (title === undefined && args.note === undefined && !hasAnyTime) return { ok: false as const, message: '변경할 내용을 확인해 주세요.' }
+    return { ok: true as const, eventId: args.eventId, expectedVersion: Number(args.expectedVersion), ...(title !== undefined ? { title } : {}), ...(args.note !== undefined ? { note } : {}), ...(hasAnyTime ? { date: args.date as string, startTime: args.startTime as string, endTime: args.endTime as string } : {}) }
+  }
   if (name === 'prepareEvent') {
     const allowedArgs = ['title', 'note', 'searchId', 'candidateId', 'date', 'startTime', 'endTime']
     if (Object.keys(args).some(key => !allowedArgs.includes(key))) return { ok: false as const, message: '지원하지 않는 일정 등록 정보가 있어요.' }
@@ -173,7 +190,7 @@ export function summarizeAssistantConflicts(events: Array<{ title: string; start
   })
 }
 
-export type AssistantToolInputSummary = { startDate?: string; endDate?: string; startTime?: string; endTime?: string; durationMinutes?: number; hasTitleFilter?: boolean; proposalMode?: 'candidate' | 'direct'; hasEventTitle?: boolean; invalidFields?: string[] }
+export type AssistantToolInputSummary = { startDate?: string; endDate?: string; startTime?: string; endTime?: string; durationMinutes?: number; hasTitleFilter?: boolean; proposalMode?: 'candidate' | 'direct' | 'update' | 'delete'; hasEventTitle?: boolean; hasEventId?: boolean; invalidFields?: string[] }
 export type AssistantToolOutputSummary = { eventCount?: number; candidateCount?: number; intervalCount?: number; conflictCount?: number; proposalCreated?: boolean; hasMore?: boolean }
 export type AssistantToolCallLog = { name: AssistantToolName; status: 'success' | 'failed'; durationMs: number; input: AssistantToolInputSummary; output?: AssistantToolOutputSummary; errorCode?: string }
 
@@ -204,6 +221,10 @@ export function summarizeAssistantToolInput(name: AssistantToolName, args: Recor
   if (name === 'prepareEvent') {
     summary.hasEventTitle = typeof args.title === 'string' && args.title.trim().length > 0
     summary.proposalMode = typeof args.candidateId === 'string' ? 'candidate' : 'direct'
+  } else if (name === 'prepareEventUpdate' || name === 'prepareEventDelete') {
+    summary.proposalMode = name === 'prepareEventUpdate' ? 'update' : 'delete'
+    summary.hasEventId = typeof args.eventId === 'string' && /^[0-9a-f-]{36}$/i.test(args.eventId)
+    if (name === 'prepareEventUpdate') summary.hasEventTitle = typeof args.title === 'string' && args.title.trim().length > 0
   }
   if (invalidFields.length) summary.invalidFields = invalidFields
   return summary

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import AvailabilitySettings from '@/components/availability-settings'
+import PushReminderSettings from '@/components/push-reminder-settings'
 import SignOutButton from '@/components/sign-out-button'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
@@ -23,6 +24,7 @@ export default async function ScheduleSettingsPage() {
     <section className="real-schedule-content availability-page-content">
       <div className="availability-page-heading"><p className="eyebrow">SCHEDULE AVAILABILITY</p><h1>일정 가능 시간</h1><p>요일별로 시간을 정하고, 휴가나 개인 일정은 날짜 예외로 등록할 수 있어요.</p></div>
       <AvailabilitySettings userId={data.claims.sub} />
+      <PushReminderSettings userId={data.claims.sub} />
     </section>
   </main>
 }

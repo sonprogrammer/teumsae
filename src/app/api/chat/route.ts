@@ -48,7 +48,7 @@ function modelToolResult(card: AssistantCard) {
     events: card.events.map(event => {
       const start = formatKoreaDateTime(event.starts_at)
       const end = formatKoreaDateTime(event.ends_at)
-      return { title: event.title, startDate: start?.date, startTime: start?.time, endDate: end?.date, endTime: end?.time }
+      return { id: event.id, version: event.version, title: event.title, startDate: start?.date, startTime: start?.time, endDate: end?.date, endTime: end?.time }
     })
   }
 }
@@ -94,7 +94,8 @@ export async function POST(request: Request) {
     if (proposal && typeof proposal.id === 'string' && typeof proposal.startsAt === 'string' && typeof proposal.endsAt === 'string' && typeof proposal.expiresAt === 'string' && typeof proposal.settingsVersion === 'number') {
       const state = proposal.state === 'confirmed' || proposal.state === 'cancelled' || proposal.state === 'expired' || proposal.state === 'conflict' || proposal.state === 'stale' ? proposal.state : 'pending'
       const event = replay.result && typeof replay.result === 'object' ? replay.result as Record<string, unknown> : null
-      const card: AssistantCard = { type: 'proposal', id: proposal.id, title: String(proposal.title ?? ''), note: typeof proposal.note === 'string' ? proposal.note : null, startsAt: proposal.startsAt, endsAt: proposal.endsAt, expiresAt: proposal.expiresAt, settingsVersion: proposal.settingsVersion, state, ...(state === 'confirmed' && typeof event?.id === 'string' ? { eventId: event.id } : {}) }
+      const action = typeof proposal.action === 'string' && ['create', 'update', 'delete'].includes(proposal.action) ? proposal.action as 'create' | 'update' | 'delete' : 'create'
+      const card: AssistantCard = { type: 'proposal', id: proposal.id, title: String(proposal.title ?? ''), note: typeof proposal.note === 'string' ? proposal.note : null, startsAt: proposal.startsAt, endsAt: proposal.endsAt, expiresAt: proposal.expiresAt, settingsVersion: proposal.settingsVersion, state, action, ...(typeof proposal.eventId === 'string' ? { eventId: proposal.eventId } : {}), ...(action !== 'create' && typeof event?.title === 'string' ? { previousTitle: event.title } : {}), ...(action !== 'create' && (typeof event?.note === 'string' || event?.note === null) ? { previousNote: event.note as string | null } : {}), ...(action !== 'create' && typeof event?.startsAt === 'string' ? { previousStartsAt: event.startsAt } : {}), ...(action !== 'create' && typeof event?.endsAt === 'string' ? { previousEndsAt: event.endsAt } : {}), ...(state === 'confirmed' && typeof event?.id === 'string' ? { eventId: event.id } : {}) }
       const conversationId = typeof proposal.conversationId === 'string' ? proposal.conversationId : parsed.value.conversationId
       let version = parsed.value.version ?? 1
       let messages: AssistantTranscriptMessage[] = []
@@ -172,6 +173,9 @@ export async function POST(request: Request) {
   const toolLog: AssistantToolCallLog[] = []
   const diagnosticDetails = () => process.env.NODE_ENV === 'development' ? { toolCalls: toolLog } : {}
   const controller = new AbortController()
+  const abortFromClient = () => controller.abort()
+  request.signal.addEventListener('abort', abortFromClient, { once: true })
+  if (request.signal.aborted) controller.abort()
   const timer = setTimeout(() => controller.abort(), requestBudgetMs)
   let modelCalls = 0
   let totalTokens = 0
@@ -266,6 +270,7 @@ export async function POST(request: Request) {
         break
       }
     }
+    if (controller.signal.aborted) requestFailure = { code: 'AI_TIMEOUT', message: 'AI 응답 시간이 길어져 요청을 마쳤어요. 다시 시도해 주세요.', status: 504 }
     if (!requestFailure && !assistantText && !modelReturnedFinal && modelCalls >= maxModelCalls) {
       const fallback = createToolLimitFallback(cards.length, toolLog.map(tool => tool.status))
       if (fallback) {
@@ -280,6 +285,7 @@ export async function POST(request: Request) {
       : { code: 'MODEL_UNAVAILABLE', message: 'AI 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', status: 502 }
   } finally {
     clearTimeout(timer)
+    request.signal.removeEventListener('abort', abortFromClient)
   }
 
   if (requestFailure) return responseError(requestFailure.code, requestFailure.message, requestFailure.status, { conversationId, version, model, usage: { totalTokens }, ...diagnosticDetails(), cards })
