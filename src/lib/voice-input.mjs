@@ -1,5 +1,5 @@
 export const maxVoiceUploadBytes = 20 * 1024 * 1024
-export const voiceSilenceDurationMs = 1300
+export const voiceSilenceDurationMs = 2000
 export const voiceActivityThreshold = 0.025
 export const allowedVoiceMimeTypes = new Set(['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg'])
 

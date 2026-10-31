@@ -231,7 +231,12 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       const payload = await response.json() as ChatResponse & ChatError
       if (!response.ok) {
         const shouldSpeak = speakAnswer && (voiceSessionId === undefined || voiceSessionRef.current && voiceSessionId === voiceSessionIdRef.current && speakRepliesRef.current)
-        if (shouldSpeak && payload.message) speak(payload.message, voiceSessionId)
+        const voiceRateLimited = payload.code === 'AI_USAGE_LIMIT' && voiceSessionId !== undefined
+        if (voiceRateLimited) {
+          setVoiceNotice('분당 AI 질문 한도에 도달했어요. 잠시 후 음성 대화를 다시 시작해 주세요.')
+          stopVoiceSession(false)
+          if (shouldSpeak && payload.message) speak(payload.message)
+        } else if (shouldSpeak && payload.message) speak(payload.message, voiceSessionId)
         setInput(trimmed)
         if (payload.conversationId && typeof payload.version === 'number') queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), current => ({ conversation: { id: payload.conversationId!, version: payload.version!, messages: current?.conversation?.messages ?? [] } }))
         if (payload.code === 'CONVERSATION_EXPIRED' || payload.code === 'CONVERSATION_NOT_FOUND' || payload.code === 'CONVERSATION_CONFLICT') {
@@ -362,6 +367,11 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       if (!voiceSessionRef.current || sessionId !== voiceSessionIdRef.current) return
       if (response.status === 503) {
         setVoiceNotice('서버 음성 인식 설정이 없어 음성 대화를 시작할 수 없어요. 서버의 GROQ_API_KEY 설정을 확인해 주세요.')
+        stopVoiceSession(false)
+        return
+      }
+      if (response.status === 429) {
+        setVoiceNotice(payload.message ?? '분당 음성 인식 한도에 도달했어요. 잠시 후 음성 대화를 다시 시작해 주세요.')
         stopVoiceSession(false)
         return
       }

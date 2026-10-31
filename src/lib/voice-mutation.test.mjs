@@ -4,12 +4,18 @@ import { readFileSync } from 'node:fs'
 
 const migration = readFileSync(new URL('../../supabase/migrations/202610310002_voice_event_mutations.sql', import.meta.url), 'utf8')
 const route = readFileSync(new URL('../app/api/speech-transcribe/route.ts', import.meta.url), 'utf8')
+const assistantPanel = readFileSync(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
 
 test('voice transcription requires an authenticated owner and usage quota before contacting Groq', () => {
   assert.ok(route.indexOf('supabase.auth.getClaims()') < route.indexOf('api.groq.com/openai/v1/audio/transcriptions'))
   assert.ok(route.indexOf("supabase.rpc('consume_speech_request')") < route.indexOf('api.groq.com/openai/v1/audio/transcriptions'))
   assert.match(route, /GROQ_API_KEY/)
   assert.doesNotMatch(route, /NEXT_PUBLIC_GROQ_API_KEY/)
+})
+
+test('stops continuous listening when speech or chat reaches its minute limit', () => {
+  assert.match(assistantPanel, /response\.status === 429[\s\S]*?stopVoiceSession\(false\)/)
+  assert.match(assistantPanel, /payload\.code === 'AI_USAGE_LIMIT'[\s\S]*?stopVoiceSession\(false\)/)
 })
 
 test('voice mutation proposals are owner scoped and reject stale versions before mutation', () => {
