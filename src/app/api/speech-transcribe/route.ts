@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}` },
       body: upstream,
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)])
     })
   } catch {
     return errorResponse('TRANSCRIPTION_UNAVAILABLE', '음성 인식 서버에 연결하지 못했어요. 다시 녹음해 주세요.', 502)

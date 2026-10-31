@@ -136,6 +136,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   const resumeTimeoutRef = useRef<number | null>(null)
   const retryRequest = useRef<{ message: string; selectedCandidateId: string | null; id: string } | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
+  const voiceRequestControllerRef = useRef<AbortController | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recordingTimeoutRef = useRef<number | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -180,6 +181,8 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     voiceSessionRef.current = false
     voiceSessionIdRef.current += 1
     voiceStartAttemptRef.current += 1
+    voiceRequestControllerRef.current?.abort()
+    voiceRequestControllerRef.current = null
     if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
     if (resumeTimeoutRef.current !== null) window.clearTimeout(resumeTimeoutRef.current)
     if (voiceFrameRef.current !== null) window.cancelAnimationFrame(voiceFrameRef.current)
@@ -214,7 +217,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     }
   }, [open])
 
-  async function sendMessage(message: string, speakAnswer = speakReplies, voiceSessionId?: number) {
+  async function sendMessage(message: string, speakAnswer = speakReplies, voiceSessionId?: number, signal?: AbortSignal) {
     const trimmed = message.trim()
     if (!trimmed || pendingRef.current || recentConversationQuery.isPending || recentConversationQuery.isError) return
     const currentConversation = queryClient.getQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId))?.conversation ?? conversation
@@ -227,7 +230,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     pendingRef.current = true
     setPending(true)
     try {
-      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: trimmed, conversationId: currentConversation?.id ?? null, version: currentConversation?.version ?? null, requestId, ...(selectedCandidateId ? { selectedCandidateId } : {}) }) })
+      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: trimmed, conversationId: currentConversation?.id ?? null, version: currentConversation?.version ?? null, requestId, ...(selectedCandidateId ? { selectedCandidateId } : {}) }), ...(signal ? { signal } : {}) })
       const payload = await response.json() as ChatResponse & ChatError
       if (!response.ok) {
         const shouldSpeak = speakAnswer && (voiceSessionId === undefined || voiceSessionRef.current && voiceSessionId === voiceSessionIdRef.current && speakRepliesRef.current)
@@ -261,6 +264,11 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       setOptimisticTranscript(null)
       if (payload.cards.length) setCandidateSelection({ userId, candidateId: null })
     } catch {
+      if (signal?.aborted) {
+        messagesRef.current = currentConversation?.messages ?? assistantGreetingMessages
+        setOptimisticTranscript(null)
+        return
+      }
       setInput(trimmed)
       const nextMessages = [...messagesWithUserTurn, { role: 'assistant' as const, content: '서버와 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', error: true, createdAt: new Date().toISOString() }]
       messagesRef.current = nextMessages
@@ -358,11 +366,13 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     voiceBusyRef.current = true
     setVoiceBusy(true)
     setVoiceNotice('음성을 글로 바꾸고 있어요…')
+    const controller = new AbortController()
+    voiceRequestControllerRef.current = controller
     try {
       const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
       const form = new FormData()
       form.append('audio', blob, `voice.${blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'}`)
-      const response = await fetch('/api/speech-transcribe', { method: 'POST', body: form })
+      const response = await fetch('/api/speech-transcribe', { method: 'POST', body: form, signal: controller.signal })
       const payload = await response.json() as { text?: unknown; message?: string }
       if (!voiceSessionRef.current || sessionId !== voiceSessionIdRef.current) return
       if (response.status === 503) {
@@ -381,14 +391,16 @@ export default function AssistantPanel({ userId }: { userId: string }) {
         resumeVoiceListening(sessionId)
         return
       }
-      await sendMessage(transcript, true, sessionId)
+      await sendMessage(transcript, true, sessionId, controller.signal)
       if (voiceSessionRef.current && sessionId === voiceSessionIdRef.current && !speakingRef.current) resumeVoiceListening(sessionId)
     } catch {
+      if (controller.signal.aborted) return
       if (voiceSessionRef.current && sessionId === voiceSessionIdRef.current) {
         setVoiceNotice('음성 요청을 완료하지 못했어요. 다시 말씀해 주세요.')
         resumeVoiceListening(sessionId)
       }
     } finally {
+      if (voiceRequestControllerRef.current === controller) voiceRequestControllerRef.current = null
       voiceBusyRef.current = false
       setVoiceBusy(false)
       if (voiceSessionRef.current && sessionId === voiceSessionIdRef.current && !speakingRef.current) resumeVoiceListening(sessionId)
@@ -448,6 +460,8 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     voiceStartAttemptRef.current += 1
     voiceSessionRef.current = false
     voiceSessionIdRef.current += 1
+    voiceRequestControllerRef.current?.abort()
+    voiceRequestControllerRef.current = null
     if (voiceFrameRef.current !== null) window.cancelAnimationFrame(voiceFrameRef.current)
     voiceFrameRef.current = null
     if (resumeTimeoutRef.current !== null) window.clearTimeout(resumeTimeoutRef.current)
