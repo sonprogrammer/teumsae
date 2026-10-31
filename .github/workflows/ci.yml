@@ -33,5 +33,9 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run test
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e --project=sample-desktop --project=sample-mobile
+      - name: 샘플 일정 E2E
+        run: pnpm test:e2e --project=sample-desktop --project=sample-mobile
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-sample-placeholder
       - run: pnpm run build
