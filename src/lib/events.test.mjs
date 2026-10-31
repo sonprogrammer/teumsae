@@ -35,10 +35,10 @@ test('interprets browser local values as Korea time and requires quarter-hour bo
   assert.equal(parseEventInput({ title: '작업', startsAt: '2026-10-28T10:10:00+09:00', endsAt: '2026-10-28T11:10:00+09:00' }, now).field, 'startsAt')
 })
 
-test('requires a 15 to 240 minute duration in 15 minute increments', () => {
+test('requires at least 15 minutes in 15 minute increments without a four-hour cap', () => {
   const input = { title: '작업', startsAt: '2026-10-28T10:00:00+09:00', endsAt: '2026-10-28T10:10:00+09:00' }
   assert.equal(parseEventInput(input, now).field, 'endsAt')
-  assert.equal(parseEventInput({ ...input, endsAt: '2026-10-28T15:00:00+09:00' }, now).field, 'endsAt')
+  assert.equal(parseEventInput({ ...input, endsAt: '2026-10-28T15:00:00+09:00' }, now).ok, true)
 })
 
 test('manual event validation allows times outside recommendation windows', () => {

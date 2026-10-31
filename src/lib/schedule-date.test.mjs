@@ -44,7 +44,7 @@ test('provides quarter-hour time choices and same-day valid end times', () => {
   assert.equal(startTimeOptions().at(-1), '23:30')
   assert.deepEqual(endTimeOptions('23:30'), ['23:45'])
   assert.deepEqual(endTimeOptions('23:45'), [])
-  assert.equal(endTimeOptions('09:00').at(-1), '13:00')
+  assert.equal(endTimeOptions('09:00').at(-1), '23:45')
   assert.equal(defaultEndTime('09:00'), '10:00')
   assert.equal(defaultEndTime('23:30'), '23:45')
   assert.equal(defaultEndTime('23:45'), '')

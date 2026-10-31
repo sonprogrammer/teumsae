@@ -13,6 +13,11 @@ test('recreates only a pending-safe terminal proposal and uses current Seoul ava
   assert.equal(isProposalRecoverable('expired'), true)
 })
 
+test('recreates events longer than four hours when they fit within the same day and availability', () => {
+  const longEvent = { ...card, startsAt: '2026-10-31T00:00:00.000Z', endsAt: '2026-10-31T05:00:00.000Z' }
+  assert.equal(validateProposalRecreation(longEvent, schedule, new Date('2026-10-30T02:00:00.000Z')).ok, true)
+})
+
 test('refuses past, unavailable, malformed and still-pending proposal recreation', () => {
   assert.equal(validateProposalRecreation({ ...card, state: 'pending' }, schedule, new Date('2026-10-30T02:00:00.000Z')).reason, 'not_recoverable')
   assert.equal(validateProposalRecreation({ ...card, startsAt: '2026-10-29T01:00:00.000Z', endsAt: '2026-10-29T02:00:00.000Z' }, schedule, new Date('2026-10-30T02:00:00.000Z')).reason, 'past')

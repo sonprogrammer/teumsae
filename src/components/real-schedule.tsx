@@ -224,7 +224,7 @@ function EventForm({ event, selectedDate, today, userId, onCancel }: { event: Ev
       <EventTimePicker label="시작 시간" value={startTime} options={startOptions} invalid={state.field === 'startsAt'} align="left" picker="start" open={activePicker === 'start'} setActivePicker={setActivePicker} onChange={changeStartTime} />
       <EventTimePicker label="종료 시간" value={endTime} options={endOptions} invalid={state.field === 'endsAt'} align="right" picker="end" open={activePicker === 'end'} setActivePicker={setActivePicker} onChange={setEndTime} />
     </div>
-    <p className="real-form-hint">15분 단위 · 15분~4시간 · 한국 시간</p>
+    <p className="real-form-hint">15분 단위 · 같은 날짜 안에서 등록 · 한국 시간</p>
     {state.message && <p className={state.status === 'success' ? 'real-action-success' : 'real-action-error'} role={state.status === 'success' ? 'status' : 'alert'}>{state.message}</p>}
     <div className="real-form-actions"><button type="button" className="real-secondary-button" onClick={onCancel}>취소</button><button type="submit" className="real-primary-button" disabled={pending}>{pending ? '저장 중...' : event ? '수정 저장' : '일정 저장'}</button></div>
   </form>

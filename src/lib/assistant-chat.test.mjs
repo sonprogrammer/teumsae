@@ -53,6 +53,7 @@ test('validates the model input separately for event and availability tools', ()
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 50 }).ok, false)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 60 }).ok, true)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 180 }).ok, true)
+  assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 300 }).ok, true)
   assert.equal(validateAssistantToolArguments('findAvailability', { startDate: '2026-10-30', durationMinutes: 3 }).ok, false)
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: '10000000-0000-4000-8000-000000000001', searchId: '20000000-0000-4000-8000-000000000002' }).ok, true)
@@ -107,6 +108,7 @@ test('returns only Korean-time events that overlap the requested availability wi
 
 test('summarizes tool inputs without exposing title search text', () => {
   assert.deepEqual(summarizeAssistantToolInput('findAvailability', { startDate: '2026-10-31', endDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 120 }), { startDate: '2026-10-31', endDate: '2026-10-31', startTime: '09:00', endTime: '12:00', durationMinutes: 120 })
+  assert.deepEqual(summarizeAssistantToolInput('findAvailability', { startDate: '2026-10-31', durationMinutes: 300 }), { startDate: '2026-10-31', durationMinutes: 300 })
   assert.deepEqual(summarizeAssistantToolInput('listEvents', { startDate: '2026-10-31', query: '민감한 제목' }), { startDate: '2026-10-31', hasTitleFilter: true })
 })
 
