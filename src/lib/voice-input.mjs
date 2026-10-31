@@ -1,5 +1,14 @@
 export const maxVoiceUploadBytes = 20 * 1024 * 1024
+export const voiceSilenceDurationMs = 1300
+export const voiceActivityThreshold = 0.025
 export const allowedVoiceMimeTypes = new Set(['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg'])
+
+export function resolveVoiceActivity({ rms, hasSpeech, lastSpeechAt, now }) {
+  const detectedSpeech = Number.isFinite(rms) && rms >= voiceActivityThreshold
+  const nextHasSpeech = hasSpeech || detectedSpeech
+  const nextLastSpeechAt = detectedSpeech ? now : lastSpeechAt
+  return { hasSpeech: nextHasSpeech, lastSpeechAt: nextLastSpeechAt, shouldSubmit: nextHasSpeech && nextLastSpeechAt !== null && now - nextLastSpeechAt >= voiceSilenceDurationMs }
+}
 
 export function validateVoiceUpload({ size, type }) {
   if (!Number.isSafeInteger(size) || size < 1 || size > maxVoiceUploadBytes) return { ok: false, code: 'INVALID_AUDIO_SIZE' }

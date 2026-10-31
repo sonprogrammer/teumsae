@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { maxVoiceUploadBytes, parseTranscription, speechText, validateVoiceUpload } from './voice-input.mjs'
+import { maxVoiceUploadBytes, parseTranscription, resolveVoiceActivity, speechText, validateVoiceUpload, voiceSilenceDurationMs } from './voice-input.mjs'
 
 test('accepts supported audio and rejects empty, oversized, or unsupported uploads', () => {
   assert.deepEqual(validateVoiceUpload({ size: 100, type: 'audio/webm;codecs=opus' }), { ok: true })
@@ -17,4 +17,12 @@ test('accepts only bounded, nonempty transcription text', () => {
 
 test('removes markdown syntax before speech synthesis', () => {
   assert.equal(speechText('**안녕하세요** [일정 보기](https://example.com)'), '안녕하세요 일정 보기')
+})
+
+test('ends a voice turn after silence following speech but ignores initial silence', () => {
+  assert.equal(resolveVoiceActivity({ rms: 0.001, hasSpeech: false, lastSpeechAt: null, now: 2000 }).shouldSubmit, false)
+  const speech = resolveVoiceActivity({ rms: 0.08, hasSpeech: false, lastSpeechAt: null, now: 2000 })
+  assert.deepEqual(speech, { hasSpeech: true, lastSpeechAt: 2000, shouldSubmit: false })
+  assert.equal(resolveVoiceActivity({ rms: 0.001, ...speech, now: 2000 + voiceSilenceDurationMs - 1 }).shouldSubmit, false)
+  assert.equal(resolveVoiceActivity({ rms: 0.001, ...speech, now: 2000 + voiceSilenceDurationMs }).shouldSubmit, true)
 })

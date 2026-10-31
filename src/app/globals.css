@@ -600,6 +600,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-form .assistant-voice-button { width: 34px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 15px; }
 .assistant-live-form .assistant-voice-button svg { width: 17px; height: 17px; }
 .assistant-live-form .assistant-voice-button.is-active { border-color: var(--teal); color: var(--teal); }
+.assistant-live-form .assistant-voice-button.is-session-active { border-color: #a9cbb5; background: #eaf4ec; color: var(--teal-dark); }
 .assistant-live-form .assistant-voice-button.is-recording { background: #b84d43; color: #fff; animation: assistant-recording-pulse 1.2s ease-in-out infinite; }
 .assistant-voice-notice { margin: 0 12px 8px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 @keyframes assistant-recording-pulse { 50% { box-shadow: 0 0 0 5px rgb(184 77 67 / 15%); } }
