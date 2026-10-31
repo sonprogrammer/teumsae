@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: '내 일정 사이의 여유를 찾고, AI와 함께 일정을 관리하는 개인 스케줄러',
   applicationName: '틈새',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: '틈새' },
-  icons: { icon: '/teumsae-app-icon.png', apple: '/teumsae-app-icon.png' },
+  icons: { icon: '/teumsae-logo.png', apple: '/teumsae-app-icon.png' },
   openGraph: {
     title: '틈새 | 나만의 일정 사이, 여유를 찾다',
     description: '내 일정 사이의 여유를 찾고, AI와 함께 일정을 관리하는 개인 스케줄러',

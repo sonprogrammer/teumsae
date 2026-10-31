@@ -67,7 +67,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .page-intro h1 em { color: var(--teal); font-style: normal; }
 .intro-copy { margin: 0; color: #6b7d74; font-size: 14px; line-height: 1.7; }
 .intro-badge { display: flex; align-items: center; gap: 13px; flex: none; padding: 13px 18px; border: 1px solid #e6e5d8; border-radius: 18px; background: rgba(255, 252, 243, .9); color: #6b7462; font-size: 12px; line-height: 1.55; box-shadow: 0 6px 22px #3d5a4510; }
-.intro-badge > span:first-child { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: #fff1d8; color: #d39841; font-size: 22px; }
+.intro-badge-logo { width: 42px; height: 28px; flex: none; object-fit: contain; }
 .intro-badge strong { color: var(--ink); }
 
 .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; align-items: start; gap: 22px; }
@@ -168,7 +168,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 .assistant-panel { position: sticky; top: 20px; display: flex; flex-direction: column; height: min(770px, calc(100vh - 40px)); min-height: 0; }
 .assistant-head { display: flex; align-items: center; gap: 12px; flex: none; padding: 17px 19px; border-bottom: 1px solid var(--line); }
-.assistant-avatar { display: grid; place-items: center; width: 39px; height: 39px; flex: none; border-radius: 13px; background: var(--teal); color: #fff; font-size: 22px; box-shadow: 0 4px 12px #147d7033; }
+.assistant-avatar { display: grid; place-items: center; width: 39px; height: 39px; flex: none; overflow: hidden; border-radius: 13px; background: #e9f5ec; }
+.assistant-avatar img { width: 39px; height: 26px; object-fit: contain; }
 .assistant-head > div:nth-child(2) { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .assistant-head strong { font-size: 14px; font-weight: 800; }
 .assistant-head span:not(.assistant-avatar) { color: #91a097; font-size: 10px; }
@@ -296,7 +297,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .assistant-scroll { max-height: none; }
   .mobile-overlay { position: fixed; z-index: 30; inset: 0; display: block; width: 100%; border: 0; background: #172d2a7a; }
   .mobile-float { position: fixed; z-index: 20; right: 14px; bottom: max(15px, env(safe-area-inset-bottom)); left: 14px; display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 14px; border: 1px solid #1c8c78; border-radius: 16px; background: var(--teal); color: #fff; font-size: 13px; font-weight: 750; box-shadow: 0 9px 30px #155d5080; }
-  .float-sparkle { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 10px; background: #ffffff2e; font-size: 19px; }
+  .float-logo { display: grid; place-items: center; width: 39px; height: 34px; flex: none; border-radius: 10px; background: #e9f5ec; }
+  .float-logo img { width: 36px; height: 24px; object-fit: contain; }
   .float-arrow { margin-left: auto; font-size: 20px; font-weight: 400; }
 }
 

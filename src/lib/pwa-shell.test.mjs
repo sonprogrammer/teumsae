@@ -7,11 +7,12 @@ const offlinePage = await readFile(new URL('../../public/offline.js', import.met
 const manifest = await readFile(new URL('../app/manifest.ts', import.meta.url), 'utf8')
 const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
 
-test('provides install metadata and a high resolution app icon', () => {
+test('uses the logo for the browser favicon and the app artwork for installation', () => {
   assert.match(manifest, /display:\s*'standalone'/)
   assert.match(manifest, /start_url:\s*'\/schedule'/)
   assert.match(manifest, /src: '\/teumsae-app-icon\.png', sizes: '1254x1254', type: 'image\/png', purpose: 'any'/)
-  assert.match(layout, /icons:\s*\{\s*icon:\s*'\/teumsae-app-icon\.png',\s*apple:\s*'\/teumsae-app-icon\.png'/s)
+  assert.ok(manifest.includes("src: '/teumsae-app-icon.png', sizes: '1254x1254', type: 'image/png', purpose: 'maskable'"))
+  assert.match(layout, /icons:\s*\{\s*icon:\s*'\/teumsae-logo\.png',\s*apple:\s*'\/teumsae-app-icon\.png'/s)
   assert.match(layout, /openGraph:\s*\{[\s\S]*?images:\s*\['\/teumsae-og\.png'\]/)
   assert.match(layout, /twitter:\s*\{[\s\S]*?images:\s*\['\/teumsae-og\.png'\]/)
 })

@@ -225,3 +225,15 @@ test('shows the Teumsae logo beside the assistant title', async () => {
   assert.equal(declarationsForBaseSelector('.assistant-live-avatar')['background'], '#e9f5ec')
   assert.equal(declarationsForBaseSelector('.assistant-live-avatar')['border'], '0')
 })
+
+test('shows the Teumsae logo in the sample brand, greeting, assistant heading and mobile prompt button', async () => {
+  const source = await readFile(new URL('../components/schedule-demo.tsx', import.meta.url), 'utf8')
+  assert.equal((source.match(/src="\/teumsae-logo\.png"/g) ?? []).length, 4)
+  assert.match(source, /className="brand" aria-label="틈새">[\s\S]*?src="\/teumsae-logo\.png"/)
+  assert.match(source, /className="intro-badge-logo"/)
+  assert.match(source, /className="assistant-avatar"><Image src="\/teumsae-logo\.png"/)
+  assert.match(source, /className="float-logo"><Image src="\/teumsae-logo\.png"/)
+  assert.equal(declarationsForBaseSelector('.assistant-avatar')['background'], '#e9f5ec')
+  assert.equal(declarationsForSelector('.float-logo img', '(max-width: 700px)')['object-fit'], 'contain')
+  assert.equal(declarationsForSelector('.float-logo', '(max-width: 700px)')['background'], '#e9f5ec')
+})
