@@ -54,7 +54,7 @@ export function endTimeOptions(startTime: string) {
   if (startMinutes === null) return []
   return quarterHourOptions().filter(time => {
     const minutes = minutesFromTime(time)
-    return minutes !== null && minutes > startMinutes && minutes <= Math.min(startMinutes + 240, 23 * 60 + 45)
+    return minutes !== null && minutes > startMinutes && minutes <= 23 * 60 + 45
   })
 }
 

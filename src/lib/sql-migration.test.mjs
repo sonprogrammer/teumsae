@@ -6,6 +6,7 @@ const migrationUrl = new URL('../../supabase/migrations/202610300001_event_propo
 const candidateLimitMigrationUrl = new URL('../../supabase/migrations/202610300003_availability_candidate_limit.sql', import.meta.url)
 const chatTranscriptMigrationUrl = new URL('../../supabase/migrations/202610300004_chat_display_transcript.sql', import.meta.url)
 const chatProposalStatusMigrationUrl = new URL('../../supabase/migrations/202610300005_chat_proposal_status.sql', import.meta.url)
+const unlimitedEventDurationMigrationUrl = new URL('../../supabase/migrations/202610310003_unlimited_event_duration.sql', import.meta.url)
 
 test('event proposal migration does not use WINDOW as a SQL alias', () => {
   const sql = readFileSync(migrationUrl, 'utf8')
@@ -41,5 +42,19 @@ test('chat proposal status RPC is authenticated and owner-scoped', () => {
   assert.match(sql, /grant execute on function public\.get_event_proposal_states\(uuid\[\]\) to authenticated/i)
   assert.match(sql, /proposal\.replaced_by_id/i)
   assert.doesNotMatch(sql, /grant execute on function public\.get_event_proposal_states\(uuid\[\]\) to (public|anon)/i)
+  assert.doesNotMatch(sql, /\bas\s+window\b|\bwindow\./i)
+})
+
+test('removes four-hour event caps while preserving minimum duration and same-day constraints', () => {
+  const sql = readFileSync(unlimitedEventDurationMigrationUrl, 'utf8')
+  assert.match(sql, /drop constraint events_duration/i)
+  assert.match(sql, /drop constraint availability_candidates_duration/i)
+  assert.match(sql, /drop constraint event_proposals_duration/i)
+  assert.match(sql, /add constraint events_duration check\s*\(\s*extract\(epoch from ends_at - starts_at\) >= 900/i)
+  assert.match(sql, /replace\(v_definition, 'not between 900 and 14400', '< 900'\)/i)
+  assert.match(sql, /create_event\(text, text, timestamp with time zone, timestamp with time zone\)/i)
+  assert.match(sql, /create_event_proposal\(/i)
+  assert.match(sql, /create_event_change_proposal\(/i)
+  assert.doesNotMatch(sql, /drop constraint (events|availability_candidates|event_proposals)_same_korea_date/i)
   assert.doesNotMatch(sql, /\bas\s+window\b|\bwindow\./i)
 })

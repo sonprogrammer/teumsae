@@ -103,7 +103,7 @@ export function validateProposalRecreation(card: RecreatedProposalInput, rawSche
   if (!isProposalRecoverable(card.state)) return { ok: false, reason: 'not_recoverable' }
   const starts = Date.parse(card.startsAt)
   const ends = Date.parse(card.endsAt)
-  if (!Number.isFinite(starts) || !Number.isFinite(ends) || starts >= ends || ends - starts < 15 * 60_000 || ends - starts > 240 * 60_000 || (ends - starts) % (15 * 60_000) !== 0 || starts % (15 * 60_000) !== 0 || ends % (15 * 60_000) !== 0) return { ok: false, reason: 'invalid_time' }
+  if (!Number.isFinite(starts) || !Number.isFinite(ends) || starts >= ends || ends - starts < 15 * 60_000 || (ends - starts) % (15 * 60_000) !== 0 || starts % (15 * 60_000) !== 0 || ends % (15 * 60_000) !== 0) return { ok: false, reason: 'invalid_time' }
   if (starts <= now.getTime()) return { ok: false, reason: 'past' }
   const startParts = koreaDateTimeParts(card.startsAt)
   const endParts = koreaDateTimeParts(card.endsAt)
@@ -264,8 +264,8 @@ export function parseAvailabilitySearchRequest(input: unknown, now = new Date())
   if (hasStartTime !== hasEndTime || !isSearchTime(startTime) || !isSearchTime(endTime, true) || !isSearchQuarterHour(startTime) || !isSearchQuarterHour(endTime) || searchTimeToMinutes(startTime) >= searchTimeToMinutes(endTime)) {
     return { ok: false, message: '검색 시간은 15분 단위의 올바른 시간 범위로 입력해 주세요.' }
   }
-  if (durationMinutes !== undefined && durationMinutes !== null && (!Number.isInteger(durationMinutes) || Number(durationMinutes) < 15 || Number(durationMinutes) > 240 || Number(durationMinutes) % 15 !== 0)) {
-    return { ok: false, message: '소요 시간은 15~240분 사이의 15분 단위로 입력해 주세요.' }
+  if (durationMinutes !== undefined && durationMinutes !== null && (!Number.isInteger(durationMinutes) || Number(durationMinutes) < 15 || Number(durationMinutes) % 15 !== 0)) {
+    return { ok: false, message: '소요 시간은 15분 이상의 15분 단위로 입력해 주세요.' }
   }
 
   return {
