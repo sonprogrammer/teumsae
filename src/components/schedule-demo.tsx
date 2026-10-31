@@ -211,7 +211,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
             <h1 id="page-title">일정 사이, 나만의 <em>틈새</em>를 찾다.</h1>
             <p className="intro-copy">일정을 살펴보고, 여유로운 시간을 골라보세요. 지금은 흐름을 체험하는 샘플 화면입니다.</p>
           </div>
-          <div className="intro-badge"><span aria-hidden="true">✦</span><span>일정 속 빈 시간을<br /><strong>함께 찾아볼까요?</strong></span></div>
+          <div className="intro-badge"><Image className="intro-badge-logo" src="/teumsae-logo.png" alt="" width={42} height={28} priority /><span>일정 속 빈 시간을<br /><strong>함께 찾아볼까요?</strong></span></div>
         </section>
 
         <div className="workspace-grid">
@@ -288,7 +288,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
 
           <aside ref={panelRef} onKeyDown={trapPanelFocus} className={'assistant-panel' + (isPanelOpen ? ' is-open' : '')} role="dialog" aria-modal={isPanelOpen ? 'true' : undefined} aria-label="틈새 샘플 대화">
             <div className="assistant-head">
-              <div className="assistant-avatar" aria-hidden="true">✦</div>
+              <div className="assistant-avatar"><Image src="/teumsae-logo.png" alt="" width={39} height={26} priority /></div>
               <div><strong>틈새에게 물어보기</strong><span>일정 사이의 가능성을 발견해요</span></div>
               <button className="panel-close" onClick={closePanel} aria-label="패널 닫기">×</button>
             </div>
@@ -311,7 +311,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
         </div>
       </div>
       {isPanelOpen && <button className="mobile-overlay" onClick={closePanel} aria-label="대화 패널 닫기" />}
-      <button ref={openButtonRef} className="mobile-float" onClick={openPanel}><span className="float-sparkle">✦</span><span>틈새에게 물어보기</span><span className="float-arrow">↑</span></button>
+      <button ref={openButtonRef} className="mobile-float" onClick={openPanel}><span className="float-logo"><Image src="/teumsae-logo.png" alt="" width={36} height={24} /></span><span>틈새에게 물어보기</span><span className="float-arrow">↑</span></button>
     </main>
   )
 }

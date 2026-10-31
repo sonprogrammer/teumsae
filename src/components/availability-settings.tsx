@@ -158,10 +158,20 @@ function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; ini
 export default function AvailabilitySettings({ userId }: { userId: string }) {
   const settingsQuery = useQuery({ queryKey: availabilityQueryKey(userId), queryFn: fetchScheduleAvailability })
   const [notice, setNotice] = useState<{ message: string; kind: 'success' | 'error' | '' }>({ message: '', kind: '' })
-  if (settingsQuery.isPending) return <div className="availability-settings-state" role="status">일정 가능 시간을 불러오고 있어요.</div>
-  if (settingsQuery.isError) return <div className="availability-settings-state is-error" role="alert"><p>{settingsQuery.error instanceof Error ? settingsQuery.error.message : '일정 가능 시간을 불러오지 못했어요.'}</p><button type="button" className="real-secondary-button" onClick={() => void settingsQuery.refetch()}>다시 불러오기</button></div>
+  if (settingsQuery.isPending) return <AvailabilitySettingsSkeleton />
+  if (settingsQuery.isError && !settingsQuery.data) return <div className="availability-settings-state is-error" role="alert"><strong>일정 가능 시간을 불러오지 못했어요.</strong><p>{settingsQuery.error instanceof Error ? settingsQuery.error.message : '잠시 후 다시 시도해 주세요.'}</p><button type="button" className="real-secondary-button" onClick={() => void settingsQuery.refetch()}>다시 불러오기</button></div>
   return <>
+    {settingsQuery.isFetching && settingsQuery.data !== undefined && <div className="availability-refresh-indicator" role="status" aria-label="일정 가능 시간을 새로 불러오는 중" />}
+    {settingsQuery.isError && <p className="availability-settings-notice is-error" role="alert">최신 설정을 불러오지 못해 이전 설정을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void settingsQuery.refetch()}>다시 시도</button></p>}
     <AvailabilityEditor key={settingsQuery.data.version} userId={userId} initial={settingsQuery.data} onNotice={(message, kind) => setNotice({ message, kind })} />
     {notice.message && <p className={'availability-settings-notice is-' + notice.kind} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.message}</p>}
   </>
+}
+
+function AvailabilitySettingsSkeleton() {
+  return <div className="availability-settings-skeleton" role="status" aria-label="일정 가능 시간 설정을 불러오는 중">
+    <section className="availability-settings-card"><span className="availability-skeleton-line is-title" /><span className="availability-skeleton-line is-description" /><div className="availability-weekly-list">{weekdays.map(day => <div className="availability-skeleton-day" key={day.value}><span /><i /><i /></div>)}</div></section>
+    <section className="availability-settings-card"><span className="availability-skeleton-line is-title" /><span className="availability-skeleton-line is-description" /><div className="availability-skeleton-exception" /></section>
+    <span className="sr-only">일정 가능 시간을 불러오고 있어요.</span>
+  </div>
 }

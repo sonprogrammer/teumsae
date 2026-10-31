@@ -164,3 +164,76 @@ test('uses Lucide icons for microphone, spoken replies, and stopping speech', as
   assert.match(source, /음성 답변 중지/)
   assert.doesNotMatch(source, /🎙|◖/)
 })
+
+test('shows a refresh indicator while keeping previously loaded schedules visible', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  assert.match(source, /eventsQuery\.isFetching && eventsQuery\.data !== undefined/)
+  assert.match(source, /className="real-refresh-indicator"/)
+  assert.match(source, /role="status" aria-label="일정을 다시 불러오는 중"/)
+  assert.match(source, /events\.filter\(event => koreaDateKey\(event\.starts_at\) === date\)/)
+})
+
+test('hides the duplicate add action while the inline event form is open', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  assert.match(source, /!creating && <button type="button" className="real-primary-button" onClick=\{\(\) => openCreate\(selectedDate\)\}/)
+  assert.match(source, /className="real-event-form" action=\{formAction\}/)
+})
+
+test('highlights the full schedule card for pointer and keyboard focus', () => {
+  assert.ok(declarationsForBaseSelector('.real-event-card:hover')['background'])
+  assert.ok(declarationsForBaseSelector('.real-event-card:focus-within')['outline'])
+})
+
+test('uses accessible Lucide icon buttons for event editing and deletion', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  const actionButton = declarationsForBaseSelector('.real-event-action-button')
+  assert.match(source, /from 'lucide-react'/)
+  assert.match(source, /<Pencil\b/)
+  assert.match(source, /<Trash2\b/)
+  assert.match(source, /aria-label="일정 수정"/)
+  assert.match(source, /aria-label=\{state\.status === 'success' \? '삭제 완료' : '일정 삭제 확인'\}/)
+  assert.equal(actionButton['width'], '40px')
+  assert.equal(actionButton['height'], '40px')
+})
+
+test('reduces motion for schedule refresh and inline form transitions', () => {
+  const refresh = declarationsForSelector('.real-refresh-indicator::after', '(prefers-reduced-motion: reduce)')
+  const form = declarationsForSelector('.real-event-form', '(prefers-reduced-motion: reduce)')
+  assert.equal(refresh['animation-duration'], '.01ms')
+  assert.equal(form['animation-duration'], '.01ms')
+})
+
+test('provides loading, retry and background refresh states for availability settings', async () => {
+  const source = await readFile(new URL('../components/availability-settings.tsx', import.meta.url), 'utf8')
+  assert.match(source, /availability-settings-skeleton/)
+  assert.match(source, /settingsQuery\.isFetching && settingsQuery\.data !== undefined/)
+  assert.match(source, /이전 설정을 표시하고 있어요/)
+  assert.match(source, /settingsQuery\.refetch\(\)/)
+})
+
+test('shows a retryable loading error for push reminder settings', async () => {
+  const source = await readFile(new URL('../components/push-reminder-settings.tsx', import.meta.url), 'utf8')
+  assert.match(source, /className="push-reminder-skeleton"/)
+  assert.match(source, /알림 설정을 불러오지 못했어요/)
+  assert.match(source, /다시 시도/)
+})
+
+test('shows the Teumsae logo beside the assistant title', async () => {
+  const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
+  assert.match(source, /<Image className="assistant-live-logo" src="\/teumsae-logo\.png" alt="" width=\{36\} height=\{24\}/)
+  assert.match(source, /className="assistant-live-logo"/)
+  assert.equal(declarationsForBaseSelector('.assistant-live-avatar')['background'], '#e9f5ec')
+  assert.equal(declarationsForBaseSelector('.assistant-live-avatar')['border'], '0')
+})
+
+test('shows the Teumsae logo in the sample brand, greeting, assistant heading and mobile prompt button', async () => {
+  const source = await readFile(new URL('../components/schedule-demo.tsx', import.meta.url), 'utf8')
+  assert.equal((source.match(/src="\/teumsae-logo\.png"/g) ?? []).length, 4)
+  assert.match(source, /className="brand" aria-label="틈새">[\s\S]*?src="\/teumsae-logo\.png"/)
+  assert.match(source, /className="intro-badge-logo"/)
+  assert.match(source, /className="assistant-avatar"><Image src="\/teumsae-logo\.png"/)
+  assert.match(source, /className="float-logo"><Image src="\/teumsae-logo\.png"/)
+  assert.equal(declarationsForBaseSelector('.assistant-avatar')['background'], '#e9f5ec')
+  assert.equal(declarationsForSelector('.float-logo img', '(max-width: 700px)')['object-fit'], 'contain')
+  assert.equal(declarationsForSelector('.float-logo', '(max-width: 700px)')['background'], '#e9f5ec')
+})
