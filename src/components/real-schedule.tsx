@@ -14,9 +14,15 @@ import { defaultEndTime, defaultEventTimes, endTimeOptions, monthGrid, shiftMont
 import SignOutButton from '@/components/sign-out-button'
 import { useScheduleUiStore } from '@/stores/schedule-ui-store'
 import AssistantPanel from '@/components/assistant-panel'
+import { readScheduleCache, saveScheduleCache } from '@/lib/schedule-offline-cache.mjs'
 
 const initialActionState: EventActionState = { status: 'idle', message: '' }
 const weekdays = ['월', '화', '수', '목', '금', '토', '일']
+
+function browserScheduleCache(userId: string, from: string, to: string) {
+  if (typeof window === 'undefined') return null
+  try { return readScheduleCache(window.localStorage, userId, from, to) } catch { return null }
+}
 
 function addDays(date: string, amount: number) {
   const value = new Date(date + 'T00:00:00.000Z')
@@ -258,7 +264,7 @@ function DeleteEventButton({ event, userId }: { event: EventView; userId: string
   </>
 }
 
-function EventCard({ event, selectedDate, today, userId }: { event: EventView; selectedDate: string; today: string; userId: string }) {
+function EventCard({ event, selectedDate, today, userId, readOnly }: { event: EventView; selectedDate: string; today: string; userId: string; readOnly: boolean }) {
   const eventEditor = useScheduleUiStore(state => state.eventEditor)
   const openEdit = useScheduleUiStore(state => state.openEdit)
   const closeEventEditor = useScheduleUiStore(state => state.closeEventEditor)
@@ -276,13 +282,13 @@ function EventCard({ event, selectedDate, today, userId }: { event: EventView; s
     <div className="real-event-time"><strong>{eventTime(event.starts_at)}</strong><span>{eventTime(event.ends_at)}</span></div>
     <div className="real-event-detail">
       <button type="button" className="real-event-detail-trigger" onClick={() => setDetailsOpen(true)} aria-label={event.title + ' 상세 보기'}><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}</button>
-      <div className="real-event-actions"><button type="button" className="real-text-button" onClick={() => openEdit(event.id)}>수정</button><DeleteEventButton event={event} userId={userId} /></div>
+      {!readOnly && <div className="real-event-actions"><button type="button" className="real-text-button" onClick={() => openEdit(event.id)}>수정</button><DeleteEventButton event={event} userId={userId} /></div>}
       <dialog ref={detailsDialog} className="real-event-dialog" aria-labelledby={'event-title-' + event.id} onClose={() => { setDetailsOpen(false); if (editing) closeEventEditor() }} onClick={event => { const rect = detailsDialog.current?.getBoundingClientRect(); if (rect && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) detailsDialog.current?.close() }}>
         <div className="real-event-dialog-grip" aria-hidden="true" />
-        {editing ? <EventForm event={event} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} /> : <>
+        {editing && readOnly ? <p className="real-offline-dialog-note">오프라인에서는 일정을 수정할 수 없어요. 다시 연결해 주세요.</p> : editing ? <EventForm event={event} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} /> : <>
           <header className="real-event-dialog-heading"><div><p className="section-kicker">SCHEDULE DETAIL</p><h2 id={'event-title-' + event.id}>{event.title}</h2></div><button type="button" className="real-icon-button" onClick={() => detailsDialog.current?.close()} aria-label="상세 닫기">×</button></header>
           <p className="real-event-dialog-date">{displayDate(selectedDate)}</p><p className="real-event-dialog-time">{eventTime(event.starts_at)} – {eventTime(event.ends_at)}</p>{event.note && <p className="real-event-dialog-note">{event.note}</p>}
-          <div className="real-event-dialog-actions"><button type="button" className="real-secondary-button" onClick={() => detailsDialog.current?.close()}>닫기</button><button type="button" className="real-primary-button" onClick={() => { setDetailsOpen(false); openEdit(event.id) }}>일정 수정</button></div>
+          <div className="real-event-dialog-actions"><button type="button" className="real-secondary-button" onClick={() => detailsDialog.current?.close()}>닫기</button>{!readOnly && <button type="button" className="real-primary-button" onClick={() => { setDetailsOpen(false); openEdit(event.id) }}>일정 수정</button>}</div>
         </>}
       </dialog>
     </div>
@@ -291,23 +297,52 @@ function EventCard({ event, selectedDate, today, userId }: { event: EventView; s
 
 export default function RealSchedule({ userId, selectedDate, today, view }: { userId: string; selectedDate: string; today: string; view: CalendarView }) {
   const router = useRouter()
+  const [isOnline, setIsOnline] = useState(true)
   const dates = visibleCalendarDates(selectedDate, view)
   const from = dates[0] + 'T00:00:00+09:00'
   const last = new Date(dates[dates.length - 1] + 'T00:00:00.000Z')
   last.setUTCDate(last.getUTCDate() + 1)
   const to = last.toISOString().slice(0, 10) + 'T00:00:00+09:00'
+  const cachedSchedule = browserScheduleCache(userId, from, to)
   const eventsQuery = useQuery({
     queryKey: eventQueryKeys.range(userId, from, to),
-    queryFn: ({ signal }) => fetchEvents({ from, to, signal })
+    queryFn: ({ signal }) => fetchEvents({ from, to, signal }),
+    initialData: cachedSchedule?.events,
+    initialDataUpdatedAt: cachedSchedule?.savedAt
   })
   const events = eventsQuery.data ?? []
   const eventEditor = useScheduleUiStore(state => state.eventEditor)
   const openCreate = useScheduleUiStore(state => state.openCreate)
   const closeEventEditor = useScheduleUiStore(state => state.closeEventEditor)
   const previousRoute = useRef(selectedDate + '|' + view)
-  const creating = eventEditor?.kind === 'create' && eventEditor.date === selectedDate
+  const isReadOnly = !isOnline || eventsQuery.isError
+  const creating = !isReadOnly && eventEditor?.kind === 'create' && eventEditor.date === selectedDate
   const selectedEvents = events.filter(event => koreaDateKey(event.starts_at) === selectedDate).sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const currentMonth = selectedDate.slice(0, 7)
+
+  useEffect(() => {
+    function updateOnlineStatus() { setIsOnline(navigator.onLine) }
+    updateOnlineStatus()
+    window.addEventListener('online', updateOnlineStatus)
+    window.addEventListener('offline', updateOnlineStatus)
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+    }
+  }, [])
+
+  useEffect(() => {
+    try { window.localStorage.setItem('teumsae:offline-user', userId) } catch {}
+  }, [userId])
+
+  useEffect(() => {
+    if (!eventsQuery.isSuccess || !eventsQuery.isFetchedAfterMount) return
+    try { saveScheduleCache(window.localStorage, userId, from, to, eventsQuery.data) } catch {}
+  }, [eventsQuery.data, eventsQuery.isFetchedAfterMount, eventsQuery.isSuccess, from, to, userId])
+
+  useEffect(() => {
+    if (isReadOnly) closeEventEditor()
+  }, [closeEventEditor, isReadOnly])
 
   useEffect(() => {
     const currentRoute = selectedDate + '|' + view
@@ -333,6 +368,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
         <section className="real-calendar-card" aria-label="일정 달력">
           <div className="real-calendar-toolbar"><div className="real-period-switch" role="group" aria-label="달력 보기"><button type="button" className={view === 'week' ? 'is-active' : ''} aria-pressed={view === 'week'} onClick={() => navigate(selectedDate, 'week')}>주</button><button type="button" className={view === 'month' ? 'is-active' : ''} aria-pressed={view === 'month'} onClick={() => navigate(selectedDate, 'month')}>월</button></div><div className="real-period-controls"><button type="button" className="real-period-arrow" aria-label="이전" onClick={() => changePeriod(-1)}>‹</button><button type="button" className="real-today-button" onClick={() => navigate(today)}>오늘</button><button type="button" className="real-period-arrow" aria-label="다음" onClick={() => changePeriod(1)}>›</button></div></div>
           <div className="real-period-caption"><strong>{periodLabel(dates, view)}</strong><span>{eventsQuery.isPending ? '불러오는 중…' : events.length + '개 일정'}</span></div>
+          {isReadOnly && <p className="real-offline-status" role="status">{!isOnline ? '오프라인 · 최근 불러온 일정만 확인할 수 있어요. 변경은 연결 후 이용해 주세요.' : '일정을 새로 불러오지 못해 저장된 일정만 확인할 수 있어요.'}</p>}
           <div className={'real-calendar-grid ' + (view === 'month' ? 'is-month' : 'is-week')}>
             {weekdays.map(day => <div className="real-weekday" key={day}>{day}</div>)}
             {dates.map((date, index) => {
@@ -348,11 +384,11 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
           </div>
         </section>
         <aside className="real-agenda-card" aria-label="선택한 날짜 일정">
-          <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div><button type="button" className="real-primary-button" onClick={() => openCreate(selectedDate)}>＋ 일정</button></div>
+          <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div><button type="button" className="real-primary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>＋ 일정</button></div>
           {eventsQuery.isPending ? <div className="real-agenda-skeleton" role="status" aria-label="일정을 불러오는 중"><span /><span /><span /></div> : eventsQuery.isError && !eventsQuery.data ? <div className="real-empty-agenda is-error" role="alert"><strong>일정을 불러오지 못했어요.</strong><p>잠시 후 다시 시도해 주세요.</p><button type="button" className="real-secondary-button" onClick={() => void eventsQuery.refetch()}>다시 불러오기</button></div> : <>
             {eventsQuery.isError && <p className="real-action-error" role="status">새 일정을 불러오지 못해 이전 목록을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void eventsQuery.refetch()}>다시 시도</button></p>}
             {creating && <EventForm key={'new-' + selectedDate} event={null} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} />}
-            {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} today={today} userId={userId} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => openCreate(selectedDate)}>일정 추가</button></div>}
+            {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} today={today} userId={userId} readOnly={isReadOnly} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>일정 추가</button></div>}
           </>}
         </aside>
         <AssistantPanel userId={userId} />

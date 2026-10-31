@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#147d70">
+    <title>오프라인 일정 | 틈새</title>
+    <style>
+      :root{color-scheme:light;font-family:Arial,sans-serif;background:#f8f7f1;color:#193c35}*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:24px;display:grid;place-items:center}.offline-card{width:min(100%,520px);padding:28px;border:1px solid #e3e8df;border-radius:24px;background:#fff;box-shadow:0 16px 40px #183b3210}.brand{color:#147d70;font-size:14px;font-weight:700;letter-spacing:.12em}.status{display:inline-flex;margin:22px 0 8px;padding:7px 11px;border-radius:999px;background:#e7f4ed;color:#105b54;font-size:13px;font-weight:700}h1{margin:4px 0 10px;font-size:25px}p{line-height:1.6;color:#5d706b}.events{display:grid;gap:10px;margin:20px 0 0;padding:0;list-style:none}.events li{display:grid;gap:4px;padding:13px 15px;border-radius:14px;background:#f7f9f5}.events time{font-size:13px;color:#147d70}.events strong{font-size:15px}.empty{padding:18px;border:1px dashed #d5dfd8;border-radius:14px;text-align:center}.actions{display:flex;gap:10px;margin-top:22px}.actions a{flex:1;padding:12px;border-radius:12px;text-align:center;text-decoration:none;font-weight:700;background:#147d70;color:white}.actions a.secondary{background:#e7f4ed;color:#105b54}@media(prefers-reduced-motion:no-preference){.offline-card{animation:rise .25s ease-out}@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}}
+    </style>
+  </head>
+  <body>
+    <main class="offline-card">
+      <div class="brand">틈새 · TEUMSAE</div>
+      <span class="status">오프라인 · 읽기 전용</span>
+      <h1>연결이 잠시 끊겼어요</h1>
+      <p>최근에 불러온 일정만 보여드려요. 일정 추가·수정·삭제는 인터넷에 다시 연결한 뒤 이용해 주세요.</p>
+      <ul id="cached-events" class="events" aria-live="polite"><li class="empty">저장된 일정을 확인하고 있어요.</li></ul>
+      <div class="actions"><a href="/schedule">다시 연결</a><a class="secondary" href="/">홈으로</a></div>
+    </main>
+    <script src="/offline.js" defer></script>
+  </body>
+</html>

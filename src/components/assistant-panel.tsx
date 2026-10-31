@@ -8,6 +8,7 @@ import { eventQueryKeys } from '@/lib/event-query-keys'
 import { resolveProposalMutation, type EventProposalState } from '@/lib/event-proposals'
 import type { AssistantCard } from '@/lib/assistant-tools'
 import { assistantConversationQueryKeys, formatTranscriptDateKey, formatTranscriptDay, formatTranscriptTime, type AssistantTranscriptMessage } from '@/lib/assistant-transcript'
+import { parseTranscription, speechText } from '@/lib/voice-input.mjs'
 
 type ChatMessage = AssistantTranscriptMessage
 type RecentConversation = { id: string; version: number; messages: ChatMessage[] }
@@ -60,9 +61,16 @@ function Card({ card, onChoose, selectedCandidateId, onProposalAction, onProposa
   if (card.type === 'proposal') {
     const starts = proposalDateTime(card.startsAt)
     const ends = proposalDateTime(card.endsAt)
+    const action = card.action ?? 'create'
+    const isDelete = action === 'delete'
     const canAct = card.state === 'pending' && !proposalPending
-    const canRetry = ['cancelled', 'expired', 'conflict', 'stale'].includes(card.state)
-    return <section className={'chat-result-card chat-proposal-card is-' + card.state} aria-label="일정 등록 확인"><div className="chat-card-heading"><strong>일정 등록 확인</strong><span>{proposalStateLabels[card.state]}</span></div><div className="chat-proposal-details"><strong>{card.title}</strong>{card.note && <p>{card.note}</p>}<time>{starts.date} · {starts.time}–{ends.time}</time></div>{card.state === 'pending' && <p className="chat-card-empty">아직 저장되지 않았어요. 아래 확인 버튼을 눌러야 실제 일정이 돼요.</p>}{card.state === 'confirmed' && <p className="chat-proposal-confirmed" role="status">실제 일정에 추가됐어요.</p>}{canRetry && <><p className="chat-card-empty">이 제안은 실제 일정에 등록되지 않았어요.</p><button type="button" className="chat-proposal-retry" disabled={proposalPending} onClick={() => onProposalRetry(card)}>{proposalPending ? '새 확인을 준비 중…' : '이 내용으로 다시 제안'}</button></>}{card.state === 'missing' && <p className="chat-proposal-notice" role="status">등록 상태를 확인할 수 없어요. 달력에서 일정을 확인해 주세요.</p>}{proposalNotice && <p className="chat-proposal-notice" role="status">{proposalNotice}</p>}{card.state === 'pending' && <div className="chat-proposal-actions"><button type="button" className="chat-proposal-cancel" disabled={!canAct} onClick={() => onProposalAction(card, 'cancel')}>취소</button><button type="button" className="chat-proposal-confirm" disabled={!canAct} onClick={() => onProposalAction(card, 'confirm')}>{proposalPending ? '처리 중…' : '이 일정으로 등록'}</button></div>}</section>
+    const canRetry = action === 'create' && ['cancelled', 'expired', 'conflict', 'stale'].includes(card.state)
+    const heading = action === 'create' ? '일정 등록 확인' : action === 'update' ? '일정 변경 확인' : '일정 삭제 확인'
+    const pendingMessage = action === 'create' ? '아직 저장되지 않았어요.' : action === 'update' ? '일정은 아직 변경되지 않았어요.' : '일정은 아직 삭제되지 않았어요.'
+    const confirmedMessage = action === 'create' ? '실제 일정에 추가됐어요.' : action === 'update' ? '일정을 변경했어요.' : '일정을 삭제했어요.'
+    const confirmLabel = action === 'create' ? '이 일정으로 등록' : action === 'update' ? '변경 내용 적용' : '일정 삭제'
+    const stateLabel = card.state === 'confirmed' ? action === 'create' ? '일정에 추가됨' : action === 'update' ? '변경 완료' : '삭제 완료' : proposalStateLabels[card.state]
+    return <section className={'chat-result-card chat-proposal-card is-' + card.state} aria-label={heading}><div className="chat-card-heading"><strong>{heading}</strong><span>{stateLabel}</span></div>{action === 'update' && card.previousTitle && <div className="chat-proposal-previous"><small>현재 일정</small><strong>{card.previousTitle}</strong>{card.previousStartsAt && card.previousEndsAt && <time>{proposalDateTime(card.previousStartsAt).date} · {proposalDateTime(card.previousStartsAt).time}–{proposalDateTime(card.previousEndsAt).time}</time>}</div>}<div className="chat-proposal-details"><small>{action === 'update' ? '변경할 내용' : isDelete ? '삭제할 일정' : ''}</small><strong>{card.title}</strong>{card.note && <p>{card.note}</p>}<time>{starts.date} · {starts.time}–{ends.time}</time></div>{card.state === 'pending' && <p className="chat-card-empty">{pendingMessage} {action === 'delete' ? '삭제하려면 아래 버튼을 눌러 주세요.' : '아래 확인 버튼을 눌러야 반영돼요.'}</p>}{card.state === 'confirmed' && <p className="chat-proposal-confirmed" role="status">{confirmedMessage}</p>}{canRetry && <><p className="chat-card-empty">이 제안은 실제 일정에 등록되지 않았어요.</p><button type="button" className="chat-proposal-retry" disabled={proposalPending} onClick={() => onProposalRetry(card)}>{proposalPending ? '새 확인을 준비 중…' : '이 내용으로 다시 제안'}</button></>}{card.state === 'missing' && <p className="chat-proposal-notice" role="status">처리 상태를 확인할 수 없어요. 달력에서 일정을 확인해 주세요.</p>}{proposalNotice && <p className="chat-proposal-notice" role="status">{proposalNotice}</p>}{card.state === 'pending' && <div className="chat-proposal-actions"><button type="button" className="chat-proposal-cancel" disabled={!canAct} onClick={() => onProposalAction(card, 'cancel')}>취소</button><button type="button" className={'chat-proposal-confirm' + (isDelete ? ' is-danger' : '')} disabled={!canAct} onClick={() => onProposalAction(card, 'confirm')}>{proposalPending ? '처리 중…' : confirmLabel}</button></div>}</section>
   }
   const result = card.result
   if (result.mode === 'candidates') {
@@ -105,7 +113,15 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   const [proposalActions, setProposalActions] = useState<Record<string, boolean>>({})
   const [proposalNotices, setProposalNotices] = useState<Record<string, string>>({})
   const [proposalRetryIds, setProposalRetryIds] = useState<Record<string, string>>({})
+  const [recording, setRecording] = useState(false)
+  const [voiceBusy, setVoiceBusy] = useState(false)
+  const [voiceNotice, setVoiceNotice] = useState('')
+  const [speakReplies, setSpeakReplies] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const retryRequest = useRef<{ message: string; selectedCandidateId: string | null; id: string } | null>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const recordingTimeoutRef = useRef<number | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
@@ -127,6 +143,12 @@ export default function AssistantPanel({ userId }: { userId: string }) {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, pending])
+
+  useEffect(() => () => {
+    if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
+    streamRef.current?.getTracks().forEach(track => track.stop())
+    window.speechSynthesis?.cancel()
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -151,7 +173,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     }
   }, [open])
 
-  async function sendMessage(message: string) {
+  async function sendMessage(message: string, speakAnswer = speakReplies) {
     const trimmed = message.trim()
     if (!trimmed || pending || recentConversationQuery.isPending || recentConversationQuery.isError) return
     const requestId = retryRequest.current?.message === trimmed && retryRequest.current.selectedCandidateId === selectedCandidateId ? retryRequest.current.id : crypto.randomUUID()
@@ -164,6 +186,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
       const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: trimmed, conversationId: conversation?.id ?? null, version: conversation?.version ?? null, requestId, ...(selectedCandidateId ? { selectedCandidateId } : {}) }) })
       const payload = await response.json() as ChatResponse & ChatError
       if (!response.ok) {
+        if (speakAnswer && payload.message) speak(payload.message)
         setInput(trimmed)
         if (payload.conversationId && typeof payload.version === 'number') queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), current => ({ conversation: { id: payload.conversationId!, version: payload.version!, messages: current?.conversation?.messages ?? [] } }))
         if (payload.code === 'CONVERSATION_EXPIRED' || payload.code === 'CONVERSATION_NOT_FOUND' || payload.code === 'CONVERSATION_CONFLICT') {
@@ -177,6 +200,7 @@ export default function AssistantPanel({ userId }: { userId: string }) {
         return
       }
       retryRequest.current = null
+      if (speakAnswer) speak(payload.response)
       queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), { conversation: { id: payload.conversationId, version: payload.version, messages: payload.messages } })
       setOptimisticTranscript(null)
       if (payload.cards.length) setCandidateSelection({ userId, candidateId: null })
@@ -186,6 +210,89 @@ export default function AssistantPanel({ userId }: { userId: string }) {
     } finally {
       setPending(false)
     }
+  }
+
+  function speak(message: string) {
+    if (!('speechSynthesis' in window)) return
+    window.speechSynthesis.cancel()
+    const text = speechText(message)
+    if (!text) return
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'ko-KR'
+    utterance.rate = 1
+    utterance.onstart = () => setSpeaking(true)
+    utterance.onend = () => setSpeaking(false)
+    utterance.onerror = () => setSpeaking(false)
+    window.speechSynthesis.speak(utterance)
+  }
+
+  async function startVoiceInput() {
+    if (recording || voiceBusy || pending) return
+    if (!navigator.onLine) {
+      setVoiceNotice('음성 인식은 인터넷 연결이 필요해요. 텍스트로 질문을 저장한 뒤 온라인에서 보내 주세요.')
+      return
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setVoiceNotice('이 브라우저에서는 음성 녹음을 지원하지 않아요. 텍스트로 입력해 주세요.')
+      return
+    }
+    setVoiceNotice('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      const preferredType = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'].find(type => MediaRecorder.isTypeSupported(type))
+      const recorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream)
+      const chunks: BlobPart[] = []
+      recorderRef.current = recorder
+      recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data) }
+      recorder.onerror = () => setVoiceNotice('녹음 중 문제가 생겼어요. 다시 시도해 주세요.')
+      recorder.onstop = async () => {
+        if (recordingTimeoutRef.current !== null) window.clearTimeout(recordingTimeoutRef.current)
+        recordingTimeoutRef.current = null
+        stream.getTracks().forEach(track => track.stop())
+        streamRef.current = null
+        setRecording(false)
+        if (!chunks.length) {
+          setVoiceNotice('녹음 내용이 없어요. 다시 말해 주세요.')
+          return
+        }
+        setVoiceBusy(true)
+        setVoiceNotice('음성을 글로 바꾸고 있어요…')
+        try {
+          const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' })
+          const form = new FormData()
+          form.append('audio', blob, `voice.${blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'}`)
+          const response = await fetch('/api/speech-transcribe', { method: 'POST', body: form })
+          const payload = await response.json() as { text?: unknown; message?: string }
+          const transcript = response.ok ? parseTranscription(payload.text) : null
+          if (!transcript) {
+            setVoiceNotice(payload.message ?? '음성을 인식하지 못했어요. 다시 녹음해 주세요.')
+            return
+          }
+          setVoiceNotice(`인식한 내용: ${transcript}`)
+          setSpeakReplies(true)
+          await sendMessage(transcript, true)
+          setVoiceNotice('')
+        } catch {
+          setVoiceNotice('음성 요청을 완료하지 못했어요. 다시 시도해 주세요.')
+        } finally {
+          setVoiceBusy(false)
+        }
+      }
+      recorder.start()
+      setSpeakReplies(true)
+      setRecording(true)
+      setVoiceNotice('듣고 있어요. 최대 60초까지 말한 뒤 녹음 완료를 눌러 주세요.')
+      recordingTimeoutRef.current = window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop()
+      }, 60000)
+    } catch {
+      setVoiceNotice('마이크 사용 권한이 필요해요. 브라우저 설정에서 마이크를 허용해 주세요.')
+    }
+  }
+
+  function stopVoiceInput() {
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
   }
 
   async function mutateProposal(card: Extract<AssistantCard, { type: 'proposal' }>, action: 'confirm' | 'cancel') {
@@ -202,7 +309,8 @@ export default function AssistantPanel({ userId }: { userId: string }) {
         return
       }
       updateMessages(previous => previous.map(message => ({ ...message, cards: message.cards?.map(item => item.type === 'proposal' && item.id === card.id ? { ...item, state: result.state, ...(result.eventId ? { eventId: result.eventId } : {}) } : item) })))
-      setProposalNotices(previous => ({ ...previous, [card.id]: result.message }))
+      const actionLabel = card.action === 'delete' ? '일정 삭제' : card.action === 'update' ? '일정 변경' : '일정 등록'
+      setProposalNotices(previous => ({ ...previous, [card.id]: action === 'cancel' ? '제안을 취소했어요. 기존 일정은 변경되지 않았어요.' : `${actionLabel}을 반영했어요.` }))
       if (action === 'confirm') await queryClient.invalidateQueries({ queryKey: eventQueryKeys.all(userId) })
     } catch {
       setProposalNotices(previous => ({ ...previous, [card.id]: '서버 응답을 확인하지 못했어요. 다시 눌러 현재 저장 상태를 확인해 주세요.' }))
@@ -253,7 +361,8 @@ export default function AssistantPanel({ userId }: { userId: string }) {
         {message.model || message.toolCalls?.length ? <details className="assistant-live-log"><summary>실행 기록 · 실제 호출 결과</summary>{message.model && <p>모델 {message.model} · {message.totalTokens ?? 0} tokens</p>}<ul>{message.toolCalls?.map((tool, toolIndex) => <li key={toolIndex}><div className="assistant-live-log-heading"><span>{tool.name}</span><small>{tool.status === 'success' ? '성공' : '실패'} · {tool.durationMs}ms</small></div><div className="assistant-live-log-details"><span>입력 · {toolInputLabel(tool)}</span><span>결과 · {toolOutputLabel(tool)}</span></div></li>)}</ul></details> : null}
       */}</article></Fragment>
       })}{pending && <p className="assistant-live-pending" role="status">일정 정보를 확인하고 있어요…</p>}<div ref={endRef} /></div>
-      <form className="assistant-live-form" onSubmit={submit}><label className="sr-only" htmlFor="assistant-live-input">일정 질문</label><textarea id="assistant-live-input" ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={1000} placeholder="예: 다음 주 월요일 오후 한 시간 비는 때 찾아줘" rows={2} disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /><button type="submit" disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button></form>
+      {voiceNotice && <p className="assistant-voice-notice" role="status">{voiceNotice}</p>}
+      <form className="assistant-live-form" onSubmit={submit}><label className="sr-only" htmlFor="assistant-live-input">일정 질문</label><textarea id="assistant-live-input" ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={1000} placeholder="예: 다음 주 월요일 오후 한 시간 비는 때 찾아줘" rows={2} disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || recording || voiceBusy} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} /><button type="button" className={'assistant-voice-button' + (recording ? ' is-recording' : '')} onClick={recording ? stopVoiceInput : () => void startVoiceInput()} disabled={pending || voiceBusy || recentConversationQuery.isPending || recentConversationQuery.isError} aria-label={recording ? '녹음 완료' : '음성으로 질문'} title={recording ? '녹음 완료' : '음성으로 질문'}>{recording ? '■' : '🎙'}</button>{speaking && <button type="button" className="assistant-voice-button" onClick={() => { window.speechSynthesis?.cancel(); setSpeaking(false) }} aria-label="음성 답변 중지" title="음성 답변 중지">■</button>}<button type="button" className={'assistant-voice-button' + (speakReplies ? ' is-active' : '')} onClick={() => { const next = !speakReplies; setSpeakReplies(next); if (!next) { window.speechSynthesis?.cancel(); setSpeaking(false) } }} aria-label={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'} title={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'}>◖</button><button type="submit" disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button></form>
     </aside>
     <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
     <button type="button" ref={launcherRef} className="assistant-live-launcher" aria-controls="assistant-live-panel" aria-expanded={open} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>

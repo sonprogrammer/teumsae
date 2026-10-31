@@ -28,6 +28,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
+    "web-push": "^3.6.7",
     "zustand": "^5.0.16"
   },
   "lint-staged": {
@@ -39,6 +40,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.4.3",
     "husky": "9.1.7",

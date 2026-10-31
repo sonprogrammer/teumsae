@@ -40,7 +40,7 @@ function isTime(value: unknown): value is string {
 function isAssistantCard(value: unknown): value is AssistantCard {
   if (!isRecord(value)) return false
   if (value.type === 'events') {
-    return isDate(value.startDate) && isDate(value.endDate) && typeof value.hasMore === 'boolean' && Array.isArray(value.events) && value.events.length <= 100 && value.events.every(event => isRecord(event) && isText(event.id, 100) && isText(event.title, 300) && (event.note === null || isText(event.note, 1000)) && isText(event.starts_at, 50) && isText(event.ends_at, 50))
+    return isDate(value.startDate) && isDate(value.endDate) && typeof value.hasMore === 'boolean' && Array.isArray(value.events) && value.events.length <= 100 && value.events.every(event => isRecord(event) && isText(event.id, 100) && isText(event.title, 300) && (event.note === null || isText(event.note, 1000)) && isText(event.starts_at, 50) && isText(event.ends_at, 50) && (event.version === undefined || Number.isSafeInteger(event.version) && Number(event.version) > 0))
   }
   if (value.type === 'availability') {
     if (!isDate(value.startDate) || !isDate(value.endDate) || !Array.isArray(value.candidateIds) || value.candidateIds.length > 12 || !value.candidateIds.every(id => isText(id, 100)) || !Array.isArray(value.conflicts) || value.conflicts.length > 100) return false
@@ -51,7 +51,7 @@ function isAssistantCard(value: unknown): value is AssistantCard {
     if (value.result.mode === 'intervals') return Array.isArray(value.result.intervals) && value.result.intervals.length <= 100 && value.result.intervals.every(interval => isRecord(interval) && isDate(interval.date) && isTime(interval.start) && isTime(interval.end))
     return false
   }
-  if (value.type === 'proposal') return isText(value.id, 100) && isText(value.title, 300) && (value.note === null || isText(value.note, 1000)) && isText(value.startsAt, 50) && isText(value.endsAt, 50) && typeof value.settingsVersion === 'number' && Number.isSafeInteger(value.settingsVersion) && value.settingsVersion > 0 && isText(value.expiresAt, 50) && proposalStates.includes(String(value.state)) && (value.eventId === undefined || isText(value.eventId, 100)) && (value.replacedById === undefined || isText(value.replacedById, 100))
+  if (value.type === 'proposal') return isText(value.id, 100) && isText(value.title, 300) && (value.note === null || isText(value.note, 1000)) && isText(value.startsAt, 50) && isText(value.endsAt, 50) && typeof value.settingsVersion === 'number' && Number.isSafeInteger(value.settingsVersion) && value.settingsVersion > 0 && isText(value.expiresAt, 50) && proposalStates.includes(String(value.state)) && (value.eventId === undefined || isText(value.eventId, 100)) && (value.replacedById === undefined || isText(value.replacedById, 100)) && (value.action === undefined || ['create', 'update', 'delete'].includes(String(value.action))) && (value.previousTitle === undefined || isText(value.previousTitle, 300)) && (value.previousNote === undefined || value.previousNote === null || isText(value.previousNote, 1000)) && (value.previousStartsAt === undefined || isText(value.previousStartsAt, 50)) && (value.previousEndsAt === undefined || isText(value.previousEndsAt, 50))
   return false
 }
 
