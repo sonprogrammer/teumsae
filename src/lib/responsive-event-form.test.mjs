@@ -220,6 +220,6 @@ test('shows a retryable loading error for push reminder settings', async () => {
 
 test('shows the Teumsae logo beside the assistant title', async () => {
   const source = await readFile(new URL('../components/assistant-panel.tsx', import.meta.url), 'utf8')
-  assert.match(source, /<Image className="assistant-live-logo" src="\/teumsae-app-icon\.png" alt="" width=\{36\} height=\{36\}/)
+  assert.match(source, /<Image className="assistant-live-logo" src="\/teumsae-logo\.png" alt="" width=\{36\} height=\{24\}/)
   assert.match(source, /className="assistant-live-logo"/)
 })

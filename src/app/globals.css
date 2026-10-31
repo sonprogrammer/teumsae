@@ -591,7 +591,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-panel.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translate3d(0, 0, 0) scale(1); }
 .assistant-live-header { display: flex; align-items: center; gap: 10px; padding: 15px; border-bottom: 1px solid var(--line); }
 .assistant-live-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex: none; overflow: hidden; border-radius: 12px; background: #073c32; }
-.assistant-live-logo { width: 36px; height: 36px; object-fit: cover; }
+.assistant-live-logo { width: 36px; height: 24px; object-fit: contain; }
 .assistant-live-header > div { display: grid; min-width: 0; gap: 4px; }
 .assistant-live-header strong { font-size: 13px; }
 .assistant-live-header small { color: var(--muted); font-size: 9px; line-height: 1.4; }
