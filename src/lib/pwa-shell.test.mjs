@@ -7,6 +7,7 @@ const offlinePage = await readFile(new URL('../../public/offline.js', import.met
 const manifest = await readFile(new URL('../app/manifest.ts', import.meta.url), 'utf8')
 const appleIcon = await readFile(new URL('../app/apple-icon.tsx', import.meta.url), 'utf8')
 const browserIcon = await readFile(new URL('../app/icon.tsx', import.meta.url), 'utf8')
+const nextConfig = await readFile(new URL('../../next.config.mjs', import.meta.url), 'utf8')
 
 test('provides install metadata and a high resolution app icon', () => {
   assert.match(manifest, /display:\s*'standalone'/)
@@ -16,6 +17,9 @@ test('provides install metadata and a high resolution app icon', () => {
   assert.match(appleIcon, /'teumsae-app-icon\.png'/)
   assert.match(browserIcon, /'teumsae-app-icon\.png'/)
   assert.doesNotMatch(appleIcon + browserIcon, /'teumsae-logo\.png'/)
+  assert.match(nextConfig, /'\/opengraph-image':\s*\[[^\]]*'\.\/public\/teumsae-logo\.png'/s)
+  assert.match(nextConfig, /'\/apple-icon':\s*\[[^\]]*'\.\/public\/teumsae-app-icon\.png'/s)
+  assert.match(nextConfig, /'\/icon':\s*\[[^\]]*'\.\/public\/teumsae-app-icon\.png'/s)
 })
 
 test('uses the offline page as a navigation fallback without caching private HTML or API responses', () => {
