@@ -30,9 +30,9 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) return errorResponse('TRANSCRIPTION_NOT_CONFIGURED', '음성 인식 설정이 아직 준비되지 않았어요.', 503)
-  const { data: withinUsageLimit, error: usageError } = await supabase.rpc('consume_ai_request')
+  const { data: withinUsageLimit, error: usageError } = await supabase.rpc('consume_speech_request')
   if (usageError) return errorResponse('AI_USAGE_CHECK_FAILED', 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
-  if (withinUsageLimit !== true) return errorResponse('AI_USAGE_LIMIT', '분당 AI 이용 한도를 초과했어요. 잠시 후 다시 시도해 주세요.', 429)
+  if (withinUsageLimit !== true) return errorResponse('AI_USAGE_LIMIT', '분당 음성 인식 한도를 초과했어요. 잠시 후 다시 시도해 주세요.', 429)
   const upstream = new FormData()
   upstream.append('file', file, file.name || 'voice.webm')
   upstream.append('model', 'whisper-large-v3-turbo')

@@ -31,8 +31,9 @@ Supabase Dashboard의 Vault에 아래 두 secret을 등록합니다.
 
 1. `supabase/migrations/202610310001_push_reminders.sql`: 구독·설정 테이블, 소유자 RLS, 중복 방지 발송 대기열, 매분 Supabase Cron 작업을 만듭니다.
 2. `supabase/migrations/202610310002_voice_event_mutations.sql`: 음성 대화에서 일정 수정·삭제를 확인 카드로 만들고, 소유자와 일정 버전을 확인한 뒤에만 반영합니다.
+3. `supabase/migrations/202610310003_voice_transcription_rate_limit.sql`: 음성 전사 요청에 사용자별 분당 10회 한도를 따로 적용해 AI 대화 분당 3회 한도와 중복 계산되지 않게 합니다.
 
-음성 인식은 서버의 `GROQ_API_KEY` 환경변수로 Groq Whisper를 호출합니다. 로컬에서는 개발 서버 프로세스에, 배포 미리보기에서는 Vercel 프로젝트의 Preview 환경변수에 설정해야 합니다. 값이 없으면 전사 API가 503을 반환합니다. 키는 `NEXT_PUBLIC_` 변수나 저장소 파일에 넣지 않습니다. 음성은 마이크를 켠 동안 대화 단위로 녹음하며, 약 1.3초 말이 멈추면 자동 전송하고 AI 음성 답변 뒤 다시 듣습니다. 녹음 파일은 저장하지 않습니다. 음성 사용은 전사와 AI 대화가 각각 기존 분당 요청 한도를 사용하므로 한 번의 음성 대화가 한도에 2회 반영됩니다. Supabase SQL은 원격 DB에 자동 적용되지 않으며, Vault secret이 아직 없으면 알림 Cron은 호출되지 않습니다.
+음성 인식은 서버의 `GROQ_API_KEY` 환경변수로 Groq Whisper를 호출합니다. 로컬에서는 개발 서버 프로세스에, 배포 미리보기에서는 Vercel 프로젝트의 Preview 환경변수에 설정해야 합니다. 값이 없으면 전사 API가 503을 반환합니다. 키는 `NEXT_PUBLIC_` 변수나 저장소 파일에 넣지 않습니다. 음성은 마이크를 켠 동안 대화 단위로 녹음하며, 약 1.3초 말이 멈추면 자동 전송하고 AI 음성 답변 뒤 다시 듣습니다. 녹음 파일은 저장하지 않습니다. AI 대화는 사용자별 분당 3회, 음성 전사는 별도 사용자별 분당 10회 제한을 사용합니다. Supabase SQL은 원격 DB에 자동 적용되지 않으며, Vault secret이 아직 없으면 알림 Cron은 호출되지 않습니다.
 
 ## 4. 동작 확인
 

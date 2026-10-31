@@ -7,7 +7,7 @@ const route = readFileSync(new URL('../app/api/speech-transcribe/route.ts', impo
 
 test('voice transcription requires an authenticated owner and usage quota before contacting Groq', () => {
   assert.ok(route.indexOf('supabase.auth.getClaims()') < route.indexOf('api.groq.com/openai/v1/audio/transcriptions'))
-  assert.ok(route.indexOf("supabase.rpc('consume_ai_request')") < route.indexOf('api.groq.com/openai/v1/audio/transcriptions'))
+  assert.ok(route.indexOf("supabase.rpc('consume_speech_request')") < route.indexOf('api.groq.com/openai/v1/audio/transcriptions'))
   assert.match(route, /GROQ_API_KEY/)
   assert.doesNotMatch(route, /NEXT_PUBLIC_GROQ_API_KEY/)
 })

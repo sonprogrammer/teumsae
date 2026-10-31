@@ -10,6 +10,7 @@ test('provides install metadata and a high resolution app icon', () => {
   assert.match(manifest, /display:\s*'standalone'/)
   assert.match(manifest, /start_url:\s*'\/schedule'/)
   assert.match(manifest, /512x512/)
+  assert.match(manifest, /src: '\/teumsae-app-icon\.png', sizes: '1254x1254', type: 'image\/png', purpose: 'any'/)
 })
 
 test('uses the offline page as a navigation fallback without caching private HTML or API responses', () => {

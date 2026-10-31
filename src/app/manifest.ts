@@ -11,6 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#147d70',
     lang: 'ko-KR',
     icons: [
+      { src: '/teumsae-app-icon.png', sizes: '1254x1254', type: 'image/png', purpose: 'any' },
       { src: '/icon', sizes: '512x512', type: 'image/png', purpose: 'any' },
       { src: '/icon', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
     ]
