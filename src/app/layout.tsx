@@ -8,15 +8,16 @@ export const metadata: Metadata = {
   description: '내 일정 사이의 여유를 찾고, AI와 함께 일정을 관리하는 개인 스케줄러',
   applicationName: '틈새',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: '틈새' },
-  icons: { apple: '/apple-icon' },
+  icons: { icon: '/teumsae-app-icon.png', apple: '/teumsae-app-icon.png' },
   openGraph: {
     title: '틈새 | 나만의 일정 사이, 여유를 찾다',
     description: '내 일정 사이의 여유를 찾고, AI와 함께 일정을 관리하는 개인 스케줄러',
     siteName: '틈새 (Teumsae)',
     locale: 'ko_KR',
-    type: 'website'
+    type: 'website',
+    images: ['/teumsae-og.png']
   },
-  twitter: { card: 'summary_large_image' }
+  twitter: { card: 'summary_large_image', images: ['/teumsae-og.png'] }
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

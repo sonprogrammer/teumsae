@@ -5,21 +5,21 @@ import test from 'node:test'
 const serviceWorker = await readFile(new URL('../../public/sw.js', import.meta.url), 'utf8')
 const offlinePage = await readFile(new URL('../../public/offline.js', import.meta.url), 'utf8')
 const manifest = await readFile(new URL('../app/manifest.ts', import.meta.url), 'utf8')
-const appleIcon = await readFile(new URL('../app/apple-icon.tsx', import.meta.url), 'utf8')
-const browserIcon = await readFile(new URL('../app/icon.tsx', import.meta.url), 'utf8')
-const nextConfig = await readFile(new URL('../../next.config.mjs', import.meta.url), 'utf8')
+const layout = await readFile(new URL('../app/layout.tsx', import.meta.url), 'utf8')
 
 test('provides install metadata and a high resolution app icon', () => {
   assert.match(manifest, /display:\s*'standalone'/)
   assert.match(manifest, /start_url:\s*'\/schedule'/)
-  assert.match(manifest, /512x512/)
   assert.match(manifest, /src: '\/teumsae-app-icon\.png', sizes: '1254x1254', type: 'image\/png', purpose: 'any'/)
-  assert.match(appleIcon, /'teumsae-app-icon\.png'/)
-  assert.match(browserIcon, /'teumsae-app-icon\.png'/)
-  assert.doesNotMatch(appleIcon + browserIcon, /'teumsae-logo\.png'/)
-  assert.match(nextConfig, /'\/opengraph-image':\s*\[[^\]]*'\.\/public\/teumsae-logo\.png'/s)
-  assert.match(nextConfig, /'\/apple-icon':\s*\[[^\]]*'\.\/public\/teumsae-app-icon\.png'/s)
-  assert.match(nextConfig, /'\/icon':\s*\[[^\]]*'\.\/public\/teumsae-app-icon\.png'/s)
+  assert.match(layout, /icons:\s*\{\s*icon:\s*'\/teumsae-app-icon\.png',\s*apple:\s*'\/teumsae-app-icon\.png'/s)
+  assert.match(layout, /openGraph:\s*\{[\s\S]*?images:\s*\['\/teumsae-og\.png'\]/)
+  assert.match(layout, /twitter:\s*\{[\s\S]*?images:\s*\['\/teumsae-og\.png'\]/)
+})
+
+test('serves metadata images as static public assets instead of reading public files at runtime', async () => {
+  for (const route of ['apple-icon.tsx', 'icon.tsx', 'opengraph-image.tsx']) {
+    await assert.rejects(readFile(new URL('../app/' + route, import.meta.url)), { code: 'ENOENT' })
+  }
 })
 
 test('uses the offline page as a navigation fallback without caching private HTML or API responses', () => {
