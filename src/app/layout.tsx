@@ -3,8 +3,17 @@ import './globals.css'
 import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: '틈새 | 일정 샘플 데모',
-  description: '샘플 일정으로 빈 시간 검색과 등록 확인 흐름을 체험하는 화면'
+  metadataBase: new URL('https://teumsae-blush.vercel.app'),
+  title: '틈새 | 나만의 일정 사이, 여유를 찾다',
+  description: '내 일정 사이의 여유를 찾고, AI와 함께 일정을 관리하는 개인 스케줄러',
+  openGraph: {
+    title: '틈새 | 나만의 일정 사이, 여유를 찾다',
+    description: '내 일정 사이의 여유를 찾고, AI와 함께 일정을 관리하는 개인 스케줄러',
+    siteName: '틈새 (Teumsae)',
+    locale: 'ko_KR',
+    type: 'website'
+  },
+  twitter: { card: 'summary_large_image' }
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
