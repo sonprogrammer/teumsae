@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useActionState, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Pencil, Trash2 } from 'lucide-react'
 import { createEventAction, deleteEventAction, updateEventAction } from '@/app/schedule/actions'
 import type { EventActionState, EventView } from '@/lib/events'
 import { eventQueryKeys } from '@/lib/event-query-keys'
@@ -252,7 +253,7 @@ function DeleteEventButton({ event, userId }: { event: EventView; userId: string
 
   const eventDate = koreaDateKey(event.starts_at)
   return <>
-    <button type="button" className="real-text-button is-danger" aria-haspopup="dialog" disabled={state.status === 'success'} onClick={() => { setShowError(false); setConfirming(true) }}>{state.status === 'success' ? '삭제 완료' : '삭제'}</button>
+    <button type="button" className="real-icon-button real-event-action-button is-danger" aria-label={state.status === 'success' ? '삭제 완료' : '일정 삭제 확인'} title={state.status === 'success' ? '삭제 완료' : '일정 삭제 확인'} aria-haspopup="dialog" disabled={state.status === 'success'} onClick={() => { setShowError(false); setConfirming(true) }}><Trash2 size={16} strokeWidth={1.8} aria-hidden="true" /></button>
     <dialog ref={confirmDialog} className="real-delete-dialog" role="alertdialog" aria-labelledby={'delete-title-' + event.id} aria-describedby={'delete-description-' + event.id} onClose={() => setConfirming(false)} onCancel={cancel => { if (pending) cancel.preventDefault() }} onClick={click => { const rect = confirmDialog.current?.getBoundingClientRect(); if (!pending && rect && (click.clientX < rect.left || click.clientX > rect.right || click.clientY < rect.top || click.clientY > rect.bottom)) confirmDialog.current?.close() }}>
       <Image src="/teumsae-delete.png" alt="" width={144} height={108} className="real-delete-illustration" />
       <h2 id={'delete-title-' + event.id}>이 일정을 삭제할까요?</h2>
@@ -282,7 +283,7 @@ function EventCard({ event, selectedDate, today, userId, readOnly }: { event: Ev
     <div className="real-event-time"><strong>{eventTime(event.starts_at)}</strong><span>{eventTime(event.ends_at)}</span></div>
     <div className="real-event-detail">
       <button type="button" className="real-event-detail-trigger" onClick={() => setDetailsOpen(true)} aria-label={event.title + ' 상세 보기'}><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}</button>
-      {!readOnly && <div className="real-event-actions"><button type="button" className="real-text-button" onClick={() => openEdit(event.id)}>수정</button><DeleteEventButton event={event} userId={userId} /></div>}
+      {!readOnly && <div className="real-event-actions"><button type="button" className="real-icon-button real-event-action-button" aria-label="일정 수정" title="일정 수정" onClick={() => openEdit(event.id)}><Pencil size={16} strokeWidth={1.8} aria-hidden="true" /></button><DeleteEventButton event={event} userId={userId} /></div>}
       <dialog ref={detailsDialog} className="real-event-dialog" aria-labelledby={'event-title-' + event.id} onClose={() => { setDetailsOpen(false); if (editing) closeEventEditor() }} onClick={event => { const rect = detailsDialog.current?.getBoundingClientRect(); if (rect && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) detailsDialog.current?.close() }}>
         <div className="real-event-dialog-grip" aria-hidden="true" />
         {editing && readOnly ? <p className="real-offline-dialog-note">오프라인에서는 일정을 수정할 수 없어요. 다시 연결해 주세요.</p> : editing ? <EventForm event={event} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} /> : <>
@@ -314,6 +315,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
   const closeEventEditor = useScheduleUiStore(state => state.closeEventEditor)
   const previousRoute = useRef(selectedDate + '|' + view)
   const isReadOnly = !isOnline || eventsQuery.isError
+  const isRefreshing = eventsQuery.isFetching && eventsQuery.data !== undefined
   const creating = !isReadOnly && eventEditor?.kind === 'create' && eventEditor.date === selectedDate
   const selectedEvents = events.filter(event => koreaDateKey(event.starts_at) === selectedDate).sort((a, b) => a.starts_at.localeCompare(b.starts_at))
   const currentMonth = selectedDate.slice(0, 7)
@@ -369,6 +371,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
     <section className="real-schedule-content">
       <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div><Link className="real-availability-link" href="/schedule/settings">일정 가능 시간 설정</Link></div>
       <div className="real-schedule-workspace">
+        {isRefreshing && <div className="real-refresh-indicator" role="status" aria-label="일정을 다시 불러오는 중" />}
         <section className="real-calendar-card" aria-label="일정 달력">
           <div className="real-calendar-toolbar"><div className="real-period-switch" role="group" aria-label="달력 보기"><button type="button" className={view === 'week' ? 'is-active' : ''} aria-pressed={view === 'week'} onClick={() => navigate(selectedDate, 'week')}>주</button><button type="button" className={view === 'month' ? 'is-active' : ''} aria-pressed={view === 'month'} onClick={() => navigate(selectedDate, 'month')}>월</button></div><div className="real-period-controls"><button type="button" className="real-period-arrow" aria-label="이전" onClick={() => changePeriod(-1)}>‹</button><button type="button" className="real-today-button" onClick={() => navigate(today)}>오늘</button><button type="button" className="real-period-arrow" aria-label="다음" onClick={() => changePeriod(1)}>›</button></div></div>
           <div className="real-period-caption"><strong>{periodLabel(dates, view)}</strong><span>{eventsQuery.isPending ? '불러오는 중…' : events.length + '개 일정'}</span></div>
@@ -388,7 +391,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
           </div>
         </section>
         <aside className="real-agenda-card" aria-label="선택한 날짜 일정">
-          <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div><button type="button" className="real-primary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>＋ 일정</button></div>
+          <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div>{!creating && <button type="button" className="real-primary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>＋ 일정</button>}</div>
           {eventsQuery.isPending ? <div className="real-agenda-skeleton" role="status" aria-label="일정을 불러오는 중"><span /><span /><span /></div> : eventsQuery.isError && !eventsQuery.data ? <div className="real-empty-agenda is-error" role="alert"><strong>일정을 불러오지 못했어요.</strong><p>잠시 후 다시 시도해 주세요.</p><button type="button" className="real-secondary-button" onClick={() => void eventsQuery.refetch()}>다시 불러오기</button></div> : <>
             {eventsQuery.isError && <p className="real-action-error" role="status">새 일정을 불러오지 못해 이전 목록을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void eventsQuery.refetch()}>다시 시도</button></p>}
             {creating && <EventForm key={'new-' + selectedDate} event={null} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} />}

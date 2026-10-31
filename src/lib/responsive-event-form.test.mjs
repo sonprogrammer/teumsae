@@ -164,3 +164,41 @@ test('uses Lucide icons for microphone, spoken replies, and stopping speech', as
   assert.match(source, /음성 답변 중지/)
   assert.doesNotMatch(source, /🎙|◖/)
 })
+
+test('shows a refresh indicator while keeping previously loaded schedules visible', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  assert.match(source, /eventsQuery\.isFetching && eventsQuery\.data !== undefined/)
+  assert.match(source, /className="real-refresh-indicator"/)
+  assert.match(source, /role="status" aria-label="일정을 다시 불러오는 중"/)
+  assert.match(source, /events\.filter\(event => koreaDateKey\(event\.starts_at\) === date\)/)
+})
+
+test('hides the duplicate add action while the inline event form is open', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  assert.match(source, /!creating && <button type="button" className="real-primary-button" onClick=\{\(\) => openCreate\(selectedDate\)\}/)
+  assert.match(source, /className="real-event-form" action=\{formAction\}/)
+})
+
+test('highlights the full schedule card for pointer and keyboard focus', () => {
+  assert.ok(declarationsForBaseSelector('.real-event-card:hover')['background'])
+  assert.ok(declarationsForBaseSelector('.real-event-card:focus-within')['outline'])
+})
+
+test('uses accessible Lucide icon buttons for event editing and deletion', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  const actionButton = declarationsForBaseSelector('.real-event-action-button')
+  assert.match(source, /from 'lucide-react'/)
+  assert.match(source, /<Pencil\b/)
+  assert.match(source, /<Trash2\b/)
+  assert.match(source, /aria-label="일정 수정"/)
+  assert.match(source, /aria-label=\{state\.status === 'success' \? '삭제 완료' : '일정 삭제 확인'\}/)
+  assert.equal(actionButton['width'], '40px')
+  assert.equal(actionButton['height'], '40px')
+})
+
+test('reduces motion for schedule refresh and inline form transitions', () => {
+  const refresh = declarationsForSelector('.real-refresh-indicator::after', '(prefers-reduced-motion: reduce)')
+  const form = declarationsForSelector('.real-event-form', '(prefers-reduced-motion: reduce)')
+  assert.equal(refresh['animation-duration'], '.01ms')
+  assert.equal(form['animation-duration'], '.01ms')
+})
