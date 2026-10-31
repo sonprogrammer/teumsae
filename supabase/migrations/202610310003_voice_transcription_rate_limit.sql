@@ -23,7 +23,7 @@ begin
   from public.ai_usage
   where scope = 'user_speech_minute' and owner_id = current_user_id and bucket_start = minute_bucket;
 
-  if coalesce(minute_count, 0) >= 10 then
+  if coalesce(minute_count, 0) >= 3 then
     return false;
   end if;
 

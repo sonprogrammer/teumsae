@@ -8,7 +8,7 @@ const route = readFileSync(new URL('../app/api/speech-transcribe/route.ts', impo
 test('voice transcription has its own bounded per-minute limit separate from AI turns', () => {
   assert.match(migration, /scope in \('user_minute', 'user_speech_minute'\)/i)
   assert.match(migration, /function public\.consume_speech_request\(\)/i)
-  assert.match(migration, /coalesce\(minute_count,\s*0\)\s*>=\s*10/i)
+  assert.match(migration, /coalesce\(minute_count,\s*0\)\s*>=\s*3/i)
   assert.doesNotMatch(migration, /\bwindow\b/i)
   assert.match(route, /supabase\.rpc\('consume_speech_request'\)/)
   assert.match(route, /분당 음성 인식 한도를 초과했어요/)
