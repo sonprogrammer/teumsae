@@ -61,6 +61,13 @@ test('resolves a directly specified event in Asia/Seoul and rejects expired time
   assert.equal(resolveEventProposal(parsed.value, [], 3, new Date('2026-11-02T02:00:00.000Z')).ok, false)
 })
 
+test('allows direct event proposals longer than four hours within the same day', () => {
+  const parsed = parsePrepareEventArguments({ title: '장거리 이동', date: '2026-11-02', startTime: '10:00', endTime: '15:00' })
+  assert.equal(parsed.ok, true)
+  if (!parsed.ok) return
+  assert.equal(resolveEventProposal(parsed.value, [], 3, new Date('2026-11-01T00:00:00.000Z')).ok, true)
+})
+
 test('only a confirmed server result marks a proposal as saved', () => {
   assert.deepEqual(resolveProposalMutation({ status: 'confirmed', event: { id: 'event-1' }, message: '일정을 등록했어요.' }, 'confirm'), { ok: true, state: 'confirmed', eventId: 'event-1', message: '일정을 등록했어요.' })
   assert.deepEqual(resolveProposalMutation({ status: 'conflict', message: '시간이 겹쳐요.' }, 'confirm'), { ok: false, state: 'conflict', message: '시간이 겹쳐요.' })

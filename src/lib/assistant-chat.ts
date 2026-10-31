@@ -108,7 +108,7 @@ export function validateAssistantToolArguments(name: AssistantToolName, args: Re
     if (args.startTime !== undefined && !isToolTime(args.startTime)) return { ok: false as const, message: '검색 시작 시간을 확인해 주세요.' }
     if (args.endTime !== undefined && !isToolTime(args.endTime, true)) return { ok: false as const, message: '검색 종료 시간을 확인해 주세요.' }
     if ((args.startTime === undefined) !== (args.endTime === undefined)) return { ok: false as const, message: '검색 시간 범위의 시작과 종료를 모두 입력해 주세요.' }
-    if (args.durationMinutes !== undefined && (!Number.isInteger(args.durationMinutes) || Number(args.durationMinutes) < 15 || Number(args.durationMinutes) > 240 || Number(args.durationMinutes) % 15 !== 0)) return { ok: false as const, message: '소요 시간은 15~240분 사이의 15분 단위로 입력해 주세요.' }
+    if (args.durationMinutes !== undefined && (!Number.isInteger(args.durationMinutes) || Number(args.durationMinutes) < 15 || Number(args.durationMinutes) % 15 !== 0)) return { ok: false as const, message: '소요 시간은 15분 이상의 15분 단위로 입력해 주세요.' }
   }
   return { ok: true as const, startDate, endDate }
 }
@@ -197,7 +197,7 @@ export function summarizeAssistantToolInput(name: AssistantToolName, args: Recor
     else invalidFields.push('endTime')
   }
   if (args.durationMinutes !== undefined) {
-    if (Number.isInteger(args.durationMinutes) && Number(args.durationMinutes) >= 15 && Number(args.durationMinutes) <= 240 && Number(args.durationMinutes) % 15 === 0) summary.durationMinutes = Number(args.durationMinutes)
+    if (Number.isInteger(args.durationMinutes) && Number(args.durationMinutes) >= 15 && Number(args.durationMinutes) % 15 === 0) summary.durationMinutes = Number(args.durationMinutes)
     else invalidFields.push('durationMinutes')
   }
   if (name === 'listEvents' && args.query !== undefined) summary.hasTitleFilter = typeof args.query === 'string' && args.query.trim().length > 0

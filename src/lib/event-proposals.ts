@@ -126,7 +126,7 @@ export function resolveEventProposal(input: PrepareEventInput, candidates: Event
   const endsAt = Date.parse(`${date}T${endTime}:00+09:00`)
   const durationMinutes = (endsAt - startsAt) / 60000
   if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || startsAt < now.getTime()) return { ok: false, code: 'INVALID_EVENT_TIME', message: '지난 시각에는 일정을 제안할 수 없어요.' }
-  if (durationMinutes < 15 || durationMinutes > 240 || durationMinutes % 15 !== 0) return { ok: false, code: 'INVALID_EVENT_TIME', message: '일정 시간은 15~240분 사이의 15분 단위로 입력해 주세요.' }
+  if (durationMinutes < 15 || durationMinutes % 15 !== 0) return { ok: false, code: 'INVALID_EVENT_TIME', message: '일정 시간은 15분 이상의 15분 단위로 입력해 주세요.' }
   return {
     ok: true,
     value: {

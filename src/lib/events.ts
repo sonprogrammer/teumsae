@@ -69,8 +69,8 @@ export function parseEventInput(input: EventInput, now = new Date(), options: { 
   if (!options.allowPast && startsAt.getTime() < now.getTime()) return { ok: false, field: 'startsAt', message: '지난 시각에는 일정을 등록할 수 없어요.' }
 
   const durationMinutes = (endsAt.getTime() - startsAt.getTime()) / 60000
-  if (durationMinutes < 15 || durationMinutes > 240 || durationMinutes % 15 !== 0 || koreaDate(startsAt) !== koreaDate(endsAt)) {
-    return { ok: false, field: 'endsAt', message: '종료 시각은 같은 날짜의 시작 이후 15~240분으로 설정해 주세요.' }
+  if (durationMinutes < 15 || durationMinutes % 15 !== 0 || koreaDate(startsAt) !== koreaDate(endsAt)) {
+    return { ok: false, field: 'endsAt', message: '종료 시각은 같은 날짜의 시작 이후 15분 단위로 설정해 주세요.' }
   }
   return {
     ok: true,

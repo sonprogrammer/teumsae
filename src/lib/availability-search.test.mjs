@@ -17,6 +17,7 @@ test('accepts search ranges longer than a week and validates times and duration'
   assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', endDate: '2027-10-30' }, beforeToday).ok, false)
   assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', startTime: '09:10', endTime: '18:00' }, beforeToday).ok, false)
   assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', durationMinutes: 50 }, beforeToday).ok, false)
+  assert.equal(parseAvailabilitySearchRequest({ startDate: '2026-10-29', durationMinutes: 300 }, beforeToday).ok, true)
 })
 
 test('clips today to the next quarter hour and returns all ordered candidates when fewer than twelve exist', () => {
@@ -51,6 +52,15 @@ test('returns up to twelve chronological candidates before indicating more resul
     return { date: '2026-10-30', start: format(startMinutes), end: format(startMinutes + 15) }
   }))
   assert.equal(result.hasMore, true)
+})
+
+test('finds availability for events longer than four hours', () => {
+  const parsed = parseAvailabilitySearchRequest({ startDate: '2026-10-30', durationMinutes: 300 }, beforeToday)
+  assert.equal(parsed.ok, true)
+  if (!parsed.ok) return
+  const result = searchAvailability({ request: parsed.value, schedule: DEFAULT_SCHEDULE_AVAILABILITY, events: [], now: beforeToday })
+  assert.equal(result.mode, 'candidates')
+  if (result.mode === 'candidates') assert.deepEqual(result.candidates[0], { date: '2026-10-30', start: '09:00', end: '14:00' })
 })
 
 test('returns no candidates when the requested time has already passed today', () => {
