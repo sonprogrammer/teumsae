@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { classifyPushDeliveryFailure, createReminderNotification } from '@/lib/push-reminders.mjs'
+import { classifyPushDeliveryFailure, createReminderNotification, diagnoseVapidRequest } from '@/lib/push-reminders.mjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,7 +48,17 @@ export async function POST(request: Request) {
         const status = error && typeof error === 'object' ? (error as { statusCode?: unknown }).statusCode : null
         statusCode = typeof status === 'number' ? status : 0
         const providerBody = error && typeof error === 'object' && 'body' in error && typeof error.body === 'string' ? error.body : ''
-        errorCode = classifyPushDeliveryFailure(statusCode, providerBody)
+        let vapidDiagnostic: ReturnType<typeof diagnoseVapidRequest> | null = null
+        let pushHost = ''
+        try { pushHost = new URL(delivery.endpoint).hostname } catch {}
+        if (pushHost === 'web.push.apple.com' && (statusCode === 401 || statusCode === 403) && /badjwttoken|invalid jwt|invalid providertoken/i.test(providerBody)) {
+          try {
+            const request = webpush.generateRequestDetails({ endpoint: delivery.endpoint, keys: { p256dh: delivery.p256dh, auth: delivery.auth_key } }, JSON.stringify(payload), { TTL: 60 })
+            const authorization = Object.entries(request.headers).find(([name]) => name.toLowerCase() === 'authorization')?.[1]
+            if (typeof authorization === 'string') vapidDiagnostic = diagnoseVapidRequest({ authorization, endpoint: delivery.endpoint, publicKey, privateKey, subject })
+          } catch {}
+        }
+        errorCode = classifyPushDeliveryFailure(statusCode, providerBody, vapidDiagnostic)
       }
     }
     const { error: updateError } = await supabase.rpc('complete_event_reminder_delivery', { p_delivery_id: delivery.delivery_id, p_success: success, p_status_code: statusCode, p_error_code: errorCode })
