@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { Mic } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { availabilityWindowsForDate, DEFAULT_SCHEDULE_AVAILABILITY, findAvailabilitySlots } from '@/lib/availability'
 import type { SampleSlot } from '@/lib/sample-schedule'
@@ -78,6 +79,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
   const [awaitingSearch, setAwaitingSearch] = useState(false)
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(1)
   const [prompt, setPrompt] = useState(samplePrompt)
+  const [voiceHintOpen, setVoiceHintOpen] = useState(false)
   const [previewMode, setPreviewMode] = useState<PreviewMode>('normal')
   const [isSearching, setIsSearching] = useState(false)
   const [message, setMessage] = useState('')
@@ -306,7 +308,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
               {message && <p className={'inline-message' + (message.startsWith('샘플 일정이') ? ' is-success' : '')} role="status">{message}</p>}
               <div className="preview-controls"><label htmlFor="preview-mode">화면 상태 미리보기</label><select id="preview-mode" value={previewMode} onChange={event => { setPreviewMode(event.target.value as PreviewMode); setMessage('') }}><option value="normal">기본 흐름</option><option value="loading">로딩</option><option value="no-slots">빈 시간 없음</option><option value="lookup-error">조회 실패</option><option value="save-error">저장 실패</option></select></div>
             </div>
-            <div className="composer-area"><p>예시 요청을 선택하거나 그대로 보내보세요</p><button className="prompt-chip" onClick={() => { setPrompt(samplePrompt); inputRef.current?.focus() }}>✦ {samplePrompt}</button><form className="composer" onSubmit={searchSample}><input ref={inputRef} aria-label="샘플 요청 입력" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="어떤 시간이 필요하세요?" /><button type="submit" aria-label="샘플 요청 보내기" disabled={isSearching}>↑</button></form><span className="composer-disclaimer">샘플 데모 · 실제 AI와 일정 저장 기능은 연결되지 않았습니다</span></div>
+            <div className="composer-area"><p>예시 요청을 선택하거나 그대로 보내보세요</p><button className="prompt-chip" onClick={() => { setPrompt(samplePrompt); inputRef.current?.focus() }}>✦ {samplePrompt}</button><form className="composer" onSubmit={searchSample}><input ref={inputRef} aria-label="샘플 요청 입력" value={prompt} onChange={event => setPrompt(event.target.value)} placeholder="어떤 시간이 필요하세요?" /><span className="composer-voice-control"><button type="button" className="composer-voice-button" aria-label="음성 명령 사용 안내" aria-describedby="sample-voice-hint" aria-expanded={voiceHintOpen} onClick={() => setVoiceHintOpen(true)} onFocus={() => setVoiceHintOpen(true)} onBlur={() => setVoiceHintOpen(false)}><Mic size={18} strokeWidth={2} aria-hidden="true" /></button><span id="sample-voice-hint" className={'composer-voice-tooltip' + (voiceHintOpen ? ' is-open' : '')} role="tooltip">로그인 후 음성 명령을 사용할 수 있어요.</span></span><button type="submit" aria-label="샘플 요청 보내기" disabled={isSearching}>↑</button></form><span className="composer-disclaimer">샘플 데모 · 실제 AI와 일정 저장 기능은 연결되지 않았습니다</span></div>
           </aside>
         </div>
       </div>

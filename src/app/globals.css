@@ -225,6 +225,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .composer input:focus-visible { outline: none; }
 .composer button { width: 28px; height: 28px; border: 0; border-radius: 7px; background: var(--teal); color: #fff; font-size: 17px; }
 .composer button:disabled { opacity: .5; cursor: wait; }
+.composer-voice-control { position: relative; flex: none; }
+.composer .composer-voice-button { display: grid; place-items: center; flex: none; border: 1px solid #dce7dd; background: #fff; color: var(--teal); }
+.composer-voice-tooltip { position: absolute; right: 0; bottom: calc(100% + 9px); z-index: 20; width: max-content; max-width: min(230px, 75vw); padding: 8px 10px; border-radius: 10px; background: #214c40; box-shadow: 0 8px 22px #18393435; color: #fffefa; font-size: 11px; line-height: 1.5; opacity: 0; pointer-events: none; visibility: hidden; transform: translateY(4px); transition: opacity .16s ease, transform .16s ease, visibility .16s ease; }
+.composer-voice-control:hover .composer-voice-tooltip, .composer-voice-control:focus-within .composer-voice-tooltip, .composer-voice-tooltip.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
 .composer-disclaimer { display: block; margin-top: 10px; color: #abb4aa; font-size: 9px; line-height: 1.5; text-align: center; }
 .mobile-float, .mobile-overlay { display: none; }
 
@@ -348,6 +352,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-page-heading h1 { margin: 8px 0; font-size: 34px; letter-spacing: -.065em; }
 .real-page-heading p:last-child { margin: 0; color: var(--ink-soft); font-size: 13px; }
 .real-header-actions { display: flex; align-items: center; gap: 18px; }
+.real-user-name { display: block; max-width: 180px; overflow: hidden; color: var(--ink-soft); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .real-sample-link { display: inline-flex; align-items: center; gap: 6px; color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; }
 .real-schedule-workspace { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(340px, .9fr); align-items: start; gap: 20px; }
 .real-availability-link { display: inline-flex; align-items: center; min-height: 38px; padding: 0 13px; border: 1px solid #dce7dd; border-radius: 10px; background: #fffefa; color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; white-space: nowrap; }
@@ -717,6 +722,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-page-heading { margin-bottom: 19px; }
   .real-page-heading h1 { font-size: 29px; }
   .real-header-actions { gap: 10px; }
+  .real-user-name { max-width: 96px; font-size: 10px; }
   .real-sample-link { gap: 3px; }
   .real-sample-link svg { width: 14px; height: 14px; }
   .sign-out-button { gap: 4px; padding: 8px 9px; font-size: 10px; }
@@ -766,6 +772,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-schedule-workspace { grid-template-columns: minmax(0, 1fr); }
   .assistant-live-panel { right: 0; bottom: 0; width: 100%; height: min(82dvh, 720px); max-height: calc(100dvh - 20px); border-radius: 22px 22px 0 0; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -12px 42px #142c2d30; transform: translate3d(0, 100%, 0); transform-origin: bottom center; }
   .assistant-live-panel.is-open { transform: translate3d(0, 0, 0); }
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), textarea, .assistant-live-form textarea, .real-event-form textarea, select, .push-reminder-lead-time select { font-size: 16px; }
   .assistant-live-backdrop { position: fixed; z-index: 55; inset: 0; display: block; border: 0; background: #15372d66; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 180ms ease, visibility 180ms; }
   .assistant-live-backdrop.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
   .assistant-live-launcher { right: 15px; bottom: calc(14px + env(safe-area-inset-bottom)); min-height: 48px; padding: 0 13px 0 7px; }

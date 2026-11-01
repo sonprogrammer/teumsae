@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import RealSchedule from '@/components/real-schedule'
+import { resolveUserDisplayName } from '@/lib/user-display-name.mjs'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -36,5 +37,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   const today = todayInKorea()
   const selectedDate = isDate(params.date) ? params.date as string : today
   const view = params.view === 'month' ? 'month' : 'week'
-  return <RealSchedule userId={authData.claims.sub} selectedDate={selectedDate} today={today} view={view} />
+  const userName = resolveUserDisplayName(authData.claims.user_metadata)
+  return <RealSchedule userId={authData.claims.sub} userName={userName} selectedDate={selectedDate} today={today} view={view} />
 }

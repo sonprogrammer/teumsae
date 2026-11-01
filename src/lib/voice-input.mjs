@@ -3,6 +3,20 @@ export const voiceSilenceDurationMs = 2000
 export const voiceActivityThreshold = 0.025
 export const allowedVoiceMimeTypes = new Set(['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg'])
 
+export function unlockSpeechSynthesis(synthesis, Utterance = globalThis.SpeechSynthesisUtterance) {
+  if (!synthesis || typeof Utterance !== 'function') return false
+  try {
+    synthesis.cancel()
+    const utterance = new Utterance(' ')
+    utterance.lang = 'ko-KR'
+    utterance.volume = 0
+    synthesis.speak(utterance)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function resolveVoiceActivity({ rms, hasSpeech, lastSpeechAt, now }) {
   const detectedSpeech = Number.isFinite(rms) && rms >= voiceActivityThreshold
   const nextHasSpeech = hasSpeech || detectedSpeech

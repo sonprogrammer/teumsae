@@ -9,7 +9,7 @@ import { eventQueryKeys } from '@/lib/event-query-keys'
 import { resolveProposalMutation, type EventProposalState } from '@/lib/event-proposals'
 import type { AssistantCard } from '@/lib/assistant-tools'
 import { assistantConversationQueryKeys, formatTranscriptDateKey, formatTranscriptDay, formatTranscriptTime, type AssistantTranscriptMessage } from '@/lib/assistant-transcript'
-import { parseTranscription, resolveVoiceActivity, speechResponse, speechText } from '@/lib/voice-input.mjs'
+import { parseTranscription, resolveVoiceActivity, speechResponse, speechText, unlockSpeechSynthesis } from '@/lib/voice-input.mjs'
 
 type ChatMessage = AssistantTranscriptMessage
 type RecentConversation = { id: string; version: number; messages: ChatMessage[] }
@@ -417,6 +417,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
       setVoiceNotice('이 브라우저에서는 연속 음성 대화를 지원하지 않아요. 텍스트로 질문해 주세요.')
       return
     }
+    unlockSpeechSynthesis(window.speechSynthesis)
     setVoiceNotice('마이크 권한을 확인하고 있어요…')
     const startAttempt = ++voiceStartAttemptRef.current
     let stream: MediaStream | null = null
@@ -541,6 +542,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (speakReplies) unlockSpeechSynthesis(window.speechSynthesis)
     void sendMessage(input)
   }
 
@@ -562,7 +564,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
         <textarea id="assistant-live-input" ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={1000} placeholder="예: 다음 주 월요일 오후 한 시간 비는 때 찾아줘" rows={2} disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || voiceSession || voiceBusy} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} />
         <button type="button" className={'assistant-voice-button' + (recording ? ' is-recording' : voiceSession ? ' is-session-active' : '')} onClick={voiceSession ? () => stopVoiceSession() : () => void startVoiceSession()} disabled={!voiceSession && (pending || voiceBusy || recentConversationQuery.isPending || recentConversationQuery.isError)} aria-label={voiceSession ? '음성 대화 종료' : '음성 대화 시작'} title={voiceSession ? '음성 대화 종료' : '음성 대화 시작'}>{voiceSession ? <MicOff size={18} strokeWidth={2} aria-hidden="true" /> : <Mic size={18} strokeWidth={2} aria-hidden="true" />}</button>
         {speaking && <button type="button" className="assistant-voice-button" onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setSpeaking(false); if (voiceSessionRef.current) resumeVoiceListening(voiceSessionIdRef.current) }} aria-label="음성 답변 중지" title="음성 답변 중지"><Square size={17} strokeWidth={2} aria-hidden="true" /></button>}
-        <button type="button" className={'assistant-voice-button' + (speakReplies ? ' is-active' : '')} onClick={() => { const next = !speakReplies; speakRepliesRef.current = next; setSpeakReplies(next); if (!next) { window.speechSynthesis?.cancel(); speakingRef.current = false; setSpeaking(false); if (voiceSessionRef.current) resumeVoiceListening(voiceSessionIdRef.current) } }} aria-label={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'} title={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'}>{speakReplies ? <Volume2 size={18} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={18} strokeWidth={2} aria-hidden="true" />}</button>
+        <button type="button" className={'assistant-voice-button' + (speakReplies ? ' is-active' : '')} onClick={() => { const next = !speakReplies; speakRepliesRef.current = next; setSpeakReplies(next); if (next) unlockSpeechSynthesis(window.speechSynthesis); if (!next) { window.speechSynthesis?.cancel(); speakingRef.current = false; setSpeaking(false); if (voiceSessionRef.current) resumeVoiceListening(voiceSessionIdRef.current) } }} aria-label={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'} title={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'}>{speakReplies ? <Volume2 size={18} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={18} strokeWidth={2} aria-hidden="true" />}</button>
         <button type="submit" disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button>
       </form>
     </aside>

@@ -296,7 +296,7 @@ function EventCard({ event, selectedDate, today, userId, readOnly }: { event: Ev
   </article>
 }
 
-export default function RealSchedule({ userId, selectedDate, today, view }: { userId: string; selectedDate: string; today: string; view: CalendarView }) {
+export default function RealSchedule({ userId, userName, selectedDate, today, view }: { userId: string; userName: string; selectedDate: string; today: string; view: CalendarView }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [isOnline, setIsOnline] = useState(true)
@@ -367,7 +367,7 @@ export default function RealSchedule({ userId, selectedDate, today, view }: { us
   }
 
   return <main className="real-schedule-shell">
-    <header className="real-schedule-header"><Link href="/" className="real-schedule-brand"><Image src="/teumsae-logo.png" alt="" width={48} height={40} priority /><span>틈새<small>TEUMSAE</small></span></Link><div className="real-header-actions"><Link className="real-sample-link" href="/"><svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 9.2 10 3l7 6.2v7.3a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V9.2Z"/><path d="M7.5 17v-5h5v5"/></svg><span>샘플 화면</span></Link><SignOutButton /></div></header>
+    <header className="real-schedule-header"><Link href="/" className="real-schedule-brand"><Image src="/teumsae-logo.png" alt="" width={48} height={40} priority /><span>틈새<small>TEUMSAE</small></span></Link><div className="real-header-actions"><span className="real-user-name" title={userName}>{userName} 님</span><SignOutButton /></div></header>
     <section className="real-schedule-content">
       <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div><Link className="real-availability-link" href="/schedule/settings">일정 가능 시간 설정</Link></div>
       <div className="real-schedule-workspace">
