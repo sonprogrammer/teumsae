@@ -42,7 +42,7 @@ function nextWindow(windows: AvailabilityWindow[]): AvailabilityWindow | null {
   return null
 }
 
-function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; initial: ScheduleAvailability; onNotice: (message: string, kind: 'success' | 'error' | '') => void }) {
+function AvailabilityEditor({ userId, initial, mode, onNotice }: { userId: string; initial: ScheduleAvailability; mode: 'weekly' | 'exceptions'; onNotice: (message: string, kind: 'success' | 'error' | '') => void }) {
   const queryClient = useQueryClient()
   const queryKey = availabilityQueryKey(userId)
   const [weekly, setWeekly] = useState(initial.weekly)
@@ -50,15 +50,13 @@ function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; ini
   const [exceptionStart, setExceptionStart] = useState('')
   const [exceptionEnd, setExceptionEnd] = useState('')
   const [exceptionLabel, setExceptionLabel] = useState('')
-  const [version, setVersion] = useState(initial.version)
   const saveMutation = useMutation({
     mutationFn: saveScheduleAvailability,
     onSuccess: settings => {
       queryClient.setQueryData(queryKey, settings)
-      setWeekly(settings.weekly)
-      setExceptions(settings.exceptions)
-      setVersion(settings.version)
-      onNotice('일정 가능 시간을 저장했어요.', 'success')
+      if (mode === 'weekly') setWeekly(settings.weekly)
+      else setExceptions(settings.exceptions)
+      onNotice(mode === 'weekly' ? '요일별 가능 시간을 저장했어요.' : '일정 불가일을 저장했어요.', 'success')
     },
     onError: error => {
       onNotice(error instanceof Error ? error.message : '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.', 'error')
@@ -107,16 +105,17 @@ function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; ini
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     onNotice('', '')
-    const parsed = parseScheduleAvailability({ weekly, exceptions })
+    const input = mode === 'weekly' ? { weekly, exceptions: initial.exceptions } : { weekly: initial.weekly, exceptions }
+    const parsed = parseScheduleAvailability(input)
     if (!parsed.ok) {
       onNotice(parsed.message, 'error')
       return
     }
-    saveMutation.mutate({ ...parsed.value, version })
+    saveMutation.mutate({ ...parsed.value, version: initial.version })
   }
 
   return <form className="availability-settings-form" onSubmit={save}>
-    <section className="availability-settings-card" aria-labelledby="weekly-availability-title">
+    {mode === 'weekly' && <section className="availability-settings-card" aria-labelledby="weekly-availability-title">
       <div className="availability-section-heading"><div><p className="section-kicker">WEEKLY SCHEDULE</p><h2 id="weekly-availability-title">요일별 가능 시간</h2><p>이 시간대 안에서 AI가 빈 시간을 추천해요.</p></div><span className="availability-timezone">한국 시간 · 15분 단위</span></div>
       <div className="availability-weekly-list">
         {weekdays.map(({ value, label }) => {
@@ -134,9 +133,9 @@ function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; ini
           </article>
         })}
       </div>
-    </section>
+    </section>}
 
-    <section className="availability-settings-card" aria-labelledby="availability-exceptions-title">
+    {mode === 'exceptions' && <section className="availability-settings-card" aria-labelledby="availability-exceptions-title">
       <div className="availability-section-heading"><div><p className="section-kicker">TIME OFF</p><h2 id="availability-exceptions-title">일정 불가일</h2><p>휴가나 개인 일정으로 하루 종일 추천을 받지 않을 날짜를 등록해요.</p></div></div>
       <div className="availability-exception-list">{exceptions.length ? exceptions.map(exception => <div className="availability-exception-row" key={exception.id}>
         <div><strong>{exception.label || '일정 불가'}</strong><span>{exception.startDate === exception.endDate ? exception.startDate : exception.startDate + ' – ' + exception.endDate}</span></div>
@@ -148,30 +147,29 @@ function AvailabilityEditor({ userId, initial, onNotice }: { userId: string; ini
         <label className="availability-exception-label">이름 <span>선택</span><input type="text" value={exceptionLabel} maxLength={100} placeholder="예: 휴가" onChange={event => setExceptionLabel(event.target.value)} /></label>
         <button type="button" className="real-secondary-button" onClick={addException}>불가일 추가</button>
       </div>
-    </section>
+    </section>}
 
     <p className="availability-settings-note">직접 일정은 가능 시간 밖에도 등록할 수 있어요. 이 설정은 AI 추천 범위에만 적용되고, 기존 일정은 바뀌지 않습니다.</p>
     <div className="availability-settings-actions"><Link className="real-secondary-button" href="/schedule">일정으로 돌아가기</Link><button type="submit" className="real-primary-button" disabled={saveMutation.isPending}>{saveMutation.isPending ? '저장 중…' : '설정 저장'}</button></div>
   </form>
 }
 
-export default function AvailabilitySettings({ userId }: { userId: string }) {
+export default function AvailabilitySettings({ userId, mode }: { userId: string; mode: 'weekly' | 'exceptions' }) {
   const settingsQuery = useQuery({ queryKey: availabilityQueryKey(userId), queryFn: fetchScheduleAvailability })
   const [notice, setNotice] = useState<{ message: string; kind: 'success' | 'error' | '' }>({ message: '', kind: '' })
-  if (settingsQuery.isPending) return <AvailabilitySettingsSkeleton />
-  if (settingsQuery.isError && !settingsQuery.data) return <div className="availability-settings-state is-error" role="alert"><strong>일정 가능 시간을 불러오지 못했어요.</strong><p>{settingsQuery.error instanceof Error ? settingsQuery.error.message : '잠시 후 다시 시도해 주세요.'}</p><button type="button" className="real-secondary-button" onClick={() => void settingsQuery.refetch()}>다시 불러오기</button></div>
+  if (settingsQuery.isPending) return <AvailabilitySettingsSkeleton mode={mode} />
+  if (settingsQuery.isError && !settingsQuery.data) return <div className="availability-settings-state is-error" role="alert"><strong>{mode === 'weekly' ? '요일별 가능 시간을 불러오지 못했어요.' : '일정 불가일을 불러오지 못했어요.'}</strong><p>{settingsQuery.error instanceof Error ? settingsQuery.error.message : '잠시 후 다시 시도해 주세요.'}</p><button type="button" className="real-secondary-button" onClick={() => void settingsQuery.refetch()}>다시 불러오기</button></div>
   return <>
     {settingsQuery.isFetching && settingsQuery.data !== undefined && <div className="availability-refresh-indicator" role="status" aria-label="일정 가능 시간을 새로 불러오는 중" />}
     {settingsQuery.isError && <p className="availability-settings-notice is-error" role="alert">최신 설정을 불러오지 못해 이전 설정을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void settingsQuery.refetch()}>다시 시도</button></p>}
-    <AvailabilityEditor key={settingsQuery.data.version} userId={userId} initial={settingsQuery.data} onNotice={(message, kind) => setNotice({ message, kind })} />
+    <AvailabilityEditor userId={userId} initial={settingsQuery.data} mode={mode} onNotice={(message, kind) => setNotice({ message, kind })} />
     {notice.message && <p className={'availability-settings-notice is-' + notice.kind} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.message}</p>}
   </>
 }
 
-function AvailabilitySettingsSkeleton() {
+function AvailabilitySettingsSkeleton({ mode }: { mode: 'weekly' | 'exceptions' }) {
   return <div className="availability-settings-skeleton" role="status" aria-label="일정 가능 시간 설정을 불러오는 중">
-    <section className="availability-settings-card"><span className="availability-skeleton-line is-title" /><span className="availability-skeleton-line is-description" /><div className="availability-weekly-list">{weekdays.map(day => <div className="availability-skeleton-day" key={day.value}><span /><i /><i /></div>)}</div></section>
-    <section className="availability-settings-card"><span className="availability-skeleton-line is-title" /><span className="availability-skeleton-line is-description" /><div className="availability-skeleton-exception" /></section>
+    {mode === 'weekly' ? <section className="availability-settings-card"><span className="availability-skeleton-line is-title" /><span className="availability-skeleton-line is-description" /><div className="availability-weekly-list">{weekdays.map(day => <div className="availability-skeleton-day" key={day.value}><span /><i /><i /></div>)}</div></section> : <section className="availability-settings-card"><span className="availability-skeleton-line is-title" /><span className="availability-skeleton-line is-description" /><div className="availability-skeleton-exception" /></section>}
     <span className="sr-only">일정 가능 시간을 불러오고 있어요.</span>
   </div>
 }

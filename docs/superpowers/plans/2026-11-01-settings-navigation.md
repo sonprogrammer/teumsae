@@ -2,9 +2,9 @@
 
 > **작업자 안내:** 구현 단계별 진행에는 `superpowers:executing-plans`를 사용한다. 각 단계는 체크박스로 관리한다.
 
-**목표:** 데스크톱과 모바일에서 설정을 범주별로 찾을 수 있게 하고, 모바일 일정 불가일 입력과 푸시 알림 토글을 개선한다.
+**목표:** 데스크톱과 모바일에서 요일별 가능 시간·일정 불가일·알림을 구분해 설정하고, 불가일 입력과 푸시 알림 토글을 개선한다.
 
-**구조:** `/schedule/settings`와 기존 설정 API를 유지한다. 선택한 범주를 관리하는 클라이언트 탐색 컴포넌트에서 두 상세 패널을 계속 마운트해 범주를 바꿔도 작성 중인 값이 보존되게 한다. 푸시 알림 구독과 저장 로직은 `PushReminderSettings`에 두고, 기존 버튼을 접근 가능한 제어형 스위치로 교체한다.
+**구조:** `/schedule/settings`와 기존 설정 API·DB 객체를 유지한다. 선택된 범주가 없을 때는 설정 안내를 표시하고 세 상세 패널은 계속 마운트해 편집 중인 값을 보존한다. 요일별 가능 시간과 일정 불가일은 서로 다른 폼·저장 버튼을 쓰며, 각 저장은 다른 항목의 최신 값을 보존해 기존 API에 보낸다. 푸시 알림 구독과 저장 로직은 `PushReminderSettings`에 두고, 기존 버튼을 접근 가능한 제어형 스위치로 교체한다.
 
 **기술:** Next.js App Router 16.4.3, React 19, TypeScript, 기존 CSS, Node 테스트 러너, PostCSS 파서, Playwright.
 
@@ -21,7 +21,8 @@
 ## 특히 확인할 조건
 
 - 320~390px 폭에서 시작일·종료일 입력이 잘리거나 가로 넘침을 만들지 않는다. CSS/소스 테스트와 모바일 브라우저 확인으로 검증한다.
-- 모바일에서 상세 → 목록 → 상세로 이동해도 저장 전 편집값이 남는다. 상세 컴포넌트를 유지하고 선택 표시 동작을 검증한다.
+- 모바일에서 상세 → 목록 → 상세로 이동해도 저장 전 편집값이 남는다. 상세 컴포넌트를 유지하고 기본·복귀 시 선택 표시가 없는지 검증한다.
+- 한 범주를 저장한 뒤 다른 범주의 미저장 편집값이 보존되며, 저장 시 변경되지 않은 설정은 서버의 최신 값으로 유지된다.
 - 브라우저 알림 권한을 거부하거나 닫으면 토글이 켜지지 않고 복구 안내를 보여준다. 토글 상태 계약을 검사하고, 권한을 제어할 수 있으면 브라우저에서 확인한다.
 - 지원하지 않는 브라우저는 현재 안내를 유지한다. VAPID 키가 없을 때 켜기 요청이 성공처럼 보이지 않고 기존 설정 오류를 보여준다.
 - 저장이나 구독 요청 실패 시 알림이 켜졌다고 잘못 표시하지 않으며, 요청 중에는 중복 조작을 막는다. 소스 검사와 가능한 브라우저 오류 흐름으로 확인한다.
@@ -39,7 +40,7 @@
 - 테스트: `src/lib/responsive-event-form.test.mjs`
 
 **인터페이스:**
-- 사용: `AvailabilitySettings({ userId }: { userId: string })`; `PushReminderSettings({ userId }: { userId: string })`.
+- 사용: `AvailabilitySettings({ userId, mode }: { userId: string; mode: 'weekly' | 'exceptions' })`; `PushReminderSettings({ userId }: { userId: string })`.
 - 제공: `SettingsNavigation({ userId }: { userId: string })`. 선택 범주는 `schedule` 또는 `reminders`다.
 
 - [x] **1단계: 범주 탐색·모바일 날짜 입력 실패 테스트 작성**
@@ -76,7 +77,33 @@
   실행: `node --test src/lib/push-reminders.test.mjs src/lib/responsive-event-form.test.mjs`
   예상: 통과한다.
 
-### Task 3: 전체 검사와 반응형 흐름 확인
+### Task 3: 기본 선택 제거, 세 범주 분리, 제목 헤더와 독립 저장
+
+**파일:**
+- 수정: `src/components/settings-navigation.tsx`
+- 수정: `src/components/availability-settings.tsx`
+- 수정: `src/app/globals.css`
+- 수정: `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+- 테스트: `src/lib/availability-settings-ui.test.mjs`
+
+**인터페이스:**
+- `SettingsNavigation`은 초기 선택을 `null`로 두고 요일별 가능 시간·일정 불가일·알림 세 항목을 표시한다.
+- `AvailabilitySettings`는 `mode: 'weekly' | 'exceptions'`에 따라 별도 편집·저장 폼을 표시한다. PATCH 입력은 편집 대상 외의 값을 최신 `initial` 설정에서 가져온다.
+
+- [x] **1단계: 미리 선택 없음·세 메뉴·헤더 위치·독립 저장 테스트 작성**
+  각 동작을 검증하는 `availability-settings-ui.test.mjs` 검사를 작성한다.
+- [x] **2단계: 새 테스트가 기대한 이유로 실패하는지 확인**
+  실행: `node --test src/lib/availability-settings-ui.test.mjs`
+  예상: 새 메뉴·선택 상태·헤더·독립 저장 검사에서 실패한다.
+- [x] **3단계: 세 범주 탐색과 상세 헤더 구현**
+  기본 선택을 제거하고, 목록 복귀 시 선택을 해제한다. 상세 헤더는 왼쪽 목록 복귀 버튼, 오른쪽 제목·부제목으로 배치하고 영문 kicker를 제거한다. 숨긴 상세 패널은 계속 마운트해 편집값을 보존한다.
+- [x] **4단계: 독립 저장 구현**
+  주간 가능 시간 저장은 최신 불가일을 유지하고, 불가일 저장은 최신 주간 시간을 유지한다. 입력값과 버전 충돌 오류 흐름을 보존한다.
+- [x] **5단계: 타깃 테스트와 전체 검사**
+  실행: `node --test src/lib/availability-settings-ui.test.mjs`, `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check`.
+  예상: 모두 성공한다. 실제 Preview 모바일·데스크톱 흐름은 사용자가 확인한다.
+
+### Task 4: 전체 검사와 반응형 흐름 확인
 
 **파일:**
 - 검증: 설정 탐색, 불가일 입력, 알림 스위치, 관련 테스트.
