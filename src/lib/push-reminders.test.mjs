@@ -45,3 +45,12 @@ test('protects dispatch with a constant-time secret check and keeps admin creden
   assert.match(route, /request\.headers\.get\(['"]authorization['"]\)/)
   assert.doesNotMatch(client, /SERVICE_ROLE_KEY|VAPID_PRIVATE_KEY|CRON_SECRET/)
 })
+
+test('uses a controlled accessible switch for reminder enablement', async () => {
+  const source = await readFile(new URL('../components/push-reminder-settings.tsx', import.meta.url), 'utf8')
+  assert.match(source, /role="switch"/)
+  assert.match(source, /aria-checked=\{settings\.enabled\}/)
+  assert.match(source, /disabled=\{pending\}/)
+  assert.match(source, /aria-busy=\{pending\}/)
+  assert.match(source, /if \(!settings\.vapidPublicKey\) throw new Error\('푸시 알림 서버 설정이 아직 준비되지 않았어요\.'\)/)
+})

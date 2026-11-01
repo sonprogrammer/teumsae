@@ -1,0 +1,156 @@
+# 설정 화면 탐색 구현 계획
+
+> **작업자 안내:** 구현 단계별 진행에는 `superpowers:executing-plans`를 사용한다. 각 단계는 체크박스로 관리한다.
+
+**목표:** 데스크톱과 모바일에서 요일별 가능 시간·일정 불가일·알림을 구분해 설정하고, 불가일 입력과 푸시 알림 토글을 개선한다.
+
+**구조:** `/schedule/settings`와 기존 설정 API·DB 객체를 유지한다. 선택된 범주가 없을 때는 설정 안내를 표시하고 세 상세 패널은 계속 마운트해 편집 중인 값을 보존한다. 요일별 가능 시간과 일정 불가일은 서로 다른 폼·저장 버튼을 쓰며, 각 저장은 다른 항목의 최신 값을 보존해 기존 API에 보낸다. 푸시 알림 구독과 저장 로직은 `PushReminderSettings`에 두고, 기존 버튼을 접근 가능한 제어형 스위치로 교체한다.
+
+**기술:** Next.js App Router 16.4.3, React 19, TypeScript, 기존 CSS, Node 테스트 러너, PostCSS 파서, Playwright.
+
+**설계 문서:** `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+
+## 공통 제약
+
+- `package.json`에 선언된 Node `>=24 <25`와 pnpm을 사용한다.
+- 기존 코드 스타일을 지킨다. trailing comma와 불필요한 빈 줄을 피하고, 구조분해 props는 가능한 한 줄로 쓴다.
+- `/schedule/settings`, API 계약, 저장 데이터, 알림 권한·구독 동작을 유지한다.
+- 기존 서버 동작이 확인하기 전에는 DB 저장이나 푸시 설정 성공으로 안내하지 않는다.
+- 코드 수정 전에 `node_modules/next/dist/docs/`의 Next.js 16.4.3 관련 문서를 읽는다.
+
+## 특히 확인할 조건
+
+- 320~390px 폭에서 시작일·종료일 입력이 잘리거나 가로 넘침을 만들지 않는다. CSS/소스 테스트와 모바일 브라우저 확인으로 검증한다.
+- 모바일에서 상세 → 목록 → 상세로 이동해도 저장 전 편집값이 남는다. 상세 컴포넌트를 유지하고 기본·복귀 시 선택 표시가 없는지 검증한다.
+- 한 범주를 저장한 뒤 다른 범주의 미저장 편집값이 보존되며, 저장 시 변경되지 않은 설정은 서버의 최신 값으로 유지된다.
+- 브라우저 알림 권한을 거부하거나 닫으면 토글이 켜지지 않고 복구 안내를 보여준다. 토글 상태 계약을 검사하고, 권한을 제어할 수 있으면 브라우저에서 확인한다.
+- 지원하지 않는 브라우저는 현재 안내를 유지한다. VAPID 키가 없을 때 켜기 요청이 성공처럼 보이지 않고 기존 설정 오류를 보여준다.
+- 저장이나 구독 요청 실패 시 알림이 켜졌다고 잘못 표시하지 않으며, 요청 중에는 중복 조작을 막는다. 소스 검사와 가능한 브라우저 오류 흐름으로 확인한다.
+
+---
+
+### Task 1: 설정 범주 탐색과 불가일 입력 반응형 처리
+
+**파일:**
+- 생성: `src/components/settings-navigation.tsx`
+- 수정: `src/app/schedule/settings/page.tsx`
+- 수정: `src/components/availability-settings.tsx`
+- 수정: `src/app/globals.css`
+- 테스트: `src/lib/availability-settings-ui.test.mjs`
+- 테스트: `src/lib/responsive-event-form.test.mjs`
+
+**인터페이스:**
+- 사용: `AvailabilitySettings({ userId, mode }: { userId: string; mode: 'weekly' | 'exceptions' })`; `PushReminderSettings({ userId }: { userId: string })`.
+- 제공: `SettingsNavigation({ userId }: { userId: string })`. 선택 범주는 `schedule` 또는 `reminders`다.
+
+- [x] **1단계: 범주 탐색·모바일 날짜 입력 실패 테스트 작성**
+  두 범주의 이름, 모바일 상세 목록 복귀 조작, 마지막 선택 범주 유지, 기존 설정 패널 연결을 검사한다. `(max-width: 480px)`에서 불가일 폼이 고정 최소 너비 없이 한 열을 쓰고, `(max-width: 900px)`에서 메뉴가 상세 위로 이동하는지 검사한다.
+- [x] **2단계: 새 테스트가 실패하는지 확인**
+  실행: `node --test src/lib/availability-settings-ui.test.mjs src/lib/responsive-event-form.test.mjs`
+  예상: 새 탐색·날짜 레이아웃 검사만 실패한다.
+- [x] **3단계: 클라이언트 탐색 컴포넌트와 모바일 날짜 레이아웃 구현**
+  접근 가능한 선택 상태를 갖는 범주 메뉴를 추가한다. 데스크톱은 메뉴와 상세를 함께 표시한다. 모바일은 범주 목록에서 시작하고 상세를 열며, 뒤로 가기 조작으로 목록에 복귀한다. 비활성 패널을 접근성 트리에서 숨기되 마운트 상태를 유지해 편집값을 보존한다. 불가일 폼은 모바일에서 전체 너비의 날짜 입력과 읽기 쉬운 추가 순서를 사용한다.
+- [x] **4단계: 관련 테스트 통과 확인**
+  실행: `node --test src/lib/availability-settings-ui.test.mjs src/lib/responsive-event-form.test.mjs`
+  예상: 통과한다.
+
+### Task 2: 접근 가능한 푸시 알림 스위치
+
+**파일:**
+- 수정: `src/components/push-reminder-settings.tsx`
+- 수정: `src/app/globals.css`
+- 테스트: `src/lib/push-reminders.test.mjs`
+- 테스트: `src/lib/responsive-event-form.test.mjs`
+
+**인터페이스:**
+- 사용: 기존 `enableReminders()`, `disableReminders()`, `settings.enabled`, `pending`, 브라우저 지원·권한 상태.
+- 제공: 저장된 `settings.enabled`에 `aria-checked`가 연결된 접근 가능한 `role="switch"` 컨트롤. 처리 중 비활성화한다.
+
+- [x] **1단계: 스위치 의미와 상태 보호 실패 테스트 작성**
+  스위치 이름, `settings.enabled`와 연결된 상태, 처리 중 비활성화, 미지원 브라우저·VAPID 누락 시 성공 상태를 가장하지 않는 오류 안내를 검사한다.
+- [x] **2단계: 새 테스트가 실패하는지 확인**
+  실행: `node --test src/lib/push-reminders.test.mjs src/lib/responsive-event-form.test.mjs`
+  예상: 새 스위치 검사만 실패한다.
+- [x] **3단계: 기존 버튼을 제어형 스위치로 교체**
+  기존 켜기·끄기 함수를 재사용한다. 브라우저 권한 요청, VAPID 검증, 구독 저장·삭제, 알림 시점 설정, 오류 안내를 유지한다. 처리 중 상태를 보여주고 중복 조작을 막는다. 미지원 브라우저는 기존 안내를 유지하며, VAPID가 없으면 기존처럼 켜기 오류를 안내하고 켜진 상태로 표시하지 않는다.
+- [x] **4단계: 관련 테스트 통과 확인**
+  실행: `node --test src/lib/push-reminders.test.mjs src/lib/responsive-event-form.test.mjs`
+  예상: 통과한다.
+
+### Task 3: 기본 선택 제거, 세 범주 분리, 제목 헤더와 독립 저장
+
+**파일:**
+- 수정: `src/components/settings-navigation.tsx`
+- 수정: `src/components/availability-settings.tsx`
+- 수정: `src/app/globals.css`
+- 수정: `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+- 테스트: `src/lib/availability-settings-ui.test.mjs`
+
+**인터페이스:**
+- `SettingsNavigation`은 초기 선택을 `null`로 두고 요일별 가능 시간·일정 불가일·알림 세 항목을 표시한다.
+- `AvailabilitySettings`는 `mode: 'weekly' | 'exceptions'`에 따라 별도 편집·저장 폼을 표시한다. PATCH 입력은 편집 대상 외의 값을 최신 `initial` 설정에서 가져온다.
+
+- [x] **1단계: 미리 선택 없음·세 메뉴·헤더 위치·독립 저장 테스트 작성**
+  각 동작을 검증하는 `availability-settings-ui.test.mjs` 검사를 작성한다.
+- [x] **2단계: 새 테스트가 기대한 이유로 실패하는지 확인**
+  실행: `node --test src/lib/availability-settings-ui.test.mjs`
+  예상: 새 메뉴·선택 상태·헤더·독립 저장 검사에서 실패한다.
+- [x] **3단계: 세 범주 탐색과 상세 헤더 구현**
+  기본 선택을 제거하고, 목록 복귀 시 선택을 해제한다. 상세 헤더는 왼쪽 목록 복귀 버튼, 가운데 제목·부제목으로 배치하고 영문 kicker를 제거한다. 숨긴 상세 패널은 계속 마운트해 편집값을 보존한다.
+- [x] **4단계: 독립 저장 구현**
+  주간 가능 시간 저장은 최신 불가일을 유지하고, 불가일 저장은 최신 주간 시간을 유지한다. 입력값과 버전 충돌 오류 흐름을 보존한다.
+- [x] **5단계: 타깃 테스트와 전체 검사**
+  실행: `node --test src/lib/availability-settings-ui.test.mjs`, `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check`.
+  예상: 모두 성공한다. 실제 Preview 모바일·데스크톱 흐름은 사용자가 확인한다.
+
+### Task 4: 전체 검사와 반응형 흐름 확인
+
+**파일:**
+- 검증: 설정 탐색, 불가일 입력, 알림 스위치, 관련 테스트.
+
+- [x] **1단계: 프로젝트 검사 실행**
+  실행: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`.
+  예상: 모두 성공 종료한다.
+- [ ] **2단계: 데스크톱·모바일 설정 흐름 확인**
+  가능한 경우 인증된 로컬 환경에서 데스크톱 범주 선택, 모바일 목록 → 상세 → 뒤로, 320px·390px·701px·768px·900px 레이아웃, 알림 켜기·끄기, 처리 중 상태, 권한·설정 오류 복구를 확인한다. 인증이나 배포 설정이 없어 확인하지 못한 브라우저 동작은 별도로 보고한다.
+  이 작업에서는 실제 계정 설정을 열지 않았으며 인증 브라우저 검증은 실행하지 않았다. 사용자가 로컬 브라우저에서 확인할 항목으로 남긴다.
+- [x] **3단계: 변경 파일과 diff 확인**
+  실행: `git diff --check` 및 `git status --short`.
+  예상: 공백 오류가 없고 설계·계획 및 설정 화면 관련 파일만 변경되어 있다.
+
+### Task 5: 상세 헤더와 모바일 넘침 보정
+
+**파일:**
+- 수정: `src/app/globals.css`
+- 수정: `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+- 테스트: `src/lib/responsive-event-form.test.mjs`
+
+- [x] **1단계: 헤더 정렬·버튼 스타일·모바일 입력 넘침 테스트 작성**
+  상세 제목 가운데 정렬, 복귀 버튼 배경 제거와 왼쪽 이동, 모바일 시간 행의 최소 폭 제약과 불가일 내용 줄바꿈을 검사한다.
+- [x] **2단계: 새 검사 실패 확인**
+  실행: `node --test src/lib/responsive-event-form.test.mjs`.
+  예상: 새 헤더·모바일 배치 검사에서 실패한다.
+- [x] **3단계: 헤더 움직임과 좁은 화면 입력 배치 수정**
+  복귀 버튼과 항목에 왼쪽 이동 전환을 적용한다. 700px 이하 시간 입력은 축소 가능한 그리드로, 360px 이하에서는 두 줄로 배치한다. 불가일은 그리드 자식과 날짜 문자열이 컨테이너 안에서 축소·줄바꿈되게 한다.
+- [x] **4단계: 브라우저 레이아웃 측정 및 전체 검사**
+  실제 CSS를 사용한 격리 Chromium 측정에서 320px·375px·390px·428px 화면의 `document.scrollWidth`와 입력 행 폭이 뷰포트 안에 있음을 확인한다. 이후 `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check`를 실행한다.
+  실제 iPhone Safari 기기 검증은 사용자 Preview 확인으로 남긴다.
+
+### Task 6: 중앙 제목과 더 좁은 모바일 시간 입력
+
+**파일:**
+- 수정: `src/app/globals.css`
+- 수정: `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+- 수정: `docs/superpowers/plans/2026-11-01-settings-navigation.md`
+- 테스트: `src/lib/responsive-event-form.test.mjs`
+
+- [x] **1단계: 제목 중앙 정렬과 입력 최대 너비 회귀 검사 작성**
+  320px 화면에서 제목이 상세 전체의 가운데에 오고, 시간 입력이 120px를 넘지 않는지 CSS 계약 검사로 고정한다.
+- [x] **2단계: 새 검사 실패 확인**
+  실행: `node --test src/lib/responsive-event-form.test.mjs`.
+  예상: 중앙 정렬과 최대 너비 조건에서 실패한다.
+- [x] **3단계: 제목 중앙 정렬과 시간 입력 너비 조정**
+  넓은 화면은 좌우 같은 폭을 둬 제목을 실제 중앙에 놓는다. 360px 이하에서는 복귀 버튼을 아이콘으로 줄이고 제목은 전체 폭에서 가운데 정렬한다. 주간 시간 입력은 모바일에서 최대 120px로 제한한다.
+- [x] **4단계: 전체 검사와 모바일 레이아웃 재측정**
+  실행: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check` 및 격리 Chromium 320px·375px·390px·428px 레이아웃 측정.
+  예상: 모든 화면에서 넘침 없이 제목이 중앙에 놓인다. 실제 iPhone Safari Preview 확인은 사용자가 수행한다.
