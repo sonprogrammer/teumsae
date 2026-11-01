@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createReminderNotification, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
-import { readFile } from 'node:fs/promises'
+import * as pushReminderUtils from './push-reminders.mjs'
+import { readFile, readdir } from 'node:fs/promises'
 
 const validSubscription = {
   endpoint: 'https://push.example.test/send/token',
@@ -37,6 +38,23 @@ test('migration scopes subscriptions to owners and claims deliveries idempotentl
   assert.doesNotMatch(migration, /\bas\s+window\b|\bwindow\./i)
 })
 
+test('push delivery RPCs accept both legacy and current Supabase JWT role claims', async () => {
+  const directory = new URL('../../supabase/migrations/', import.meta.url)
+  const files = await readdir(directory)
+  const migrations = await Promise.all(files.filter(file => /push_reminder/i.test(file)).sort().map(file => readFile(new URL(file, directory), 'utf8')))
+  const sql = migrations.join('\n')
+  const claimFunction = [...sql.matchAll(/create or replace function public\.claim_event_reminder_deliveries[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  const completeFunction = [...sql.matchAll(/create or replace function public\.complete_event_reminder_delivery[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  assert.ok(claimFunction)
+  assert.ok(completeFunction)
+  for (const functionSql of [claimFunction, completeFunction]) {
+    assert.match(functionSql, /current_setting\('request\.jwt\.claim\.role', true\)/)
+    assert.match(functionSql, /current_setting\('request\.jwt\.claims', true\)/)
+    assert.match(functionSql, /->> 'role'/)
+    assert.match(functionSql, /service_role_required/)
+  }
+})
+
 test('protects dispatch with a constant-time secret check and keeps admin credentials server-only', async () => {
   const route = await readFile(new URL('../app/api/cron-event-reminders/route.ts', import.meta.url), 'utf8')
   const client = await readFile(new URL('../components/push-reminder-settings.tsx', import.meta.url), 'utf8')
@@ -53,4 +71,23 @@ test('uses a controlled accessible switch for reminder enablement', async () => 
   assert.match(source, /disabled=\{pending\}/)
   assert.match(source, /aria-busy=\{pending\}/)
   assert.match(source, /if \(!settings\.vapidPublicKey\) throw new Error\('푸시 알림 서버 설정이 아직 준비되지 않았어요\.'\)/)
+})
+
+test('claims reminder deliveries through the named unique constraint', async () => {
+  const directory = new URL('../../supabase/migrations/', import.meta.url)
+  const files = await readdir(directory)
+  const migrations = await Promise.all(files.filter(file => /push_reminder/i.test(file)).sort().map(file => readFile(new URL(file, directory), 'utf8')))
+  const sql = migrations.join('\n')
+  const claimFunction = [...sql.matchAll(/create or replace function public\.claim_event_reminder_deliveries[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  assert.ok(claimFunction)
+  assert.match(claimFunction, /on conflict on constraint event_reminder_deliveries_unique do update/i)
+  assert.doesNotMatch(claimFunction, /on conflict\s*\(\s*event_id\s*,\s*subscription_id\s*,\s*reminder_at\s*\)/i)
+})
+
+test('classifies provider rejection reasons without retaining their response text', () => {
+  assert.equal(typeof pushReminderUtils.classifyPushDeliveryFailure, 'function')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(403, 'BadJwtToken'), 'vapid_token_rejected')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(403, 'The VAPID credentials in the authorization header do not correspond to the credentials used to create the subscriptions.'), 'vapid_key_mismatch')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(403, 'Forbidden'), 'push_forbidden')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(410, 'Gone'), 'subscription_expired')
 })

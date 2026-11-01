@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { createReminderNotification } from '@/lib/push-reminders.mjs'
+import { classifyPushDeliveryFailure, createReminderNotification } from '@/lib/push-reminders.mjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,7 +47,8 @@ export async function POST(request: Request) {
       } catch (error) {
         const status = error && typeof error === 'object' ? (error as { statusCode?: unknown }).statusCode : null
         statusCode = typeof status === 'number' ? status : 0
-        errorCode = statusCode === 404 || statusCode === 410 ? 'subscription_expired' : statusCode === 429 ? 'push_rate_limited' : statusCode >= 500 ? 'push_service_error' : 'push_delivery_failed'
+        const providerBody = error && typeof error === 'object' && 'body' in error && typeof error.body === 'string' ? error.body : ''
+        errorCode = classifyPushDeliveryFailure(statusCode, providerBody)
       }
     }
     const { error: updateError } = await supabase.rpc('complete_event_reminder_delivery', { p_delivery_id: delivery.delivery_id, p_success: success, p_status_code: statusCode, p_error_code: errorCode })
