@@ -1,5 +1,14 @@
 const supportedLeadTimes = new Set([5, 10, 15, 30, 60])
 
+export function getPushSupportState({ isIOS, isStandalone, hasNotification, hasServiceWorker, hasPushManager }) {
+  const missing = []
+  if (!hasNotification) missing.push('notification')
+  if (!hasServiceWorker) missing.push('serviceWorker')
+  if (!hasPushManager) missing.push('push')
+  const supported = !((isIOS && !isStandalone) || missing.length)
+  return { supported, reason: isIOS && !isStandalone ? 'install' : missing.length ? 'unsupported' : null, missing, isIOS, isStandalone, hasNotification, hasServiceWorker, hasPushManager }
+}
+
 export function parseReminderSettings(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.enabled !== 'boolean' || !supportedLeadTimes.has(value.minutesBefore)) return { ok: false }
   return { ok: true, value: { enabled: value.enabled, minutesBefore: value.minutesBefore } }

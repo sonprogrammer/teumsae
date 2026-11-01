@@ -461,6 +461,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .push-reminder-skeleton i:last-of-type { width: 58%; height: 12px; border: 0; background-color: transparent; }
 .push-reminder-load-error { display: grid; justify-items: start; gap: 10px; color: #a3644c; font-size: 12px; }
 .push-reminder-load-error p { margin: 0; }
+.push-reminder-support-error { display: grid; gap: 8px; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
+.push-reminder-support-error p { margin: 0; }
+.push-reminder-support-error details { color: var(--ink-soft); }
+.push-reminder-support-error summary { width: fit-content; color: var(--teal-dark); font-weight: 700; cursor: pointer; }
+.push-reminder-support-error ul { display: grid; gap: 3px; margin: 8px 0 0; padding-left: 18px; }
 .push-reminder-message.is-error { color: #a3644c; }
 .push-reminder-copy .section-kicker { margin: 0 0 6px; }
 .push-reminder-copy h2 { margin: 0; font-size: 18px; }
