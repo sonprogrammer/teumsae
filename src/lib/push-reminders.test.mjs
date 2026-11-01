@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createReminderNotification, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 
 const validSubscription = {
   endpoint: 'https://push.example.test/send/token',
@@ -35,6 +35,23 @@ test('migration scopes subscriptions to owners and claims deliveries idempotentl
   assert.match(migration, /unique\s*\(event_id, subscription_id, reminder_at\)/i)
   assert.match(migration, /for update(?: of [a-z_]+)? skip locked/i)
   assert.doesNotMatch(migration, /\bas\s+window\b|\bwindow\./i)
+})
+
+test('push delivery RPCs accept both legacy and current Supabase JWT role claims', async () => {
+  const directory = new URL('../../supabase/migrations/', import.meta.url)
+  const files = await readdir(directory)
+  const migrations = await Promise.all(files.filter(file => /push_reminder/i.test(file)).sort().map(file => readFile(new URL(file, directory), 'utf8')))
+  const sql = migrations.join('\n')
+  const claimFunction = [...sql.matchAll(/create or replace function public\.claim_event_reminder_deliveries[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  const completeFunction = [...sql.matchAll(/create or replace function public\.complete_event_reminder_delivery[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  assert.ok(claimFunction)
+  assert.ok(completeFunction)
+  for (const functionSql of [claimFunction, completeFunction]) {
+    assert.match(functionSql, /current_setting\('request\.jwt\.claim\.role', true\)/)
+    assert.match(functionSql, /current_setting\('request\.jwt\.claims', true\)/)
+    assert.match(functionSql, /->> 'role'/)
+    assert.match(functionSql, /service_role_required/)
+  }
 })
 
 test('protects dispatch with a constant-time secret check and keeps admin credentials server-only', async () => {
