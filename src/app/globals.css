@@ -375,8 +375,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .settings-category-copy small { overflow: hidden; color: var(--muted); font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .settings-category-chevron { width: 15px; height: 15px; color: #9aaa9d; }
 .settings-details { min-width: 0; }
-.settings-detail-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 16px; margin: 0 0 14px; }
-.settings-detail-copy { min-width: 0; padding-top: 3px; text-align: right; }
+.settings-detail-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); align-items: start; gap: 16px; margin: 0 0 14px; }
+.settings-detail-heading::after { content: ''; }
+.settings-back-button { grid-column: 1; justify-self: start; }
+.settings-detail-copy { grid-column: 2; min-width: 0; padding-top: 3px; text-align: center; }
 .settings-detail-heading h2 { margin: 0 0 5px; color: var(--ink); font-size: 21px; letter-spacing: -.045em; }
 .settings-detail-copy p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
 .settings-empty-state { display: grid; min-height: 240px; align-content: center; justify-items: center; gap: 11px; border: 1px dashed #dce7dd; border-radius: 18px; color: var(--muted); font-size: 12px; }
@@ -787,7 +789,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .settings-detail-heading { gap: 11px; margin-bottom: 16px; }
   .settings-back-button { min-height: 38px; padding: 0 8px 0 5px; font-size: 11px; }
   .settings-detail-heading h2 { font-size: 19px; }
-  .availability-window-row input { max-width: none; }
+  .availability-window-row input { max-width: 120px; margin-inline: auto; }
   .real-sample-link { font-size: 10px; }
   .real-calendar-toolbar { padding: 15px 12px 11px; }
   .real-period-caption { padding: 0 12px 12px; }
@@ -814,6 +816,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 }
 
 @media (max-width: 360px) {
+  .settings-detail-heading { position: relative; display: block; min-height: 40px; }
+  .settings-detail-heading::after { display: none; }
+  .settings-back-button { position: absolute; top: 0; left: 0; width: 44px; justify-content: center; padding: 0; }
+  .settings-back-button span { display: none; }
+  .settings-detail-copy { width: 100%; margin: 0 auto; text-align: center; }
   .availability-window-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
   .availability-window-row label:first-child { grid-column: 1; grid-row: 1; }
   .availability-window-row > span { grid-column: 2; grid-row: 1; justify-self: center; }

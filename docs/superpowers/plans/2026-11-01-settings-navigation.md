@@ -96,7 +96,7 @@
   실행: `node --test src/lib/availability-settings-ui.test.mjs`
   예상: 새 메뉴·선택 상태·헤더·독립 저장 검사에서 실패한다.
 - [x] **3단계: 세 범주 탐색과 상세 헤더 구현**
-  기본 선택을 제거하고, 목록 복귀 시 선택을 해제한다. 상세 헤더는 왼쪽 목록 복귀 버튼, 오른쪽 제목·부제목으로 배치하고 영문 kicker를 제거한다. 숨긴 상세 패널은 계속 마운트해 편집값을 보존한다.
+  기본 선택을 제거하고, 목록 복귀 시 선택을 해제한다. 상세 헤더는 왼쪽 목록 복귀 버튼, 가운데 제목·부제목으로 배치하고 영문 kicker를 제거한다. 숨긴 상세 패널은 계속 마운트해 편집값을 보존한다.
 - [x] **4단계: 독립 저장 구현**
   주간 가능 시간 저장은 최신 불가일을 유지하고, 불가일 저장은 최신 주간 시간을 유지한다. 입력값과 버전 충돌 오류 흐름을 보존한다.
 - [x] **5단계: 타깃 테스트와 전체 검사**
@@ -126,7 +126,7 @@
 - 테스트: `src/lib/responsive-event-form.test.mjs`
 
 - [x] **1단계: 헤더 정렬·버튼 스타일·모바일 입력 넘침 테스트 작성**
-  상세 제목 우측 정렬, 복귀 버튼 배경 제거와 왼쪽 이동, 모바일 시간 행의 최소 폭 제약과 불가일 내용 줄바꿈을 검사한다.
+  상세 제목 가운데 정렬, 복귀 버튼 배경 제거와 왼쪽 이동, 모바일 시간 행의 최소 폭 제약과 불가일 내용 줄바꿈을 검사한다.
 - [x] **2단계: 새 검사 실패 확인**
   실행: `node --test src/lib/responsive-event-form.test.mjs`.
   예상: 새 헤더·모바일 배치 검사에서 실패한다.
@@ -135,3 +135,22 @@
 - [x] **4단계: 브라우저 레이아웃 측정 및 전체 검사**
   실제 CSS를 사용한 격리 Chromium 측정에서 320px·375px·390px·428px 화면의 `document.scrollWidth`와 입력 행 폭이 뷰포트 안에 있음을 확인한다. 이후 `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check`를 실행한다.
   실제 iPhone Safari 기기 검증은 사용자 Preview 확인으로 남긴다.
+
+### Task 6: 중앙 제목과 더 좁은 모바일 시간 입력
+
+**파일:**
+- 수정: `src/app/globals.css`
+- 수정: `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+- 수정: `docs/superpowers/plans/2026-11-01-settings-navigation.md`
+- 테스트: `src/lib/responsive-event-form.test.mjs`
+
+- [x] **1단계: 제목 중앙 정렬과 입력 최대 너비 회귀 검사 작성**
+  320px 화면에서 제목이 상세 전체의 가운데에 오고, 시간 입력이 120px를 넘지 않는지 CSS 계약 검사로 고정한다.
+- [x] **2단계: 새 검사 실패 확인**
+  실행: `node --test src/lib/responsive-event-form.test.mjs`.
+  예상: 중앙 정렬과 최대 너비 조건에서 실패한다.
+- [x] **3단계: 제목 중앙 정렬과 시간 입력 너비 조정**
+  넓은 화면은 좌우 같은 폭을 둬 제목을 실제 중앙에 놓는다. 360px 이하에서는 복귀 버튼을 아이콘으로 줄이고 제목은 전체 폭에서 가운데 정렬한다. 주간 시간 입력은 모바일에서 최대 120px로 제한한다.
+- [x] **4단계: 전체 검사와 모바일 레이아웃 재측정**
+  실행: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check` 및 격리 Chromium 320px·375px·390px·428px 레이아웃 측정.
+  예상: 모든 화면에서 넘침 없이 제목이 중앙에 놓인다. 실제 iPhone Safari Preview 확인은 사용자가 수행한다.
