@@ -367,7 +367,7 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
   }
 
   return <main className="real-schedule-shell">
-    <header className="real-schedule-header"><Link href="/" className="real-schedule-brand"><Image src="/teumsae-logo.png" alt="" width={48} height={40} priority /><span>틈새<small>TEUMSAE</small></span></Link><div className="real-header-actions"><span className="real-user-name" title={userName}>{userName}</span><SignOutButton /></div></header>
+    <header className="real-schedule-header"><Link href="/" className="real-schedule-brand"><Image src="/teumsae-logo.png" alt="" width={48} height={40} priority /><span>틈새<small>TEUMSAE</small></span></Link><div className="real-header-actions"><span className="real-user-name" title={userName}>{userName} 님</span><SignOutButton /></div></header>
     <section className="real-schedule-content">
       <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div><Link className="real-availability-link" href="/schedule/settings">일정 가능 시간 설정</Link></div>
       <div className="real-schedule-workspace">
