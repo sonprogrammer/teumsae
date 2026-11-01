@@ -117,3 +117,21 @@
 - [x] **3단계: 변경 파일과 diff 확인**
   실행: `git diff --check` 및 `git status --short`.
   예상: 공백 오류가 없고 설계·계획 및 설정 화면 관련 파일만 변경되어 있다.
+
+### Task 5: 상세 헤더와 모바일 넘침 보정
+
+**파일:**
+- 수정: `src/app/globals.css`
+- 수정: `docs/superpowers/specs/2026-11-01-settings-navigation-design.md`
+- 테스트: `src/lib/responsive-event-form.test.mjs`
+
+- [x] **1단계: 헤더 정렬·버튼 스타일·모바일 입력 넘침 테스트 작성**
+  상세 제목 우측 정렬, 복귀 버튼 배경 제거와 왼쪽 이동, 모바일 시간 행의 최소 폭 제약과 불가일 내용 줄바꿈을 검사한다.
+- [x] **2단계: 새 검사 실패 확인**
+  실행: `node --test src/lib/responsive-event-form.test.mjs`.
+  예상: 새 헤더·모바일 배치 검사에서 실패한다.
+- [x] **3단계: 헤더 움직임과 좁은 화면 입력 배치 수정**
+  복귀 버튼과 항목에 왼쪽 이동 전환을 적용한다. 700px 이하 시간 입력은 축소 가능한 그리드로, 360px 이하에서는 두 줄로 배치한다. 불가일은 그리드 자식과 날짜 문자열이 컨테이너 안에서 축소·줄바꿈되게 한다.
+- [x] **4단계: 브라우저 레이아웃 측정 및 전체 검사**
+  실제 CSS를 사용한 격리 Chromium 측정에서 320px·375px·390px·428px 화면의 `document.scrollWidth`와 입력 행 폭이 뷰포트 안에 있음을 확인한다. 이후 `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`, `git diff --check`를 실행한다.
+  실제 iPhone Safari 기기 검증은 사용자 Preview 확인으로 남긴다.
