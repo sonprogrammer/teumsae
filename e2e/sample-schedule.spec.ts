@@ -31,3 +31,17 @@ test('샘플 대화는 Escape로 닫히고 초점을 실행 버튼으로 돌려�
   await expect(page.getByRole('dialog', { name: '틈새 샘플 대화' })).toBeHidden()
   await expect(launcher).toBeFocused()
 })
+
+test('샘플 채팅 마이크 버튼은 로그인 후 음성 명령 안내를 보여준다', async ({ page }) => {
+  await page.goto('/')
+  if ((page.viewportSize()?.width ?? 1280) <= 600) await page.getByRole('button', { name: /틈새에게 물어보기/ }).click()
+  const micButton = page.getByRole('button', { name: '음성 명령 사용 안내' })
+  await expect(micButton).toBeVisible()
+  const tooltip = page.getByRole('tooltip')
+  if ((page.viewportSize()?.width ?? 1280) > 600) {
+    await micButton.hover()
+    await expect(tooltip).toBeVisible()
+  }
+  await micButton.click()
+  await expect(tooltip).toHaveText('로그인 후 음성 명령을 사용할 수 있어요.')
+})
