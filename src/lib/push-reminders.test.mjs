@@ -71,3 +71,14 @@ test('uses a controlled accessible switch for reminder enablement', async () => 
   assert.match(source, /aria-busy=\{pending\}/)
   assert.match(source, /if \(!settings\.vapidPublicKey\) throw new Error\('푸시 알림 서버 설정이 아직 준비되지 않았어요\.'\)/)
 })
+
+test('claims reminder deliveries through the named unique constraint', async () => {
+  const directory = new URL('../../supabase/migrations/', import.meta.url)
+  const files = await readdir(directory)
+  const migrations = await Promise.all(files.filter(file => /push_reminder/i.test(file)).sort().map(file => readFile(new URL(file, directory), 'utf8')))
+  const sql = migrations.join('\n')
+  const claimFunction = [...sql.matchAll(/create or replace function public\.claim_event_reminder_deliveries[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  assert.ok(claimFunction)
+  assert.match(claimFunction, /on conflict on constraint event_reminder_deliveries_unique do update/i)
+  assert.doesNotMatch(claimFunction, /on conflict\s*\(\s*event_id\s*,\s*subscription_id\s*,\s*reminder_at\s*\)/i)
+})
