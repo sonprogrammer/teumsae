@@ -12,8 +12,9 @@ test('primes speech synthesis synchronously from controls that begin a voice rep
   assert.match(assistantPanel, /setSpeakReplies\(next\)[\s\S]*?if \(next\) unlockSpeechSynthesis/)
 })
 
-test('sets assistant input to at least 16px on mobile to avoid browser input zoom', () => {
-  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*?\.assistant-live-form textarea \{ font-size: 16px; \}/)
+test('sets all mobile text-entry controls to at least 16px to avoid browser input zoom', () => {
+  const mobileStyles = styles.slice(styles.lastIndexOf('@media (max-width: 700px)'))
+  assert.match(mobileStyles, /input:not\(\[type="hidden"\]\):not\(\[type="checkbox"\]\):not\(\[type="radio"\]\):not\(\[type="range"\]\):not\(\[type="button"\]\):not\(\[type="submit"\]\):not\(\[type="reset"\]\):not\(\[type="file"\]\), textarea, \.assistant-live-form textarea, \.real-event-form textarea, select, \.push-reminder-lead-time select \{ font-size: 16px; \}/)
 })
 
 test('unlocks speech in the current gesture with an inaudible Korean utterance', () => {

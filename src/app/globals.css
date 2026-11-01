@@ -766,7 +766,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-schedule-workspace { grid-template-columns: minmax(0, 1fr); }
   .assistant-live-panel { right: 0; bottom: 0; width: 100%; height: min(82dvh, 720px); max-height: calc(100dvh - 20px); border-radius: 22px 22px 0 0; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -12px 42px #142c2d30; transform: translate3d(0, 100%, 0); transform-origin: bottom center; }
   .assistant-live-panel.is-open { transform: translate3d(0, 0, 0); }
-  .assistant-live-form textarea { font-size: 16px; }
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]), textarea, .assistant-live-form textarea, .real-event-form textarea, select, .push-reminder-lead-time select { font-size: 16px; }
   .assistant-live-backdrop { position: fixed; z-index: 55; inset: 0; display: block; border: 0; background: #15372d66; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 180ms ease, visibility 180ms; }
   .assistant-live-backdrop.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
   .assistant-live-launcher { right: 15px; bottom: calc(14px + env(safe-area-inset-bottom)); min-height: 48px; padding: 0 13px 0 7px; }
