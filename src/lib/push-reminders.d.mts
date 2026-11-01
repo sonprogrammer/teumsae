@@ -3,3 +3,4 @@ export type PushSubscriptionData = { endpoint: string; keys: { p256dh: string; a
 export function parseReminderSettings(value: unknown): { ok: true; value: ReminderSettings } | { ok: false }
 export function parsePushSubscription(value: unknown): { ok: true; value: PushSubscriptionData } | { ok: false }
 export function createReminderNotification(input: { startsAt: string; minutesBefore: number }): { title: string; body: string; url: string } | null
+export function classifyPushDeliveryFailure(statusCode: number, responseBody?: string): 'subscription_expired' | 'push_rate_limited' | 'push_service_error' | 'vapid_token_rejected' | 'vapid_key_mismatch' | 'push_forbidden' | 'push_delivery_failed'

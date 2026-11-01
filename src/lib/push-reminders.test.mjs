@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createReminderNotification, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
+import * as pushReminderUtils from './push-reminders.mjs'
 import { readFile, readdir } from 'node:fs/promises'
 
 const validSubscription = {
@@ -81,4 +82,12 @@ test('claims reminder deliveries through the named unique constraint', async () 
   assert.ok(claimFunction)
   assert.match(claimFunction, /on conflict on constraint event_reminder_deliveries_unique do update/i)
   assert.doesNotMatch(claimFunction, /on conflict\s*\(\s*event_id\s*,\s*subscription_id\s*,\s*reminder_at\s*\)/i)
+})
+
+test('classifies provider rejection reasons without retaining their response text', () => {
+  assert.equal(typeof pushReminderUtils.classifyPushDeliveryFailure, 'function')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(403, 'BadJwtToken'), 'vapid_token_rejected')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(403, 'The VAPID credentials in the authorization header do not correspond to the credentials used to create the subscriptions.'), 'vapid_key_mismatch')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(403, 'Forbidden'), 'push_forbidden')
+  assert.equal(pushReminderUtils.classifyPushDeliveryFailure(410, 'Gone'), 'subscription_expired')
 })
