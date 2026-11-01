@@ -357,10 +357,30 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-schedule-workspace { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(340px, .9fr); align-items: start; gap: 20px; }
 .real-availability-link { display: inline-flex; align-items: center; min-height: 38px; padding: 0 13px; border: 1px solid #dce7dd; border-radius: 10px; background: #fffefa; color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; white-space: nowrap; }
 .real-availability-link:hover { border-color: #a9ccb8; background: #f2f8f1; }
-.availability-page-content { max-width: 960px; }
+.availability-page-content { max-width: 1120px; }
 .availability-page-heading { margin: 0 0 27px; }
 .availability-page-heading h1 { margin: 8px 0; font-size: 34px; letter-spacing: -.06em; }
 .availability-page-heading > p:last-child { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.65; }
+.settings-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); align-items: start; gap: 20px; }
+.settings-category-nav { position: sticky; top: 20px; display: grid; align-content: start; gap: 12px; padding: 17px; border: 1px solid #e2e9df; border-radius: 18px; background: var(--paper); box-shadow: 0 8px 26px #2342360a; }
+.settings-category-nav-heading { margin: 0 0 2px; color: var(--ink); font-size: 14px; letter-spacing: -.03em; }
+.settings-category-list { display: grid; gap: 7px; }
+.settings-category-button { display: grid; grid-template-columns: 36px minmax(0, 1fr) 16px; align-items: center; gap: 10px; width: 100%; min-height: 64px; padding: 9px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--ink-soft); text-align: left; cursor: pointer; }
+.settings-category-button:hover { background: #f6f9f3; }
+.settings-category-button.is-selected { border-color: #dce9dc; background: #edf6ed; color: var(--teal-dark); }
+.settings-category-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; background: #eef3eb; color: var(--teal); }
+.settings-category-icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
+.settings-category-copy { display: grid; min-width: 0; gap: 4px; }
+.settings-category-copy strong { color: var(--ink); font-size: 12px; }
+.settings-category-copy small { overflow: hidden; color: var(--muted); font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.settings-category-chevron { width: 15px; height: 15px; color: #9aaa9d; }
+.settings-details { min-width: 0; }
+.settings-detail-heading { margin: 0 0 14px; }
+.settings-detail-heading h2 { margin: 5px 0; color: var(--ink); font-size: 21px; letter-spacing: -.045em; }
+.settings-detail-heading > p:last-child { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.settings-detail-panel { min-width: 0; }
+.settings-detail-panel[hidden] { display: none; }
+.settings-mobile-back { display: none; }
 .availability-settings-form { display: grid; gap: 16px; }
 .availability-settings-card { min-width: 0; padding: 22px; border: 1px solid #e2e9df; border-radius: 19px; background: var(--paper); box-shadow: 0 8px 26px #2342360a; }
 .availability-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 17px; }
@@ -439,8 +459,15 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .push-reminder-copy > p:last-child, .push-reminder-permission, .push-reminder-status, .push-reminder-message { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
 .push-reminder-lead-time { display: grid; gap: 8px; width: min(100%, 260px); color: var(--ink-soft); font-size: 12px; font-weight: 700; }
 .push-reminder-lead-time select { min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font: inherit; }
-.push-reminder-actions { display: flex; }
-.push-reminder-actions button { min-height: 42px; }
+.push-reminder-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.push-reminder-toggle-label { color: var(--ink); font-size: 12px; font-weight: 700; }
+.push-reminder-switch { position: relative; flex: 0 0 48px; width: 48px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; cursor: pointer; }
+.push-reminder-switch::before { position: absolute; top: 8px; left: 0; width: 48px; height: 28px; border-radius: 999px; background: #cbd7cf; content: ''; transition: background 160ms ease; }
+.push-reminder-switch.is-on::before { background: var(--teal); }
+.push-reminder-switch:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.push-reminder-switch:disabled { cursor: wait; opacity: .65; }
+.push-reminder-switch-thumb { position: absolute; top: 11px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px #173b302e; transition: transform 160ms ease; }
+.push-reminder-switch.is-on .push-reminder-switch-thumb { transform: translateX(20px); }
 .push-reminder-message { color: var(--teal-dark); }
 .real-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); }
 .real-weekday { display: grid; place-items: center; height: 39px; border-bottom: 1px solid var(--line); color: #82948b; font-size: 11px; font-weight: 750; }
@@ -736,6 +763,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .availability-exception-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .availability-exception-form .availability-exception-label { grid-column: 1; }
   .availability-exception-form .real-secondary-button { grid-column: 2; }
+  .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .settings-category-nav { position: static; }
+  .settings-category-nav.is-detail-hidden { display: none; }
+  .settings-layout:not(.is-detail-open) .settings-details { display: none; }
+  .settings-mobile-back { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; margin: 0 0 12px -7px; padding: 0 7px; border: 0; border-radius: 8px; background: transparent; color: var(--teal); font: inherit; font-size: 12px; font-weight: 750; }
+  .settings-mobile-back svg { width: 17px; height: 17px; }
+  .settings-detail-heading { margin-bottom: 16px; }
   .availability-window-row input { max-width: none; }
   .real-sample-link { font-size: 10px; }
   .real-calendar-toolbar { padding: 15px 12px 11px; }
@@ -755,6 +789,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 @media (max-width: 480px) {
   .real-datetime-fields { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .availability-exception-form { grid-template-columns: minmax(0, 1fr); }
+  .availability-exception-form .availability-exception-label { grid-column: 1 / -1; }
+  .availability-exception-form .real-secondary-button { grid-column: 1 / -1; }
+  .settings-category-nav { padding: 15px 12px; }
+  .settings-category-button { min-height: 68px; }
 }
 
 @media (max-width: 700px) {
@@ -786,6 +825,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 @media (prefers-reduced-motion: reduce) {
   .assistant-live-panel, .assistant-live-launcher, .assistant-live-backdrop { animation-duration: .01ms; transition-duration: .01ms; }
+  .push-reminder-switch::before, .push-reminder-switch-thumb { transition-duration: .01ms; }
   .real-agenda-skeleton > span, .real-calendar-skeleton i, .availability-skeleton-line, .availability-skeleton-day > span, .availability-skeleton-day i, .availability-skeleton-exception, .push-reminder-skeleton > span, .push-reminder-skeleton i, .availability-refresh-indicator::after, .real-event-dialog { animation-duration: .01ms; }
   .real-refresh-indicator::after { animation-duration: .01ms; }
   .real-event-form { animation-duration: .01ms; }

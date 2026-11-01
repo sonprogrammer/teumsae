@@ -237,3 +237,22 @@ test('shows the Teumsae logo in the sample brand, greeting, assistant heading an
   assert.equal(declarationsForSelector('.float-logo img', '(max-width: 700px)')['object-fit'], 'contain')
   assert.equal(declarationsForSelector('.float-logo', '(max-width: 700px)')['background'], '#e9f5ec')
 })
+
+test('stacks time-off date fields at narrow mobile widths', () => {
+  const form = declarationsForSelector('.availability-exception-form', '(max-width: 480px)')
+  const label = declarationsForSelector('.availability-exception-form .availability-exception-label', '(max-width: 480px)')
+  const button = declarationsForSelector('.availability-exception-form .real-secondary-button', '(max-width: 480px)')
+  assert.equal(form['grid-template-columns'], 'minmax(0, 1fr)')
+  assert.equal(label['grid-column'], '1 / -1')
+  assert.equal(button['grid-column'], '1 / -1')
+})
+
+test('keeps the reminder switch usable and visibly selected', () => {
+  const control = declarationsForBaseSelector('.push-reminder-switch')
+  const selected = declarationsForBaseSelector('.push-reminder-switch.is-on::before')
+  const thumb = declarationsForBaseSelector('.push-reminder-switch.is-on .push-reminder-switch-thumb')
+  assert.equal(control['width'], '48px')
+  assert.equal(control['height'], '44px')
+  assert.equal(selected['background'], 'var(--teal)')
+  assert.equal(thumb['transform'], 'translateX(20px)')
+})
