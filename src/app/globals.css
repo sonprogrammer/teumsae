@@ -732,6 +732,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .real-agenda-card { order: 2; }
 }
 
+@media (max-width: 900px) {
+  .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .settings-category-nav { position: static; }
+  .settings-category-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 700px) {
   .account-link { padding: 8px 9px; font-size: 10px; }
   .header-right { gap: 8px; }
@@ -766,6 +772,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .settings-category-nav { position: static; }
   .settings-category-nav.is-detail-hidden { display: none; }
+  .settings-category-list { grid-template-columns: minmax(0, 1fr); }
   .settings-layout:not(.is-detail-open) .settings-details { display: none; }
   .settings-mobile-back { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; margin: 0 0 12px -7px; padding: 0 7px; border: 0; border-radius: 8px; background: transparent; color: var(--teal); font: inherit; font-size: 12px; font-weight: 750; }
   .settings-mobile-back svg { width: 17px; height: 17px; }

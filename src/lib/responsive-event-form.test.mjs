@@ -256,3 +256,12 @@ test('keeps the reminder switch usable and visibly selected', () => {
   assert.equal(selected['background'], 'var(--teal)')
   assert.equal(thumb['transform'], 'translateX(20px)')
 })
+
+test('stacks settings navigation above details before the sidebar narrows the form', () => {
+  const layout = declarationsForSelector('.settings-layout', '(max-width: 900px)')
+  const navigation = declarationsForSelector('.settings-category-nav', '(max-width: 900px)')
+  const categories = declarationsForSelector('.settings-category-list', '(max-width: 900px)')
+  assert.equal(layout['grid-template-columns'], 'minmax(0, 1fr)')
+  assert.equal(navigation['position'], 'static')
+  assert.equal(categories['grid-template-columns'], 'repeat(2, minmax(0, 1fr))')
+})
