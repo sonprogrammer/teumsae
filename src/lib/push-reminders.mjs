@@ -35,3 +35,14 @@ export function createReminderNotification({ startsAt, minutesBefore }) {
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(instant)
   return { title: '틈새 일정 알림', body: minutesBefore + '분 후 일정이 시작돼요.', url: '/schedule?date=' + date }
 }
+
+export function classifyPushDeliveryFailure(statusCode, responseBody = '', vapidDiagnostic = null) {
+  const normalizedBody = typeof responseBody === 'string' ? responseBody.toLowerCase() : ''
+  if (statusCode === 404 || statusCode === 410) return 'subscription_expired'
+  if (statusCode === 429) return 'push_rate_limited'
+  if (statusCode >= 500) return 'push_service_error'
+  if ((statusCode === 401 || statusCode === 403) && /badjwttoken|invalid jwt|invalid providertoken/.test(normalizedBody)) return vapidDiagnostic?.failureCode || 'vapid_token_rejected'
+  if ((statusCode === 401 || statusCode === 403) && /vapid.{0,100}credentials.{0,160}(do not correspond|used to create)|credentials.{0,100}used to create.{0,100}subscription/.test(normalizedBody)) return 'vapid_key_mismatch'
+  if (statusCode === 401 || statusCode === 403) return 'push_forbidden'
+  return 'push_delivery_failed'
+}
