@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { getPushSupportState, type PushSupportState } from '@/lib/push-reminders.mjs'
 
 type ReminderSettings = { enabled: boolean; minutesBefore: number; vapidPublicKey: string | null }
 const leadTimes = [5, 10, 15, 30, 60]
@@ -19,6 +20,25 @@ function subscribePermissionChange(onChange: () => void) {
     window.removeEventListener('focus', onChange)
     status?.removeEventListener('change', onChange)
   }
+}
+
+function subscribePushSupport(onChange: () => void) {
+  window.addEventListener('focus', onChange)
+  window.addEventListener('pageshow', onChange)
+  return () => {
+    window.removeEventListener('focus', onChange)
+    window.removeEventListener('pageshow', onChange)
+  }
+}
+
+function getPushSupportSnapshot() {
+  if (typeof window === 'undefined') return 'pending'
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+  const hasNotification = 'Notification' in window
+  const hasServiceWorker = 'serviceWorker' in navigator
+  const hasPushManager = 'PushManager' in window || ('ServiceWorkerRegistration' in window && 'pushManager' in ServiceWorkerRegistration.prototype)
+  return JSON.stringify(getPushSupportState({ isIOS, isStandalone, hasNotification, hasServiceWorker, hasPushManager }))
 }
 
 function browserPermission(): NotificationPermission | 'unsupported' {
@@ -43,6 +63,8 @@ export default function PushReminderSettings({ userId }: { userId: string }) {
   const [retryCount, setRetryCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const pushSupportSnapshot = useSyncExternalStore(subscribePushSupport, getPushSupportSnapshot, () => 'pending')
+  const pushSupport = pushSupportSnapshot === 'pending' ? null : JSON.parse(pushSupportSnapshot) as PushSupportState
   const loadedUserId = useRef<string | null>(null)
 
   useEffect(() => {
@@ -82,7 +104,8 @@ export default function PushReminderSettings({ userId }: { userId: string }) {
     setPending(true)
     setMessage('')
     try {
-      if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('이 브라우저에서는 푸시 알림을 지원하지 않아요.')
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) throw new Error('이 브라우저에서는 푸시 알림을 지원하지 않아요.')
+      if (!('PushManager' in window) && !('ServiceWorkerRegistration' in window && 'pushManager' in ServiceWorkerRegistration.prototype)) throw new Error('이 브라우저에서는 푸시 구독을 지원하지 않아요.')
       if (!settings.vapidPublicKey) throw new Error('푸시 알림 서버 설정이 아직 준비되지 않았어요.')
       const nextPermission = await Notification.requestPermission()
       setPermissionOverride(nextPermission)
@@ -135,10 +158,17 @@ export default function PushReminderSettings({ userId }: { userId: string }) {
     }
   }
 
-  const supported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
   return <section className="push-reminder-card" aria-labelledby="push-reminder-heading">
     <div className="push-reminder-copy"><p className="section-kicker">REMINDERS</p><h2 id="push-reminder-heading">일정 알림</h2><p>선택한 일정이 시작되기 전에 이 기기로 푸시 알림을 보내드려요.</p></div>
-    {!supported ? <p className="push-reminder-status" role="status">이 브라우저에서는 푸시 알림을 지원하지 않아요.</p> : settings ? <>
+    {pushSupport === null ? <div className="push-reminder-skeleton" role="status" aria-label="푸시 알림 지원 여부를 확인하는 중"><span /><i /><span className="sr-only">이 기기의 알림 기능을 확인하고 있어요.</span></div> : !pushSupport.supported ? <div className="push-reminder-support-error" role="status">
+      <p>{pushSupport.reason === 'install' ? '아이폰에서는 홈 화면의 “Open as Web App”으로 실행해야 푸시 알림을 사용할 수 있어요.' : '현재 실행 환경에서 푸시 알림 기능 일부를 사용할 수 없어요.'}</p>
+      <details><summary>지원 상태 자세히 보기</summary><ul>
+        <li>홈 화면 앱 모드: {pushSupport.isIOS ? pushSupport.isStandalone ? '확인됨' : '아님' : '필수 아님'}</li>
+        <li>알림 API: {pushSupport.hasNotification ? '지원' : '미지원'}</li>
+        <li>서비스 워커: {pushSupport.hasServiceWorker ? '지원' : '미지원'}</li>
+        <li>푸시 구독 API: {pushSupport.hasPushManager ? '지원' : '미지원'}</li>
+      </ul></details>
+    </div> : settings ? <>
       {refreshing && <div className="availability-refresh-indicator" role="status" aria-label="알림 설정을 새로 불러오는 중" />}
       {loadError && <p className="push-reminder-message is-error" role="alert">최근 설정을 불러오지 못해 이전 설정을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => setRetryCount(current => current + 1)}>다시 시도</button></p>}
       <label className="push-reminder-lead-time">알림 시점<select value={settings.minutesBefore} onChange={event => void changeLeadTime(event.target.value)} disabled={pending}><option value={5}>5분 전</option><option value={10}>10분 전</option><option value={15}>15분 전</option><option value={30}>30분 전</option><option value={60}>1시간 전</option></select></label>
@@ -146,7 +176,7 @@ export default function PushReminderSettings({ userId }: { userId: string }) {
       <div className="push-reminder-actions"><span className="push-reminder-toggle-label">이 기기에서 일정 알림 받기</span><button type="button" className={'push-reminder-switch' + (settings.enabled ? ' is-on' : '')} role="switch" aria-label="일정 알림" aria-checked={settings.enabled} aria-busy={pending} onClick={() => void (settings.enabled ? disableReminders() : enableReminders())} disabled={pending}><span className="push-reminder-switch-thumb" /><span className="sr-only">{pending ? '알림 설정 중' : settings.enabled ? '켜짐' : '꺼짐'}</span></button></div>
       {pending && <p className="push-reminder-message" role="status">알림 설정 중…</p>}
     </> : loading ? <div className="push-reminder-skeleton" role="status" aria-label="푸시 알림 설정을 불러오는 중"><span /><i /><i /><span className="sr-only">알림 설정을 불러오고 있어요.</span></div> : <div className="push-reminder-load-error" role="alert"><p>{loadError || '알림 설정을 불러오지 못했어요.'}</p><button type="button" className="real-secondary-button" onClick={() => setRetryCount(current => current + 1)}>다시 시도</button></div>}
-    {settings?.enabled && <p className="push-reminder-status" role="status">알림이 켜져 있어요. 시작 {settings.minutesBefore}분 전으로 설정되어 있습니다.</p>}
+    {pushSupport?.supported && settings?.enabled && <p className="push-reminder-status" role="status">알림이 켜져 있어요. 시작 {settings.minutesBefore}분 전으로 설정되어 있습니다.</p>}
     {message && <p className="push-reminder-message" role="status">{message}</p>}
   </section>
 }

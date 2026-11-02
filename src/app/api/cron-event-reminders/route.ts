@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { classifyPushDeliveryFailure, createReminderNotification, diagnoseVapidRequest } from '@/lib/push-reminders.mjs'
+import { classifyPushDeliveryFailure, createReminderNotification } from '@/lib/push-reminders.mjs'
+import { diagnoseVapidRequest } from '@/lib/push-vapid-diagnostics.mjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

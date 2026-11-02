@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import { createECDH } from 'node:crypto'
 import test from 'node:test'
 import webpush from 'web-push'
-import { createReminderNotification, diagnoseVapidRequest, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
+import { createReminderNotification, getPushSupportState, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
 import * as pushReminderUtils from './push-reminders.mjs'
+import { diagnoseVapidRequest } from './push-vapid-diagnostics.mjs'
 import { readFile, readdir } from 'node:fs/promises'
 
 const validSubscription = {
@@ -16,6 +17,15 @@ test('accepts only explicit reminder settings and supported lead times', () => {
   assert.deepEqual(parseReminderSettings({ enabled: false, minutesBefore: 60 }), { ok: true, value: { enabled: false, minutesBefore: 60 } })
   assert.equal(parseReminderSettings({ enabled: 'true', minutesBefore: 15 }).ok, false)
   assert.equal(parseReminderSettings({ enabled: true, minutesBefore: 7 }).ok, false)
+})
+
+test('reports whether iOS is running as a home screen app and which push APIs are missing', () => {
+  const iOSBookmark = getPushSupportState({ isIOS: true, isStandalone: false, hasNotification: true, hasServiceWorker: true, hasPushManager: true })
+  const iOSWebApp = getPushSupportState({ isIOS: true, isStandalone: true, hasNotification: true, hasServiceWorker: true, hasPushManager: true })
+  const missingPushAPI = getPushSupportState({ isIOS: false, isStandalone: false, hasNotification: true, hasServiceWorker: true, hasPushManager: false })
+  assert.equal(iOSBookmark.reason, 'install')
+  assert.equal(iOSWebApp.supported, true)
+  assert.deepEqual(missingPushAPI.missing, ['push'])
 })
 
 test('accepts valid HTTPS push subscriptions and rejects unsafe or malformed endpoints', () => {
@@ -73,6 +83,15 @@ test('uses a controlled accessible switch for reminder enablement', async () => 
   assert.match(source, /disabled=\{pending\}/)
   assert.match(source, /aria-busy=\{pending\}/)
   assert.match(source, /if \(!settings\.vapidPublicKey\) throw new Error\('푸시 알림 서버 설정이 아직 준비되지 않았어요\.'\)/)
+})
+
+test('explains iOS web app mode and reveals individual push capability checks', async () => {
+  const source = await readFile(new URL('../components/push-reminder-settings.tsx', import.meta.url), 'utf8')
+  assert.match(source, /Open as Web App/)
+  assert.match(source, /지원 상태 자세히 보기/)
+  assert.match(source, /알림 API:/)
+  assert.match(source, /서비스 워커:/)
+  assert.match(source, /푸시 구독 API:/)
 })
 
 test('claims reminder deliveries through the named unique constraint', async () => {
