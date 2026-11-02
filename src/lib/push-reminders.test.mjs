@@ -35,10 +35,9 @@ test('accepts valid HTTPS push subscriptions and rejects unsafe or malformed end
   assert.equal(parsePushSubscription({ ...validSubscription, keys: { p256dh: '', auth: 's3cr3t' } }).ok, false)
 })
 
-test('keeps notification text private and opens the matching Korea date', () => {
-  const payload = createReminderNotification({ title: '비공개 회의 제목', startsAt: '2026-11-01T01:00:00.000Z', minutesBefore: 15 })
-  assert.deepEqual(payload, { title: '틈새 일정 알림', body: '15분 후 일정이 시작돼요.', url: '/schedule?date=2026-11-01' })
-  assert.equal(JSON.stringify(payload).includes('비공개 회의 제목'), false)
+test('includes the event title in reminder text and opens the matching Korea date', () => {
+  const payload = createReminderNotification({ title: '주간 회의', startsAt: '2026-11-01T01:00:00.000Z', minutesBefore: 15 })
+  assert.deepEqual(payload, { title: '틈새 일정 알림', body: '“주간 회의” 일정이 15분 후 시작돼요.', url: '/schedule?date=2026-11-01' })
 })
 
 test('migration scopes subscriptions to owners and claims deliveries idempotently', async () => {
@@ -55,10 +54,13 @@ test('push delivery RPCs accept both legacy and current Supabase JWT role claims
   const files = await readdir(directory)
   const migrations = await Promise.all(files.filter(file => /push_reminder/i.test(file)).sort().map(file => readFile(new URL(file, directory), 'utf8')))
   const sql = migrations.join('\n')
-  const claimFunction = [...sql.matchAll(/create or replace function public\.claim_event_reminder_deliveries[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
+  const claimFunction = [...sql.matchAll(/create(?: or replace)? function public\.claim_event_reminder_deliveries[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
   const completeFunction = [...sql.matchAll(/create or replace function public\.complete_event_reminder_delivery[\s\S]*?\n\$\$;/gi)].at(-1)?.[0]
   assert.ok(claimFunction)
   assert.ok(completeFunction)
+  assert.match(sql, /drop function if exists public\.claim_event_reminder_deliveries\(timestamptz\)/i)
+  assert.match(claimFunction, /event_title text/i)
+  assert.match(claimFunction, /event_row\.title/i)
   for (const functionSql of [claimFunction, completeFunction]) {
     assert.match(functionSql, /current_setting\('request\.jwt\.claim\.role', true\)/)
     assert.match(functionSql, /current_setting\('request\.jwt\.claims', true\)/)
