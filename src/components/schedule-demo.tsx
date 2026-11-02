@@ -200,7 +200,6 @@ export default function ScheduleDemo({ today }: { today: string }) {
           <span className="status-dot" />
           샘플 데이터
         </span>
-        <span className="header-note">Asia/Seoul 기준</span>
         <Link href="/auth" className="account-link">
           내 일정 시작 →
         </Link>
@@ -278,7 +277,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
             </section>
 
             <section className="day-card" aria-labelledby="day-title">
-              <div className="day-heading"><div><p className="section-kicker">DAY AT A GLANCE</p><h2 id="day-title">{longDate(selectedDate)}</h2></div><span className="event-count">일정 {dayEvents.length}개</span></div>
+              <div className="day-heading"><div><h2 id="day-title">{longDate(selectedDate)}</h2></div><span className="event-count">일정 {dayEvents.length}개</span></div>
               {dayEvents.length ? <ol className="event-list">{dayEvents.map(event => <li key={event.id} className="event-row">
                 <div className="event-time"><strong>{event.start}</strong><span>{event.end}</span></div>
                 <span className={'event-rail event-rail-' + event.kind} />
