@@ -12,6 +12,7 @@ import { eventQueryKeys } from '@/lib/event-query-keys'
 import { fetchEvents } from '@/lib/events-query'
 import { toggleSchedulePicker, type ActiveSchedulePicker, type SchedulePicker } from '@/lib/schedule-picker-state'
 import { defaultEndTime, defaultEventTimes, endTimeOptions, monthGrid, shiftMonth, startTimeOptions, visibleCalendarDates, type CalendarView } from '@/lib/calendar-grid'
+import AppHeader from '@/components/app-header'
 import SignOutButton from '@/components/sign-out-button'
 import { useScheduleUiStore } from '@/stores/schedule-ui-store'
 import AssistantPanel from '@/components/assistant-panel'
@@ -338,12 +339,12 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
   }, [])
 
   useEffect(() => {
-    try { window.localStorage.setItem('teumsae:offline-user', userId) } catch {}
+    try { window.localStorage.setItem('teumsae:offline-user', userId) } catch { }
   }, [userId])
 
   useEffect(() => {
     if (!eventsQuery.isSuccess || !eventsQuery.isFetchedAfterMount) return
-    try { saveScheduleCache(window.localStorage, userId, from, to, eventsQuery.data) } catch {}
+    try { saveScheduleCache(window.localStorage, userId, from, to, eventsQuery.data) } catch { }
   }, [eventsQuery.data, eventsQuery.isFetchedAfterMount, eventsQuery.isSuccess, from, to, userId])
 
   useEffect(() => {
@@ -367,7 +368,12 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
   }
 
   return <main className="real-schedule-shell">
-    <header className="real-schedule-header"><Link href="/" className="real-schedule-brand"><Image src="/teumsae-logo.png" alt="" width={48} height={40} priority /><span>틈새<small>TEUMSAE</small></span></Link><div className="real-header-actions"><span className="real-user-name" title={userName}>{userName} 님</span><SignOutButton /></div></header>
+    <AppHeader variant="account" brandHref="/schedule">
+      <span className="real-user-name" title={userName}>
+        {userName} 님
+      </span>
+      <SignOutButton />
+    </AppHeader>
     <section className="real-schedule-content">
       <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div><Link className="real-availability-link" href="/schedule/settings">일정 가능 시간 설정</Link></div>
       <div className="real-schedule-workspace">
