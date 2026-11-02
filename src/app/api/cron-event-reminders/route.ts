@@ -7,7 +7,7 @@ import { diagnoseVapidRequest } from '@/lib/push-vapid-diagnostics.mjs'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-type ReminderDelivery = { delivery_id: string; event_id: string; subscription_id: string; owner_id: string; endpoint: string; p256dh: string; auth_key: string; starts_at: string; minutes_before: number }
+type ReminderDelivery = { delivery_id: string; event_id: string; subscription_id: string; owner_id: string; endpoint: string; p256dh: string; auth_key: string; starts_at: string; minutes_before: number; event_title: string }
 
 function isAuthorized(request: Request) {
   const expected = process.env.CRON_SECRET
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   let sent = 0
   let failed = 0
   for (const delivery of (data ?? []) as ReminderDelivery[]) {
-    const payload = createReminderNotification({ startsAt: delivery.starts_at, minutesBefore: delivery.minutes_before })
+    const payload = createReminderNotification({ title: delivery.event_title, startsAt: delivery.starts_at, minutesBefore: delivery.minutes_before })
     let success = false
     let statusCode = 0
     let errorCode = 'invalid_reminder'

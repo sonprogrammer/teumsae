@@ -29,11 +29,13 @@ export function parsePushSubscription(value) {
   return { ok: true, value: { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } } }
 }
 
-export function createReminderNotification({ startsAt, minutesBefore }) {
+export function createReminderNotification({ title, startsAt, minutesBefore }) {
   const instant = new Date(startsAt)
   if (!Number.isFinite(instant.getTime()) || !supportedLeadTimes.has(minutesBefore)) return null
+  const eventTitle = typeof title === 'string' ? title.trim().replace(/\s+/g, ' ') : ''
+  if (!eventTitle) return null
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(instant)
-  return { title: '틈새 일정 알림', body: minutesBefore + '분 후 일정이 시작돼요.', url: '/schedule?date=' + date }
+  return { title: '틈새 일정 알림', body: '“' + eventTitle + '” 일정이 ' + minutesBefore + '분 후 시작돼요.', url: '/schedule?date=' + date }
 }
 
 export function classifyPushDeliveryFailure(statusCode, responseBody = '', vapidDiagnostic = null) {
