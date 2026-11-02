@@ -12,6 +12,7 @@ import { eventQueryKeys } from '@/lib/event-query-keys'
 import { fetchEvents } from '@/lib/events-query'
 import { toggleSchedulePicker, type ActiveSchedulePicker, type SchedulePicker } from '@/lib/schedule-picker-state'
 import { defaultEndTime, defaultEventTimes, endTimeOptions, monthGrid, shiftMonth, startTimeOptions, visibleCalendarDates, type CalendarView } from '@/lib/calendar-grid'
+import AppHeader from '@/components/app-header'
 import SignOutButton from '@/components/sign-out-button'
 import { useScheduleUiStore } from '@/stores/schedule-ui-store'
 import AssistantPanel from '@/components/assistant-panel'
@@ -338,12 +339,12 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
   }, [])
 
   useEffect(() => {
-    try { window.localStorage.setItem('teumsae:offline-user', userId) } catch {}
+    try { window.localStorage.setItem('teumsae:offline-user', userId) } catch { }
   }, [userId])
 
   useEffect(() => {
     if (!eventsQuery.isSuccess || !eventsQuery.isFetchedAfterMount) return
-    try { saveScheduleCache(window.localStorage, userId, from, to, eventsQuery.data) } catch {}
+    try { saveScheduleCache(window.localStorage, userId, from, to, eventsQuery.data) } catch { }
   }, [eventsQuery.data, eventsQuery.isFetchedAfterMount, eventsQuery.isSuccess, from, to, userId])
 
   useEffect(() => {
@@ -367,7 +368,12 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
   }
 
   return <main className="real-schedule-shell">
-    <header className="real-schedule-header"><Link href="/" className="real-schedule-brand"><Image src="/teumsae-logo.png" alt="" width={48} height={40} priority /><span>틈새<small>TEUMSAE</small></span></Link><div className="real-header-actions"><span className="real-user-name" title={userName}>{userName} 님</span><SignOutButton /></div></header>
+    <AppHeader variant="account" brandHref="/schedule">
+      <span className="real-user-name" title={userName}>
+        {userName} 님
+      </span>
+      <SignOutButton />
+    </AppHeader>
     <section className="real-schedule-content">
       <div className="real-page-heading"><div><p className="eyebrow">MY PRIVATE SCHEDULE</p><h1>내 일정</h1><p>내가 등록한 일정만 이곳에 표시돼요.</p></div><Link className="real-availability-link" href="/schedule/settings">일정 가능 시간 설정</Link></div>
       <div className="real-schedule-workspace">
@@ -392,7 +398,8 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
         </section>
         <aside className="real-agenda-card" aria-label="선택한 날짜 일정">
           <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div>{!creating && <button type="button" className="real-primary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>＋ 일정</button>}</div>
-          {eventsQuery.isPending ? <div className="real-agenda-skeleton" role="status" aria-label="일정을 불러오는 중"><span /><span /><span /></div> : eventsQuery.isError && !eventsQuery.data ? <div className="real-empty-agenda is-error" role="alert"><strong>일정을 불러오지 못했어요.</strong><p>잠시 후 다시 시도해 주세요.</p><button type="button" className="real-secondary-button" onClick={() => void eventsQuery.refetch()}>다시 불러오기</button></div> : <>
+          {eventsQuery.isPending ? 
+            <div className="real-agenda-skeleton" role="status" aria-label="일정을 불러오는 중"><span /><span /><span /></div> : eventsQuery.isError && !eventsQuery.data ? <div className="real-empty-agenda is-error" role="alert"><strong>일정을 불러오지 못했어요.</strong><p>잠시 후 다시 시도해 주세요.</p><button type="button" className="real-secondary-button" onClick={() => void eventsQuery.refetch()}>다시 불러오기</button></div> : <>
             {eventsQuery.isError && <p className="real-action-error" role="status">새 일정을 불러오지 못해 이전 목록을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void eventsQuery.refetch()}>다시 시도</button></p>}
             {creating && <EventForm key={'new-' + selectedDate} event={null} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} />}
             {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} today={today} userId={userId} readOnly={isReadOnly} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>일정 추가</button></div>}

@@ -36,6 +36,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 }
 
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   height: 82px;
   display: flex;
   align-items: center;
@@ -43,6 +46,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   padding: 0 max(36px, calc((100vw - 1512px) / 2));
   border-bottom: 1px solid #e7e9df;
   background: rgba(255, 254, 250, .82);
+  backdrop-filter: blur(16px);
 }
 
 .brand { display: flex; align-items: center; gap: 8px; font-size: 25px; font-weight: 800; letter-spacing: -.07em; }
@@ -333,7 +337,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .auth-unconfigured strong { font-size: 17px; }
 .auth-unconfigured p { color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
 .auth-unconfigured a, .real-empty-state a { color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; }
-.real-schedule-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1500px; height: 82px; margin: auto; padding: 0 30px; border-bottom: 1px solid var(--line); }
+.real-schedule-header { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1500px; height: 82px; margin: auto; padding: 0 30px; border-bottom: 1px solid var(--line); background: rgba(255, 254, 250, .92); backdrop-filter: blur(16px); }
 .real-schedule-brand { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: -.07em; text-decoration: none; }
 .real-schedule-brand img { width: 42px; height: 38px; object-fit: contain; }
 .real-schedule-brand > span { display: flex; align-items: baseline; gap: 7px; }
@@ -759,7 +763,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .auth-intro h1 { font-size: 37px; }
   .auth-intro > p:last-child { font-size: 13px; }
   .auth-card { padding: 20px; }
-  .real-schedule-header { max-width: none; height: 68px; margin: 0 18px; padding: 0; }
+  .real-schedule-header { max-width: none; height: 68px; margin: 0; padding: 0 18px; }
   .real-schedule-brand { gap: 4px; font-size: 19px; }
   .real-schedule-brand img { width: 37px; height: 34px; }
   .real-schedule-brand > span { gap: 0; flex-direction: column; align-items: flex-start; line-height: 1; }

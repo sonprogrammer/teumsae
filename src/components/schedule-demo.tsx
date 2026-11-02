@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { availabilityWindowsForDate, DEFAULT_SCHEDULE_AVAILABILITY, findAvailabilitySlots } from '@/lib/availability'
 import type { SampleSlot } from '@/lib/sample-schedule'
 import { monthGrid, shiftMonth } from '@/lib/calendar-grid'
+import AppHeader from '@/components/app-header'
 
 type EventKind = 'teal' | 'coral' | 'lilac'
 type SampleEvent = { id: string; date: string; start: string; end: string; title: string; kind: EventKind; note: string }
@@ -194,17 +195,15 @@ export default function ScheduleDemo({ today }: { today: string }) {
 
   return (
     <main className="app-shell">
-      <header className="site-header">
-        <div className="brand" aria-label="틈새">
-          <Image src="/teumsae-logo.png" alt="" width={52} height={44} priority />
-          <span>틈새<span className="brand-latin">TEUMSAE</span></span>
-        </div>
-        <div className="header-right">
-          <span className="demo-pill"><span className="status-dot" /> 샘플 데이터</span>
-          <span className="header-note">Asia/Seoul 기준</span>
-          <Link href="/auth" className="account-link">내 일정 시작 →</Link>
-        </div>
-      </header>
+      <AppHeader variant="sample">
+        <span className="demo-pill">
+          <span className="status-dot" />
+          샘플 데이터
+        </span>
+        <Link href="/auth" className="account-link">
+          내 일정 시작 →
+        </Link>
+      </AppHeader>
 
       <div className="content-wrap">
         <section className="page-intro" aria-labelledby="page-title">
@@ -278,7 +277,7 @@ export default function ScheduleDemo({ today }: { today: string }) {
             </section>
 
             <section className="day-card" aria-labelledby="day-title">
-              <div className="day-heading"><div><p className="section-kicker">DAY AT A GLANCE</p><h2 id="day-title">{longDate(selectedDate)}</h2></div><span className="event-count">일정 {dayEvents.length}개</span></div>
+              <div className="day-heading"><div><h2 id="day-title">{longDate(selectedDate)}</h2></div><span className="event-count">일정 {dayEvents.length}개</span></div>
               {dayEvents.length ? <ol className="event-list">{dayEvents.map(event => <li key={event.id} className="event-row">
                 <div className="event-time"><strong>{event.start}</strong><span>{event.end}</span></div>
                 <span className={'event-rail event-rail-' + event.kind} />
