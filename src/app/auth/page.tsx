@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { redirect } from 'next/navigation'
 import KakaoSignInButton from '@/components/kakao-sign-in-button'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: '계정 시작 | 틈새',
@@ -11,6 +13,12 @@ export const metadata: Metadata = {
 export default async function AuthPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status } = await searchParams
   const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+  if (configured) {
+    const supabase = await createServerSupabaseClient()
+    const { data, error } = await supabase.auth.getClaims()
+    if (!error && typeof data?.claims?.sub === 'string') redirect('/schedule')
+  }
+
   return <main className="auth-shell">
     <Link href="/" className="auth-back"><Image src="/teumsae-logo.png" alt="" width={42} height={35} priority /><span>샘플 화면으로</span></Link>
     <div className="auth-layout">
