@@ -15,7 +15,7 @@ test('voice transcription requires an authenticated owner and usage quota before
 
 test('stops continuous listening when speech or chat reaches its minute limit', () => {
   assert.match(assistantPanel, /response\.status === 429[\s\S]*?stopVoiceSession\(false\)/)
-  assert.match(assistantPanel, /payload\.code === 'AI_USAGE_LIMIT'[\s\S]*?stopVoiceSession\(false\)/)
+  assert.match(assistantPanel, /\['AI_USAGE_LIMIT', 'GROQ_SHARED_LIMIT', 'MODEL_RATE_LIMIT'\]\.includes\(payload\.code \?\? ''\)[\s\S]*?stopVoiceSession\(false\)/)
 })
 
 test('uses event details only for synthesized speech', () => {

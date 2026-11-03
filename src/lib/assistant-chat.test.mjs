@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, resolveRelativeDateToolArguments, shouldForceAvailabilityTool, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
+import { assistantCardConcisenessInstruction, countInclusiveDays, createAvailabilityResultSummary, createEventListSummary, createMutationProposalSummary, createToolLimitFallback, formatKoreaDateTime, formatRetryDelay, getKoreaToday, getRetryAfterSeconds, isToolDate, isToolTime, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, resolveMutationTarget, resolveRelativeDateToolArguments, shouldForceAvailabilityTool, summarizeAssistantEvents, summarizeAssistantConflicts, summarizeAssistantToolInput, summarizeAssistantToolOutput, validateAssistantToolArguments } from './assistant-chat.ts'
 
 test('accepts a new chat message and trims surrounding whitespace', () => {
   const requestId = '10000000-0000-4000-8000-000000000001'
@@ -58,10 +58,48 @@ test('validates the model input separately for event and availability tools', ()
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: '10000000-0000-4000-8000-000000000001', searchId: '20000000-0000-4000-8000-000000000002' }).ok, true)
   assert.equal(validateAssistantToolArguments('prepareEvent', { title: '운동', candidateId: 'other-user', searchId: '20000000-0000-4000-8000-000000000002' }).ok, false)
-  assert.equal(validateAssistantToolArguments('prepareEventUpdate', { eventId: '10000000-0000-4000-8000-000000000001', expectedVersion: 2, title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
-  assert.equal(validateAssistantToolArguments('prepareEventUpdate', { eventId: 'other-user', expectedVersion: 2, title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, false)
-  assert.equal(validateAssistantToolArguments('prepareEventDelete', { eventId: '10000000-0000-4000-8000-000000000001', expectedVersion: 2 }).ok, true)
-  assert.equal(validateAssistantToolArguments('prepareEventDelete', { eventId: '10000000-0000-4000-8000-000000000001' }).ok, false)
+  assert.equal(validateAssistantToolArguments('prepareEventUpdate', { startDate: '2026-11-02', query: '운동', title: '운동', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }).ok, true)
+  assert.equal(validateAssistantToolArguments('prepareEventUpdate', { startDate: '2026-11-02', ownerId: 'other-user', title: '운동' }).ok, false)
+  assert.equal(validateAssistantToolArguments('prepareEventDelete', { startDate: '2026-11-02', query: '운동' }).ok, true)
+  assert.equal(validateAssistantToolArguments('prepareEventDelete', { startDate: '2026-11-02' }).ok, true)
+})
+
+test('validates event mutation selectors without requiring a separate listEvents tool call', () => {
+  assert.deepEqual(validateAssistantToolArguments('prepareEventUpdate', { startDate: '2026-11-04', query: '운동', startTime: '19:00', endTime: '20:00', date: '2026-11-04' }), { ok: true, startDate: '2026-11-04', endDate: '2026-11-04', query: '운동', date: '2026-11-04', startTime: '19:00', endTime: '20:00' })
+  assert.deepEqual(validateAssistantToolArguments('prepareEventDelete', { startDate: '2026-11-04', query: '운동' }), { ok: true, startDate: '2026-11-04', endDate: '2026-11-04', query: '운동' })
+  assert.equal(validateAssistantToolArguments('prepareEventDelete', { startDate: '2026-11-04', ownerId: 'another-user' }).ok, false)
+})
+
+test('resolves a mutation only when the owner-scoped lookup has exactly one matching event', () => {
+  const events = [
+    { id: 'one', title: '저녁 운동', starts_at: '2026-11-04T10:00:00.000Z', ends_at: '2026-11-04T11:00:00.000Z', version: 2 },
+    { id: 'two', title: '저녁 운동', starts_at: '2026-11-04T12:00:00.000Z', ends_at: '2026-11-04T13:00:00.000Z', version: 1 }
+  ]
+  assert.deepEqual(resolveMutationTarget(events.slice(0, 1), '운동'), { kind: 'unique', event: events[0] })
+  assert.deepEqual(resolveMutationTarget(events, '운동'), { kind: 'ambiguous', events })
+  assert.deepEqual(resolveMutationTarget(events, '회의'), { kind: 'not_found' })
+})
+
+test('uses a server summary for a single mutation proposal instead of another model request', () => {
+  assert.equal(createMutationProposalSummary({ type: 'proposal', action: 'update' }), '일정 변경 확인을 아래 카드에 준비했어요. 확인 버튼을 눌러야 반영돼요.')
+  assert.equal(createMutationProposalSummary({ type: 'proposal', action: 'delete' }), '일정 삭제 확인을 아래 카드에 준비했어요. 확인 버튼을 눌러야 삭제돼요.')
+  assert.equal(createMutationProposalSummary({ type: 'proposal', action: 'create' }), null)
+})
+
+test('uses a server summary for a direct schedule query and keeps analytical questions for the model', () => {
+  const toolCalls = [{ name: 'listEvents', status: 'success' }]
+  assert.equal(createEventListSummary([{ type: 'events', events: [{ title: '운동' }] }], toolCalls, '내일 스케줄 뭐 있어?'), '등록된 일정은 아래 카드에서 확인할 수 있어요.')
+  assert.equal(createEventListSummary([{ type: 'events', events: [] }], toolCalls, '내일 스케줄 확인해줘'), '해당 기간에 등록된 일정이 없어요.')
+  assert.equal(createEventListSummary([{ type: 'events', events: [{ title: '운동' }] }], toolCalls, '내일 일정이 많아서 무리일까?'), null)
+})
+
+test('parses Groq retry-after values as seconds or HTTP dates', () => {
+  assert.equal(getRetryAfterSeconds('7', Date.parse('2026-11-03T10:00:00.000Z')), 7)
+  assert.equal(getRetryAfterSeconds('Tue, 03 Nov 2026 10:00:09 GMT', Date.parse('2026-11-03T10:00:00.000Z')), 9)
+  assert.equal(getRetryAfterSeconds('invalid', Date.parse('2026-11-03T10:00:00.000Z')), null)
+  assert.equal(formatRetryDelay(20), '20초')
+  assert.equal(formatRetryDelay(61), '2분')
+  assert.equal(formatRetryDelay(3600), '1시간')
 })
 
 test('uses Seoul local date for natural language reference context', () => {

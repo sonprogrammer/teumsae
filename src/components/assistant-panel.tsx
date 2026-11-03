@@ -234,9 +234,9 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
       const payload = await response.json() as ChatResponse & ChatError
       if (!response.ok) {
         const shouldSpeak = speakAnswer && (voiceSessionId === undefined || voiceSessionRef.current && voiceSessionId === voiceSessionIdRef.current && speakRepliesRef.current)
-        const voiceRateLimited = payload.code === 'AI_USAGE_LIMIT' && voiceSessionId !== undefined
+        const voiceRateLimited = ['AI_USAGE_LIMIT', 'GROQ_SHARED_LIMIT', 'MODEL_RATE_LIMIT'].includes(payload.code ?? '') && voiceSessionId !== undefined
         if (voiceRateLimited) {
-          setVoiceNotice('분당 AI 질문 한도에 도달했어요. 잠시 후 음성 대화를 다시 시작해 주세요.')
+          setVoiceNotice(payload.message ?? 'AI 요청 한도에 도달했어요. 잠시 후 음성 대화를 다시 시작해 주세요.')
           stopVoiceSession(false)
           if (shouldSpeak && payload.message) speak(payload.message)
         } else if (shouldSpeak && payload.message) speak(payload.message, voiceSessionId)
@@ -567,6 +567,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
         <button type="button" className={'assistant-voice-button' + (speakReplies ? ' is-active' : '')} onClick={() => { const next = !speakReplies; speakRepliesRef.current = next; setSpeakReplies(next); if (next) unlockSpeechSynthesis(window.speechSynthesis); if (!next) { window.speechSynthesis?.cancel(); speakingRef.current = false; setSpeaking(false); if (voiceSessionRef.current) resumeVoiceListening(voiceSessionIdRef.current) } }} aria-label={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'} title={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'}>{speakReplies ? <Volume2 size={18} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={18} strokeWidth={2} aria-hidden="true" />}</button>
         <button type="submit" disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button>
       </form>
+      <p className="assistant-quota-note">질문은 계정당 분당 최대 10회예요. Groq 무료 기준은 서비스 전체가 함께 쓰며 요청 분당 30회·하루 1,000회, 토큰 분당 8,000개·하루 200,000개예요. 실제 계정 한도에 따라 달라질 수 있어요.</p>
     </aside>
     <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
     <button type="button" ref={launcherRef} className={'assistant-live-launcher' + (hideLauncher ? ' is-context-hidden' : '')} aria-controls="assistant-live-panel" aria-expanded={open} aria-hidden={hideLauncher} tabIndex={hideLauncher ? -1 : undefined} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>
