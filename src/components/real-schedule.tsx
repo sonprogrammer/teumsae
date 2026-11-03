@@ -281,19 +281,19 @@ function EventCard({ event, selectedDate, today, userId, readOnly }: { event: Ev
     if (!dialogOpen && dialog.open) dialog.close()
   }, [dialogOpen])
   return <article className="real-event-card">
-    <div className="real-event-time"><strong>{eventTime(event.starts_at)}</strong><span>{eventTime(event.ends_at)}</span></div>
-    <div className="real-event-detail">
-      <button type="button" className="real-event-detail-trigger" onClick={() => setDetailsOpen(true)} aria-label={event.title + ' 상세 보기'}><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}</button>
-      {!readOnly && <div className="real-event-actions"><button type="button" className="real-icon-button real-event-action-button" aria-label="일정 수정" title="일정 수정" onClick={() => openEdit(event.id)}><Pencil size={16} strokeWidth={1.8} aria-hidden="true" /></button><DeleteEventButton event={event} userId={userId} /></div>}
-      <dialog ref={detailsDialog} className="real-event-dialog" aria-labelledby={'event-title-' + event.id} onClose={() => { setDetailsOpen(false); if (editing) closeEventEditor() }} onClick={event => { const rect = detailsDialog.current?.getBoundingClientRect(); if (rect && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) detailsDialog.current?.close() }}>
-        <div className="real-event-dialog-grip" aria-hidden="true" />
-        {editing && readOnly ? <p className="real-offline-dialog-note">오프라인에서는 일정을 수정할 수 없어요. 다시 연결해 주세요.</p> : editing ? <EventForm event={event} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} /> : <>
-          <header className="real-event-dialog-heading"><div><p className="section-kicker">SCHEDULE DETAIL</p><h2 id={'event-title-' + event.id}>{event.title}</h2></div><button type="button" className="real-icon-button" onClick={() => detailsDialog.current?.close()} aria-label="상세 닫기">×</button></header>
-          <p className="real-event-dialog-date">{displayDate(selectedDate)}</p><p className="real-event-dialog-time">{eventTime(event.starts_at)} – {eventTime(event.ends_at)}</p>{event.note && <p className="real-event-dialog-note">{event.note}</p>}
-          <div className="real-event-dialog-actions"><button type="button" className="real-secondary-button" onClick={() => detailsDialog.current?.close()}>닫기</button>{!readOnly && <button type="button" className="real-primary-button" onClick={() => { setDetailsOpen(false); openEdit(event.id) }}>일정 수정</button>}</div>
-        </>}
-      </dialog>
-    </div>
+    <button type="button" className="real-event-card-detail-trigger" onClick={() => setDetailsOpen(true)} aria-label={event.title + ' 상세 보기'}>
+      <div className="real-event-time"><strong>{eventTime(event.starts_at)}</strong><span>{eventTime(event.ends_at)}</span></div>
+      <div className="real-event-detail"><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}</div>
+    </button>
+    {!readOnly && <div className="real-event-actions"><button type="button" className="real-icon-button real-event-action-button" aria-label="일정 수정" title="일정 수정" onClick={() => openEdit(event.id)}><Pencil size={16} strokeWidth={1.8} aria-hidden="true" /></button><DeleteEventButton event={event} userId={userId} /></div>}
+    <dialog ref={detailsDialog} className="real-event-dialog" aria-labelledby={'event-title-' + event.id} onClose={() => { setDetailsOpen(false); if (editing) closeEventEditor() }} onClick={event => { const rect = detailsDialog.current?.getBoundingClientRect(); if (rect && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) detailsDialog.current?.close() }}>
+      <div className="real-event-dialog-grip" aria-hidden="true" />
+      {editing && readOnly ? <p className="real-offline-dialog-note">오프라인에서는 일정을 수정할 수 없어요. 다시 연결해 주세요.</p> : editing ? <EventForm event={event} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} /> : <>
+        <header className="real-event-dialog-heading"><div><p className="section-kicker">SCHEDULE DETAIL</p><h2 id={'event-title-' + event.id}>{event.title}</h2></div><button type="button" className="real-icon-button" onClick={() => detailsDialog.current?.close()} aria-label="상세 닫기">×</button></header>
+        <p className="real-event-dialog-date">{displayDate(selectedDate)}</p><p className="real-event-dialog-time">{eventTime(event.starts_at)} – {eventTime(event.ends_at)}</p>{event.note && <p className="real-event-dialog-note">{event.note}</p>}
+        <div className="real-event-dialog-actions"><button type="button" className="real-secondary-button" onClick={() => detailsDialog.current?.close()}>닫기</button>{!readOnly && <button type="button" className="real-primary-button" onClick={() => { setDetailsOpen(false); openEdit(event.id) }}>일정 수정</button>}</div>
+      </>}
+    </dialog>
   </article>
 }
 

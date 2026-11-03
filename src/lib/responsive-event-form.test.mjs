@@ -184,6 +184,18 @@ test('highlights the full schedule card for pointer and keyboard focus', () => {
   assert.ok(declarationsForBaseSelector('.real-event-card:focus-within')['outline'])
 })
 
+test('opens event details from the full schedule information area while keeping actions separate', async () => {
+  const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
+  const detailTrigger = source.match(/<button type="button" className="real-event-card-detail-trigger"[\s\S]*?<\/button>/)?.[0]
+  const triggerStyles = declarationsForBaseSelector('.real-event-card-detail-trigger')
+  assert.ok(detailTrigger)
+  assert.match(detailTrigger, /className="real-event-time"/)
+  assert.match(detailTrigger, /className="real-event-detail"/)
+  assert.doesNotMatch(detailTrigger, /real-event-actions/)
+  assert.equal(triggerStyles['grid-column'], '1 / -1')
+  assert.equal(triggerStyles['display'], 'grid')
+})
+
 test('uses accessible Lucide icon buttons for event editing and deletion', async () => {
   const source = await readFile(new URL('../components/real-schedule.tsx', import.meta.url), 'utf8')
   const actionButton = declarationsForBaseSelector('.real-event-action-button')
