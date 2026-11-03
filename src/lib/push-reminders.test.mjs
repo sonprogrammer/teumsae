@@ -2,13 +2,13 @@ import assert from 'node:assert/strict'
 import { createECDH } from 'node:crypto'
 import test from 'node:test'
 import webpush from 'web-push'
-import { createReminderNotification, getPushSupportState, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
+import { createReminderNotification, getPushSupportState, isAllowedPushEndpoint, parsePushSubscription, parseReminderSettings } from './push-reminders.mjs'
 import * as pushReminderUtils from './push-reminders.mjs'
 import { diagnoseVapidRequest } from './push-vapid-diagnostics.mjs'
 import { readFile, readdir } from 'node:fs/promises'
 
 const validSubscription = {
-  endpoint: 'https://push.example.test/send/token',
+  endpoint: 'https://fcm.googleapis.com/fcm/send/device-token',
   keys: { p256dh: 'BK3P0k3y', auth: 's3cr3tAB' }
 }
 
@@ -30,9 +30,27 @@ test('reports whether iOS is running as a home screen app and which push APIs ar
 
 test('accepts valid HTTPS push subscriptions and rejects unsafe or malformed endpoints', () => {
   assert.deepEqual(parsePushSubscription(validSubscription), { ok: true, value: validSubscription })
-  assert.equal(parsePushSubscription({ ...validSubscription, endpoint: 'http://push.example.test/send' }).ok, false)
-  assert.equal(parsePushSubscription({ ...validSubscription, endpoint: 'https://user:pass@push.example.test/send' }).ok, false)
+  assert.equal(parsePushSubscription({ ...validSubscription, endpoint: 'http://fcm.googleapis.com/send' }).ok, false)
+  assert.equal(parsePushSubscription({ ...validSubscription, endpoint: 'https://user:pass@fcm.googleapis.com/send' }).ok, false)
   assert.equal(parsePushSubscription({ ...validSubscription, keys: { p256dh: '', auth: 's3cr3t' } }).ok, false)
+})
+
+test('allows known push providers and rejects arbitrary or private HTTPS endpoints', () => {
+  for (const endpoint of [
+    'https://fcm.googleapis.com/fcm/send/device-token',
+    'https://web.push.apple.com/push/device-token',
+    'https://updates.push.services.mozilla.com/wpush/v2/token',
+    'https://wns2.notify.windows.com/w/?token=opaque'
+  ]) assert.equal(isAllowedPushEndpoint(endpoint), true, endpoint)
+  for (const endpoint of [
+    'https://push.example.test/send/token',
+    'https://fcm.googleapis.com.attacker.test/send/token',
+    'https://127.0.0.1/send/token',
+    'https://10.0.0.1/send/token',
+    'https://169.254.169.254/latest/meta-data/',
+    'https://[::1]/send/token',
+    'https://fcm.googleapis.com:444/fcm/send/token'
+  ]) assert.equal(isAllowedPushEndpoint(endpoint), false, endpoint)
 })
 
 test('includes the event title in reminder text and opens the matching Korea date', () => {
@@ -76,6 +94,8 @@ test('protects dispatch with a constant-time secret check and keeps admin creden
   assert.match(route, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/)
   assert.match(route, /request\.headers\.get\(['"]authorization['"]\)/)
   assert.doesNotMatch(client, /SERVICE_ROLE_KEY|VAPID_PRIVATE_KEY|CRON_SECRET/)
+  assert.match(route, /isAllowedPushEndpoint\(delivery\.endpoint\)/)
+  assert.ok(route.indexOf('isAllowedPushEndpoint(delivery.endpoint)') < route.indexOf('webpush.sendNotification'))
 })
 
 test('uses a controlled accessible switch for reminder enablement', async () => {

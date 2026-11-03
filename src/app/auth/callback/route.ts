@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { supabaseConfig } from '@/lib/supabase/config'
+import { supabaseConfig, supabaseCookieOptions } from '@/lib/supabase/config'
 
 export async function GET(request: NextRequest) {
   const failure = NextResponse.redirect(new URL('/auth?status=kakao-error', request.url))
@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(new URL('/schedule', request.url))
   response.headers.set('Cache-Control', 'private, no-store')
   const supabase = createServerClient(url, publishableKey, {
+    cookieOptions: supabaseCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll()
