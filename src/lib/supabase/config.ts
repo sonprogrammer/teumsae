@@ -3,6 +3,10 @@ type PublicSupabaseEnv = {
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string
 }
 
+export function supabaseCookieOptions(nodeEnv = process.env.NODE_ENV) {
+  return { secure: nodeEnv === 'production' }
+}
+
 export function supabaseConfig(values: PublicSupabaseEnv = {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY

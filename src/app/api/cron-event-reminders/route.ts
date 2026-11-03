@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import webpush from 'web-push'
-import { classifyPushDeliveryFailure, createReminderNotification } from '@/lib/push-reminders.mjs'
+import { classifyPushDeliveryFailure, createReminderNotification, isAllowedPushEndpoint } from '@/lib/push-reminders.mjs'
 import { diagnoseVapidRequest } from '@/lib/push-vapid-diagnostics.mjs'
 
 export const runtime = 'nodejs'
@@ -39,7 +39,9 @@ export async function POST(request: Request) {
     let success = false
     let statusCode = 0
     let errorCode = 'invalid_reminder'
-    if (payload) {
+    if (payload && !isAllowedPushEndpoint(delivery.endpoint)) {
+      errorCode = 'invalid_push_endpoint'
+    } else if (payload) {
       try {
         await webpush.sendNotification({ endpoint: delivery.endpoint, keys: { p256dh: delivery.p256dh, auth: delivery.auth_key } }, JSON.stringify(payload), { TTL: 60 })
         success = true

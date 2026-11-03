@@ -1,4 +1,17 @@
 const supportedLeadTimes = new Set([5, 10, 15, 30, 60])
+const exactPushProviderHosts = new Set(['fcm.googleapis.com', 'web.push.apple.com'])
+const pushProviderHostSuffixes = ['.push.services.mozilla.com', '.notify.windows.com']
+
+export function isAllowedPushEndpoint(endpoint) {
+  if (typeof endpoint !== 'string' || endpoint.length > 2048) return false
+  try {
+    const parsed = new URL(endpoint)
+    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '')
+    return parsed.protocol === 'https:' && !parsed.username && !parsed.password && !parsed.port && !parsed.hash && (exactPushProviderHosts.has(hostname) || pushProviderHostSuffixes.some(suffix => hostname.endsWith(suffix)))
+  } catch {
+    return false
+  }
+}
 
 export function getPushSupportState({ isIOS, isStandalone, hasNotification, hasServiceWorker, hasPushManager }) {
   const missing = []
@@ -19,12 +32,7 @@ export function parsePushSubscription(value) {
   const endpoint = value.endpoint
   const keys = value.keys
   if (typeof endpoint !== 'string' || endpoint.length > 2048 || !keys || typeof keys !== 'object' || Array.isArray(keys)) return { ok: false }
-  try {
-    const parsedEndpoint = new URL(endpoint)
-    if (parsedEndpoint.protocol !== 'https:' || !parsedEndpoint.hostname || parsedEndpoint.username || parsedEndpoint.password) return { ok: false }
-  } catch {
-    return { ok: false }
-  }
+  if (!isAllowedPushEndpoint(endpoint)) return { ok: false }
   if (typeof keys.p256dh !== 'string' || !/^[A-Za-z0-9_-]{8,256}$/.test(keys.p256dh) || typeof keys.auth !== 'string' || !/^[A-Za-z0-9_-]{8,256}$/.test(keys.auth)) return { ok: false }
   return { ok: true, value: { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } } }
 }

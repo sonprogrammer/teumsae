@@ -1,7 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { supabaseConfig } from './config'
+import { supabaseConfig, supabaseCookieOptions } from './config'
 
 export function createBrowserSupabaseClient() {
   const { url, publishableKey } = supabaseConfig()
-  return createBrowserClient(url, publishableKey)
+  return createBrowserClient(url, publishableKey, { cookieOptions: supabaseCookieOptions() })
 }
