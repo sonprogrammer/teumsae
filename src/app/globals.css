@@ -455,7 +455,15 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-today-button { padding: 0 12px; font-size: 11px; font-weight: 750; }
 .real-period-caption { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px 17px; }
 .real-period-caption strong { font-size: 14px; letter-spacing: -.03em; }
-.real-period-caption > span { color: var(--muted); font-size: 11px; }
+.real-calendar-refresh { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 10px; }
+.real-calendar-refresh-count, .real-calendar-refresh-time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.real-calendar-refresh-button { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border: 1px solid #e1e8df; border-radius: 50%; background: #fff; color: #315f51; transition: background 150ms ease, color 150ms ease, border-color 150ms ease; }
+.real-calendar-refresh-button:hover:not(:disabled) { border-color: #c5dccb; background: #eff7f1; color: var(--teal); }
+.real-calendar-refresh-button:focus-visible { outline: 3px solid #5b9d7b55; outline-offset: 2px; }
+.real-calendar-refresh-button:disabled { cursor: not-allowed; opacity: .6; }
+.real-calendar-refresh-button .is-spinning { animation: calendar-refresh-spin 850ms linear infinite; }
+.real-calendar-refresh-error { margin: -7px 22px 14px; color: #a3644c; font-size: 11px; line-height: 1.5; }
+.real-calendar-refresh-error .real-text-button { font-size: inherit; }
 .real-offline-status { margin: 0 20px 14px; padding: 11px 13px; border: 1px solid #d6e8dd; border-radius: 12px; background: #eff7f1; color: #315f51; font-size: 12px; line-height: 1.55; }
 .real-offline-dialog-note { padding: 20px; border-radius: 13px; background: #eff7f1; color: #315f51; font-size: 13px; line-height: 1.6; }
 .push-reminder-card { display: grid; gap: 13px; margin-top: 24px; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 12px 30px #193c3508; }
@@ -801,7 +809,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .availability-window-row input { max-width: 120px; margin-inline: auto; }
   .real-sample-link { font-size: 10px; }
   .real-calendar-toolbar { padding: 15px 12px 11px; }
-  .real-period-caption { padding: 0 12px 12px; }
+  .real-period-caption { align-items: flex-start; padding: 0 12px 12px; }
+  .real-calendar-refresh { gap: 7px; }
+  .real-calendar-refresh-count, .real-calendar-refresh-time { font-size: 10px; }
+  .real-calendar-refresh-error { margin: -3px 12px 12px; }
   .real-calendar-day { min-height: 86px; padding: 6px 4px; }
   .real-calendar-grid.is-month .real-calendar-day { min-height: 57px; }
   .real-day-number { width: 23px; height: 23px; font-size: 11px; }
@@ -816,6 +827,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 }
 
 @media (max-width: 480px) {
+  .real-period-caption { flex-direction: column; align-items: stretch; gap: 8px; }
+  .real-calendar-refresh { justify-content: space-between; }
   .real-datetime-fields { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .availability-exception-form { grid-template-columns: minmax(0, 1fr); }
   .availability-exception-form .availability-exception-label { grid-column: 1 / -1; }
@@ -869,6 +882,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .push-reminder-switch::before, .push-reminder-switch-thumb { transition-duration: .01ms; }
   .real-agenda-skeleton > span, .real-calendar-skeleton i, .availability-skeleton-line, .availability-skeleton-day > span, .availability-skeleton-day i, .availability-skeleton-exception, .push-reminder-skeleton > span, .push-reminder-skeleton i, .availability-refresh-indicator::after, .real-event-dialog { animation-duration: .01ms; }
   .real-refresh-indicator::after { animation-duration: .01ms; }
+  .real-calendar-refresh-button .is-spinning { animation-duration: .01ms; }
   .real-event-form { animation-duration: .01ms; }
   .real-event-card, .real-event-action-button { transition-duration: .01ms; }
 }
+
+@keyframes calendar-refresh-spin { to { transform: rotate(360deg); } }
