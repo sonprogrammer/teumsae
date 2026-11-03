@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useActionState, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { createEventAction, deleteEventAction, updateEventAction } from '@/app/schedule/actions'
 import type { EventActionState, EventView } from '@/lib/events'
 import { eventQueryKeys } from '@/lib/event-query-keys'
@@ -17,6 +17,7 @@ import SignOutButton from '@/components/sign-out-button'
 import { useScheduleUiStore } from '@/stores/schedule-ui-store'
 import AssistantPanel from '@/components/assistant-panel'
 import { readScheduleCache, saveScheduleCache } from '@/lib/schedule-offline-cache.mjs'
+import { formatScheduleUpdatedAt } from '@/lib/schedule-refresh-status.mjs'
 
 const initialActionState: EventActionState = { status: 'idle', message: '' }
 const weekdays = ['월', '화', '수', '목', '금', '토', '일']
@@ -311,7 +312,8 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
   const to = last.toISOString().slice(0, 10) + 'T00:00:00+09:00'
   const eventsQuery = useQuery({
     queryKey: eventQueryKeys.range(userId, from, to),
-    queryFn: ({ signal }) => fetchEvents({ from, to, signal })
+    queryFn: ({ signal }) => fetchEvents({ from, to, signal }),
+    refetchOnWindowFocus: 'always'
   })
   const events = eventsQuery.data ?? []
   const eventEditor = useScheduleUiStore(state => state.eventEditor)
@@ -383,7 +385,17 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
         {isRefreshing && <div className="real-refresh-indicator" role="status" aria-label="일정을 다시 불러오는 중" />}
         <section className="real-calendar-card" aria-label="일정 달력">
           <div className="real-calendar-toolbar"><div className="real-period-switch" role="group" aria-label="달력 보기"><button type="button" className={view === 'week' ? 'is-active' : ''} aria-pressed={view === 'week'} onClick={() => navigate(selectedDate, 'week')}>주</button><button type="button" className={view === 'month' ? 'is-active' : ''} aria-pressed={view === 'month'} onClick={() => navigate(selectedDate, 'month')}>월</button></div><div className="real-period-controls"><button type="button" className="real-period-arrow" aria-label="이전" onClick={() => changePeriod(-1)}>‹</button><button type="button" className="real-today-button" onClick={() => navigate(today)}>오늘</button><button type="button" className="real-period-arrow" aria-label="다음" onClick={() => changePeriod(1)}>›</button></div></div>
-          <div className="real-period-caption"><strong>{periodLabel(dates, view)}</strong><span>{eventsQuery.isPending ? '불러오는 중…' : events.length + '개 일정'}</span></div>
+          <div className="real-period-caption">
+            <strong>{periodLabel(dates, view)}</strong>
+            <div className="real-calendar-refresh">
+              <span className="real-calendar-refresh-count">{eventsQuery.isPending ? '불러오는 중…' : events.length + '개 일정'}</span>
+              <span className="real-calendar-refresh-time">{eventsQuery.data === undefined ? '최근 확인 전' : '최근 확인 ' + formatScheduleUpdatedAt(eventsQuery.dataUpdatedAt)}</span>
+              <button type="button" className="real-calendar-refresh-button" aria-label={eventsQuery.isFetching ? '일정 확인 중' : '일정 새로고침'} title={eventsQuery.isFetching ? '일정 확인 중' : '일정 새로고침'} disabled={!isOnline || eventsQuery.isFetching} onClick={() => void eventsQuery.refetch()}>
+                <RefreshCw size={16} strokeWidth={1.9} aria-hidden="true" className={eventsQuery.isFetching ? 'is-spinning' : ''} />
+              </button>
+            </div>
+          </div>
+          {eventsQuery.isError && eventsQuery.data !== undefined && <p className="real-calendar-refresh-error" role="status">새 일정을 불러오지 못해 이전 목록을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void eventsQuery.refetch()} disabled={eventsQuery.isFetching}>다시 시도</button></p>}
           {isReadOnly && <p className="real-offline-status" role="status">{!isOnline ? '오프라인 · 최근 불러온 일정만 확인할 수 있어요. 변경은 연결 후 이용해 주세요.' : '일정을 새로 불러오지 못해 저장된 일정만 확인할 수 있어요.'}</p>}
           <div className={'real-calendar-grid ' + (view === 'month' ? 'is-month' : 'is-week')}>
             {weekdays.map(day => <div className="real-weekday" key={day}>{day}</div>)}
@@ -403,7 +415,6 @@ export default function RealSchedule({ userId, userName, selectedDate, today, vi
           <div className="real-agenda-heading"><div><p className="section-kicker">SELECTED DAY</p><h2>{koreanDate(selectedDate, { month: 'long', day: 'numeric', weekday: 'long' })}</h2></div>{!creating && <button type="button" className="real-primary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>＋ 일정</button>}</div>
           {eventsQuery.isPending ? 
             <div className="real-agenda-skeleton" role="status" aria-label="일정을 불러오는 중"><span /><span /><span /></div> : eventsQuery.isError && !eventsQuery.data ? <div className="real-empty-agenda is-error" role="alert"><strong>일정을 불러오지 못했어요.</strong><p>잠시 후 다시 시도해 주세요.</p><button type="button" className="real-secondary-button" onClick={() => void eventsQuery.refetch()}>다시 불러오기</button></div> : <>
-            {eventsQuery.isError && <p className="real-action-error" role="status">새 일정을 불러오지 못해 이전 목록을 표시하고 있어요. <button type="button" className="real-text-button" onClick={() => void eventsQuery.refetch()}>다시 시도</button></p>}
             {creating && <EventForm key={'new-' + selectedDate} event={null} selectedDate={selectedDate} today={today} userId={userId} onCancel={closeEventEditor} />}
             {selectedEvents.length ? <div className="real-event-list">{selectedEvents.map(event => <EventCard key={event.id} event={event} selectedDate={selectedDate} today={today} userId={userId} readOnly={isReadOnly} />)}</div> : !creating && <div className="real-empty-agenda"><span aria-hidden="true">✦</span><strong>이 날은 비어 있어요</strong><p>일정을 직접 등록해 보세요.</p><button type="button" className="real-secondary-button" onClick={() => openCreate(selectedDate)} disabled={isReadOnly}>일정 추가</button></div>}
           </>}
