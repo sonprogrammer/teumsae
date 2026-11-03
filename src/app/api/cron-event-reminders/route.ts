@@ -21,13 +21,13 @@ function isAuthorized(request: Request) {
 export async function POST(request: Request) {
   if (!isAuthorized(request)) return Response.json({ message: '요청을 처리할 수 없어요.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const secretKey = process.env.SUPABASE_SECRET_KEY
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privateKey = process.env.VAPID_PRIVATE_KEY
   const subject = process.env.VAPID_SUBJECT
-  if (!url || !serviceKey || !publicKey || !privateKey || !subject) return Response.json({ message: '알림 발송 설정이 준비되지 않았어요.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+  if (!url || !secretKey || !publicKey || !privateKey || !subject) return Response.json({ message: '알림 발송 설정이 준비되지 않았어요.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
 
-  const supabase = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+  const supabase = createClient(url, secretKey, { auth: { autoRefreshToken: false, persistSession: false } })
   try { webpush.setVapidDetails(subject, publicKey, privateKey) } catch { return Response.json({ message: '알림 발송 설정이 올바르지 않아요.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } }) }
   const { data, error } = await supabase.rpc('claim_event_reminder_deliveries')
   if (error) return Response.json({ message: '알림을 확인하지 못했어요.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } })

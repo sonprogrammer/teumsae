@@ -91,7 +91,7 @@ test('protects dispatch with a constant-time secret check and keeps admin creden
   const route = await readFile(new URL('../app/api/cron-event-reminders/route.ts', import.meta.url), 'utf8')
   const client = await readFile(new URL('../components/push-reminder-settings.tsx', import.meta.url), 'utf8')
   assert.match(route, /timingSafeEqual/)
-  assert.match(route, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/)
+  assert.match(route, /process\.env\.SUPABASE_SECRET_KEY/)
   assert.match(route, /request\.headers\.get\(['"]authorization['"]\)/)
   assert.doesNotMatch(client, /SERVICE_ROLE_KEY|VAPID_PRIVATE_KEY|CRON_SECRET/)
   assert.match(route, /isAllowedPushEndpoint\(delivery\.endpoint\)/)

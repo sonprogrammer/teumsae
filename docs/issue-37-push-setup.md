@@ -12,7 +12,7 @@ Vercel 프로젝트 설정의 Production 환경에 다음 변수를 등록하고
 | `VAPID_PRIVATE_KEY` | 서버가 푸시를 서명할 때 사용하는 비밀키 |
 | `VAPID_SUBJECT` | `mailto:` 연락처 또는 운영자 URL |
 | `CRON_SECRET` | Supabase Cron 호출을 보호하는 임의의 긴 토큰 |
-| `SUPABASE_SERVICE_ROLE_KEY` | 알림 작업이 구독·발송 대기열에 접근하는 서버 전용 키 |
+| `SUPABASE_SECRET_KEY` | 알림 작업이 구독·발송 대기열에 접근하는 서버 전용 키 |
 
 VAPID 키 쌍은 프로젝트 루트에서 `pnpm exec web-push generate-vapid-keys`로 생성할 수 있습니다. 공개키와 비밀키를 각각 올바른 환경변수에 등록하고, `CRON_SECRET`과 Supabase Vault 토큰에는 같은 임의 토큰을 설정합니다. 실제 값은 코드 리뷰나 채팅에 붙이지 않습니다.
 
