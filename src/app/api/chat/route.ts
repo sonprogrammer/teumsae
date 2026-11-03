@@ -25,7 +25,15 @@ function responseError(code: string, message: string, status: number, details: R
 function createUsageAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
+  if (!url || !key) {
+    console.error('AI_USAGE_ADMIN_CONFIG_MISSING', {
+      hasSupabaseUrl: Boolean(url),
+      hasServiceRoleKey: Boolean(key),
+      vercelEnvironment: process.env.VERCEL_ENV ?? 'unknown',
+      gitCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? 'unknown'
+    })
+    return null
+  }
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
