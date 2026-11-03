@@ -66,4 +66,4 @@
 
 - [x] Review `git diff` for scope, data isolation, safe copy, migration compatibility, and unchanged existing user work.
 - [x] Run all configured local checks and report the exact outputs.
-- [ ] Prepare the feature branch for PR against `main`, with `Closes #70`; do not merge or apply remote SQL.
+- [x] Open PR #71 against `main` with `Closes #70`; do not merge or apply remote SQL.
