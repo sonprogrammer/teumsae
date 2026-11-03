@@ -280,7 +280,10 @@ function EventCard({ event, selectedDate, today, userId, readOnly }: { event: Ev
     if (dialogOpen && !dialog.open) dialog.showModal()
     if (!dialogOpen && dialog.open) dialog.close()
   }, [dialogOpen])
-  return <article className="real-event-card">
+  return <article className="real-event-card" onClick={event => {
+    if (event.target instanceof Element && event.target.closest('button, dialog')) return
+    setDetailsOpen(true)
+  }}>
     <button type="button" className="real-event-card-detail-trigger" onClick={() => setDetailsOpen(true)} aria-label={event.title + ' 상세 보기'}>
       <div className="real-event-time"><strong>{eventTime(event.starts_at)}</strong><span>{eventTime(event.ends_at)}</span></div>
       <div className="real-event-detail"><h3>{event.title}</h3>{event.note && <p>{event.note}</p>}</div>

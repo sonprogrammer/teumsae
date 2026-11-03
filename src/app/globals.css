@@ -517,7 +517,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-primary-button:hover { background: var(--teal-dark); }
 .real-secondary-button { border: 1px solid #dce7dd; background: #fff; color: var(--teal); }
 .real-event-list { display: grid; gap: 10px; }
-.real-event-card { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 12px; padding: 14px; border: 1px solid #e7ebe2; border-left: 3px solid #79b69c; border-radius: 12px; background: #fff; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease; }
+.real-event-card { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 12px; padding: 14px; border: 1px solid #e7ebe2; border-left: 3px solid #79b69c; border-radius: 12px; background: #fff; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease; }
 .real-event-card:hover { border-color: #b9d4c2; background: #fbfdf9; box-shadow: 0 5px 16px #23423612; }
 .real-event-card:focus-within { border-color: #b9d4c2; background: #fbfdf9; box-shadow: 0 5px 16px #23423612; outline: 2px solid #9ccbb5; outline-offset: 2px; }
 .real-event-time { display: flex; flex-direction: column; gap: 4px; padding-top: 2px; color: #8b9b90; font-size: 10px; }
@@ -528,7 +528,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .real-event-card-detail-trigger:focus-visible { outline: 2px solid #79cbb4; outline-offset: 3px; border-radius: 3px; }
 .real-event-detail h3 { overflow: hidden; margin: 0; font-size: 13px; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
 .real-event-detail p { overflow: hidden; margin: 6px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.6; text-overflow: ellipsis; white-space: nowrap; }
-.real-event-dialog { position: fixed; width: min(480px, calc(100vw - 36px)); max-width: none; max-height: min(80dvh, 620px); margin: auto; padding: 25px; overflow: auto; border: 1px solid #dfe8de; border-radius: 22px; background: var(--paper); color: var(--ink); box-shadow: 0 22px 70px #122e2a3d; }
+.real-event-dialog { position: fixed; width: min(480px, calc(100vw - 36px)); max-width: none; max-height: min(80dvh, 620px); margin: auto; padding: 25px; overflow: auto; border: 1px solid #dfe8de; border-radius: 22px; background: var(--paper); color: var(--ink); cursor: auto; box-shadow: 0 22px 70px #122e2a3d; }
 .real-event-dialog::backdrop { background: #173b3466; backdrop-filter: blur(3px); }
 .real-event-dialog .real-event-form { margin: 0; padding: 0; border: 0; background: transparent; }
 .real-event-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
