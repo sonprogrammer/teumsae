@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react'
 import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
-import { Mic, MicOff, Square, Volume2, VolumeX } from 'lucide-react'
+import { Info, Mic, MicOff, Square, Volume2, VolumeX } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { eventQueryKeys } from '@/lib/event-query-keys'
 import { resolveProposalMutation, type EventProposalState } from '@/lib/event-proposals'
@@ -107,6 +107,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
   const queryClient = useQueryClient()
   const recentConversationQuery = useQuery({ queryKey: assistantConversationQueryKeys.recent(userId), queryFn: fetchRecentConversation })
   const [open, setOpen] = useState(false)
+  const [quotaInfoOpen, setQuotaInfoOpen] = useState(false)
   const [input, setInput] = useState('')
   const [optimisticTranscript, setOptimisticTranscript] = useState<{ userId: string; messages: ChatMessage[] } | null>(null)
   const [candidateSelection, setCandidateSelection] = useState<{ userId: string; candidateId: string | null }>({ userId, candidateId: null })
@@ -169,6 +170,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
 
   function closePanel() {
     stopVoiceSession(false)
+    setQuotaInfoOpen(false)
     setOpen(false)
     requestAnimationFrame(() => launcherRef.current?.focus())
   }
@@ -197,6 +199,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         stopVoiceSession(false)
+        setQuotaInfoOpen(false)
         setOpen(false)
         requestAnimationFrame(() => launcherRef.current?.focus())
       }
@@ -205,6 +208,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
       const target = event.target
       if (target instanceof Node && !panelRef.current?.contains(target) && !launcherRef.current?.contains(target)) {
         stopVoiceSession(false)
+        setQuotaInfoOpen(false)
         setOpen(false)
         requestAnimationFrame(() => launcherRef.current?.focus())
       }
@@ -548,7 +552,22 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
 
   return <>
     <aside id="assistant-live-panel" ref={panelRef} className={'assistant-live-panel' + (open ? ' is-open' : '')} aria-label="AI 일정 도우미">
-      <div className="assistant-live-header"><span className="assistant-live-avatar"><Image className="assistant-live-logo" src="/teumsae-logo.png" alt="" width={36} height={24} priority /></span><div><strong>틈새 AI 도우미</strong><small>{voiceSession ? '말이 끝나면 전송하고 답한 뒤 다시 들을게요' : '등록 전에 내용을 확인하고 직접 저장할 수 있어요'}</small></div><button type="button" className="assistant-live-close" aria-label="AI 도우미 닫기" onClick={closePanel}>×</button></div>
+      <div className="assistant-live-header">
+        <span className="assistant-live-avatar"><Image className="assistant-live-logo" src="/teumsae-logo.png" alt="" width={36} height={24} priority /></span>
+        <div className="assistant-live-heading">
+          <div className="assistant-live-title-row">
+            <strong>틈새 AI 도우미</strong>
+            <span className="assistant-quota-info">
+              <button type="button" className="assistant-quota-info-button" aria-label="AI 사용 한도 안내" aria-describedby="assistant-quota-tooltip" aria-expanded={quotaInfoOpen} aria-controls="assistant-quota-tooltip" onClick={() => setQuotaInfoOpen(current => !current)} onBlur={() => setQuotaInfoOpen(false)}>
+                <Info size={15} strokeWidth={2} aria-hidden="true" />
+              </button>
+              <span id="assistant-quota-tooltip" className={'assistant-quota-tooltip' + (quotaInfoOpen ? ' is-open' : '')} role="tooltip">질문은 계정당 분당 최대 10회예요. Groq 무료 기준은 서비스 전체가 함께 쓰며 요청 분당 30회·하루 1,000회, 토큰 분당 8,000개·하루 200,000개예요. 실제 계정 한도에 따라 달라질 수 있어요.</span>
+            </span>
+          </div>
+          <small>{voiceSession ? '말이 끝나면 전송하고 답한 뒤 다시 들을게요' : '등록 전에 내용을 확인하고 직접 저장할 수 있어요'}</small>
+        </div>
+        <button type="button" className="assistant-live-close" aria-label="AI 도우미 닫기" onClick={closePanel}>×</button>
+      </div>
       <div className="assistant-live-messages" aria-live="polite">{recentConversationQuery.isPending ? <p className="assistant-live-history-status" role="status">최근 대화를 불러오는 중…</p> : recentConversationQuery.isError ? <p className="assistant-live-history-status" role="status">최근 대화를 불러오지 못했어요. <button type="button" onClick={() => void recentConversationQuery.refetch()}>다시 시도</button></p> : messages.map((message, index) => {
         const previousMessage = messages[index - 1]
         const showDateDivider = Boolean(message.createdAt && (!previousMessage?.createdAt || formatTranscriptDateKey(message.createdAt) !== formatTranscriptDateKey(previousMessage.createdAt)))
@@ -567,7 +586,6 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
         <button type="button" className={'assistant-voice-button' + (speakReplies ? ' is-active' : '')} onClick={() => { const next = !speakReplies; speakRepliesRef.current = next; setSpeakReplies(next); if (next) unlockSpeechSynthesis(window.speechSynthesis); if (!next) { window.speechSynthesis?.cancel(); speakingRef.current = false; setSpeaking(false); if (voiceSessionRef.current) resumeVoiceListening(voiceSessionIdRef.current) } }} aria-label={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'} title={speakReplies ? '음성 답변 끄기' : '음성 답변 켜기'}>{speakReplies ? <Volume2 size={18} strokeWidth={2} aria-hidden="true" /> : <VolumeX size={18} strokeWidth={2} aria-hidden="true" />}</button>
         <button type="submit" disabled={pending || recentConversationQuery.isPending || recentConversationQuery.isError || !input.trim()} aria-label="질문 보내기">{pending ? '…' : '↑'}</button>
       </form>
-      <p className="assistant-quota-note">질문은 계정당 분당 최대 10회예요. Groq 무료 기준은 서비스 전체가 함께 쓰며 요청 분당 30회·하루 1,000회, 토큰 분당 8,000개·하루 200,000개예요. 실제 계정 한도에 따라 달라질 수 있어요.</p>
     </aside>
     <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
     <button type="button" ref={launcherRef} className={'assistant-live-launcher' + (hideLauncher ? ' is-context-hidden' : '')} aria-controls="assistant-live-panel" aria-expanded={open} aria-hidden={hideLauncher} tabIndex={hideLauncher ? -1 : undefined} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>
