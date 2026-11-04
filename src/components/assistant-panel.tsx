@@ -1,8 +1,9 @@
 'use client'
 
-import { Fragment, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
+import { createPortal } from 'react-dom'
 import { Info, Mic, MicOff, Square, Volume2, VolumeX } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { eventQueryKeys } from '@/lib/event-query-keys'
@@ -108,6 +109,10 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
   const recentConversationQuery = useQuery({ queryKey: assistantConversationQueryKeys.recent(userId), queryFn: fetchRecentConversation })
   const [open, setOpen] = useState(false)
   const [quotaInfoOpen, setQuotaInfoOpen] = useState(false)
+  const [quotaTooltipPosition, setQuotaTooltipPosition] = useState<{ top: number; left: number; width: number } | null>(null)
+  const quotaInfoButtonRef = useRef<HTMLButtonElement>(null)
+  const quotaTooltipRef = useRef<HTMLSpanElement>(null)
+  const quotaTooltipCloseTimer = useRef<number | null>(null)
   const [input, setInput] = useState('')
   const [optimisticTranscript, setOptimisticTranscript] = useState<{ userId: string; messages: ChatMessage[] } | null>(null)
   const [candidateSelection, setCandidateSelection] = useState<{ userId: string; candidateId: string | null }>({ userId, candidateId: null })
@@ -168,8 +173,50 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
     queryClient.setQueryData<RecentConversationResponse>(assistantConversationQueryKeys.recent(userId), current => current?.conversation ? { conversation: { ...current.conversation, messages: nextMessages } } : current)
   }
 
+  const updateQuotaTooltipPosition = useCallback(() => {
+    const rect = quotaInfoButtonRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const width = Math.min(320, window.innerWidth - 24)
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12)
+    setQuotaTooltipPosition({ top: rect.bottom + 8, left, width })
+  }, [])
+
+  function showQuotaInfo() {
+    if (quotaTooltipCloseTimer.current !== null) window.clearTimeout(quotaTooltipCloseTimer.current)
+    setQuotaInfoOpen(true)
+    requestAnimationFrame(updateQuotaTooltipPosition)
+  }
+
+  function scheduleQuotaInfoClose() {
+    if (quotaTooltipCloseTimer.current !== null) window.clearTimeout(quotaTooltipCloseTimer.current)
+    quotaTooltipCloseTimer.current = window.setTimeout(() => setQuotaInfoOpen(false), 180)
+  }
+
+  useEffect(() => {
+    if (!quotaInfoOpen) return
+    function dismissOutside(event: PointerEvent) {
+      const target = event.target
+      if (target instanceof Node && (quotaInfoButtonRef.current?.contains(target) || quotaTooltipRef.current?.contains(target))) return
+      setQuotaInfoOpen(false)
+    }
+    document.addEventListener('pointerdown', dismissOutside)
+    return () => document.removeEventListener('pointerdown', dismissOutside)
+  }, [quotaInfoOpen])
+
+  useEffect(() => {
+    if (!quotaInfoOpen) return
+    updateQuotaTooltipPosition()
+    window.addEventListener('resize', updateQuotaTooltipPosition)
+    window.addEventListener('scroll', updateQuotaTooltipPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateQuotaTooltipPosition)
+      window.removeEventListener('scroll', updateQuotaTooltipPosition, true)
+    }
+  }, [quotaInfoOpen, updateQuotaTooltipPosition])
+
   function closePanel() {
     stopVoiceSession(false)
+    if (quotaTooltipCloseTimer.current !== null) window.clearTimeout(quotaTooltipCloseTimer.current)
     setQuotaInfoOpen(false)
     setOpen(false)
     requestAnimationFrame(() => launcherRef.current?.focus())
@@ -180,6 +227,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
   }, [messages, pending])
 
   useEffect(() => () => {
+    if (quotaTooltipCloseTimer.current !== null) window.clearTimeout(quotaTooltipCloseTimer.current)
     voiceSessionRef.current = false
     voiceSessionIdRef.current += 1
     voiceStartAttemptRef.current += 1
@@ -199,6 +247,7 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         stopVoiceSession(false)
+        if (quotaTooltipCloseTimer.current !== null) window.clearTimeout(quotaTooltipCloseTimer.current)
         setQuotaInfoOpen(false)
         setOpen(false)
         requestAnimationFrame(() => launcherRef.current?.focus())
@@ -206,8 +255,9 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
     }
     function closeOnOutsideClick(event: PointerEvent) {
       const target = event.target
-      if (target instanceof Node && !panelRef.current?.contains(target) && !launcherRef.current?.contains(target)) {
+      if (target instanceof Node && !panelRef.current?.contains(target) && !launcherRef.current?.contains(target) && !quotaTooltipRef.current?.contains(target)) {
         stopVoiceSession(false)
+        if (quotaTooltipCloseTimer.current !== null) window.clearTimeout(quotaTooltipCloseTimer.current)
         setQuotaInfoOpen(false)
         setOpen(false)
         requestAnimationFrame(() => launcherRef.current?.focus())
@@ -558,10 +608,9 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
           <div className="assistant-live-title-row">
             <strong>틈새 AI 도우미</strong>
             <span className="assistant-quota-info">
-              <button type="button" className="assistant-quota-info-button" aria-label="AI 사용 한도 안내" aria-describedby="assistant-quota-tooltip" aria-expanded={quotaInfoOpen} aria-controls="assistant-quota-tooltip" onClick={() => setQuotaInfoOpen(current => !current)} onBlur={() => setQuotaInfoOpen(false)}>
+              <button type="button" ref={quotaInfoButtonRef} className="assistant-quota-info-button" aria-label="AI 사용 한도 안내" aria-describedby={quotaInfoOpen ? 'assistant-quota-tooltip' : undefined} aria-expanded={quotaInfoOpen} aria-controls={quotaInfoOpen ? 'assistant-quota-tooltip' : undefined} onMouseEnter={showQuotaInfo} onMouseLeave={scheduleQuotaInfoClose} onFocus={showQuotaInfo} onBlur={() => setQuotaInfoOpen(false)} onClick={showQuotaInfo} onKeyDown={event => { if (event.key === 'Escape') setQuotaInfoOpen(false) }}>
                 <Info size={15} strokeWidth={2} aria-hidden="true" />
               </button>
-              <span id="assistant-quota-tooltip" className={'assistant-quota-tooltip' + (quotaInfoOpen ? ' is-open' : '')} role="tooltip">질문은 계정당 분당 최대 10회예요. Groq 무료 기준은 서비스 전체가 함께 쓰며 요청 분당 30회·하루 1,000회, 토큰 분당 8,000개·하루 200,000개예요. 실제 계정 한도에 따라 달라질 수 있어요.</span>
             </span>
           </div>
           <small>{voiceSession ? '말이 끝나면 전송하고 답한 뒤 다시 들을게요' : '등록 전에 내용을 확인하고 직접 저장할 수 있어요'}</small>
@@ -589,5 +638,6 @@ export default function AssistantPanel({ userId, hideLauncher = false }: { userI
     </aside>
     <button type="button" className={'assistant-live-backdrop' + (open ? ' is-open' : '')} aria-label="AI 도우미 닫기" aria-hidden={!open} tabIndex={open ? 0 : -1} onClick={closePanel} />
     <button type="button" ref={launcherRef} className={'assistant-live-launcher' + (hideLauncher ? ' is-context-hidden' : '')} aria-controls="assistant-live-panel" aria-expanded={open} aria-hidden={hideLauncher} tabIndex={hideLauncher ? -1 : undefined} onClick={() => { setOpen(true); window.setTimeout(() => inputRef.current?.focus(), 220) }}><Image src="/teumsaeAI.png" alt="" width={2172} height={724} /> AI에게 물어보기</button>
+    {quotaInfoOpen && quotaTooltipPosition && createPortal(<span id="assistant-quota-tooltip" ref={quotaTooltipRef} className="assistant-quota-tooltip" role="tooltip" style={{ top: quotaTooltipPosition.top, left: quotaTooltipPosition.left, width: quotaTooltipPosition.width }} onMouseEnter={showQuotaInfo} onMouseLeave={scheduleQuotaInfoClose}>질문은 계정당 분당 최대 10회예요. Groq 무료 기준은 서비스 전체가 함께 쓰며 요청 분당 30회·하루 1,000회, 토큰 분당 8,000개·하루 200,000개예요. 실제 계정 한도에 따라 달라질 수 있어요.</span>, document.body)}
   </>
 }

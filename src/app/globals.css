@@ -655,11 +655,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .assistant-live-title-row { display: flex; align-items: center; gap: 5px; }
 .assistant-live-header strong { font-size: 13px; }
 .assistant-live-header small { color: var(--muted); font-size: 9px; line-height: 1.4; }
-.assistant-quota-info { position: relative; display: inline-flex; flex: none; }
+.assistant-quota-info { display: inline-flex; flex: none; }
 .assistant-quota-info-button { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #7c8c7f; cursor: pointer; }
 .assistant-quota-info-button:hover, .assistant-quota-info-button:focus-visible { background: #e9f5ec; color: #214c40; outline: none; }
-.assistant-quota-tooltip { position: absolute; top: calc(100% + 7px); left: 0; z-index: 20; width: min(260px, calc(100vw - 72px)); padding: 9px 11px; border: 1px solid #214c40; border-radius: 10px; background: #214c40; box-shadow: 0 8px 22px #18393435; color: #fffefa; font-size: 11px; line-height: 1.55; opacity: 0; pointer-events: none; visibility: hidden; transform: translateY(-4px); transition: opacity .16s ease, transform .16s ease, visibility .16s ease; }
-.assistant-quota-info:hover .assistant-quota-tooltip, .assistant-quota-info:focus-within .assistant-quota-tooltip, .assistant-quota-tooltip.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+.assistant-quota-tooltip { position: fixed; z-index: 100; box-sizing: border-box; max-width: calc(100vw - 24px); padding: 10px 12px; border: 1px solid #214c40; border-radius: 10px; background: #214c40; box-shadow: 0 8px 22px #18393435; color: #fffefa; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; animation: assistant-quota-tooltip-enter .16s ease both; }
+@keyframes assistant-quota-tooltip-enter { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .assistant-live-close { display: block; margin-left: auto; border: 0; background: transparent; color: var(--ink-soft); font-size: 24px; }
 .assistant-live-messages { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding: 14px 12px; }
 .assistant-live-message { display: grid; gap: 9px; align-self: flex-start; width: 100%; max-width: 100%; }
