@@ -48,9 +48,50 @@ export function countInclusiveDays(startDate: string, endDate: string) {
   return (Date.parse(endDate + 'T00:00:00.000Z') - Date.parse(startDate + 'T00:00:00.000Z')) / 86400000 + 1
 }
 
+export function getRetryAfterSeconds(value: string | null, now = Date.now()) {
+  if (!value) return null
+  const seconds = Number(value)
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.max(1, Math.ceil(seconds))
+  const timestamp = Date.parse(value)
+  if (!Number.isFinite(timestamp)) return null
+  return Math.max(1, Math.ceil((timestamp - now) / 1000))
+}
+
+export function formatRetryDelay(seconds: number) {
+  if (seconds >= 86400) return `${Math.ceil(seconds / 86400)}일`
+  if (seconds >= 3600) return `${Math.ceil(seconds / 3600)}시간`
+  if (seconds >= 60) return `${Math.ceil(seconds / 60)}분`
+  return `${Math.max(1, Math.ceil(seconds))}초`
+}
+
+export function resolveMutationTarget<T extends { title: string }>(events: T[], query?: string) {
+  const normalizedQuery = query?.trim().toLocaleLowerCase('ko-KR')
+  const matches = normalizedQuery ? events.filter(event => event.title.toLocaleLowerCase('ko-KR').includes(normalizedQuery)) : events
+  if (!matches.length) return { kind: 'not_found' as const }
+  if (matches.length > 1) return { kind: 'ambiguous' as const, events: matches }
+  return { kind: 'unique' as const, event: matches[0] }
+}
+
 export function createToolLimitFallback(cardCount: number, toolStatuses: string[]): string | null {
   if (!Number.isSafeInteger(cardCount) || cardCount < 1 || !toolStatuses.length || toolStatuses.some(status => status !== 'success')) return null
   return '조회 결과는 위 카드에 표시했어요. 더 궁금한 점이 있으면 이어서 물어봐 주세요.'
+}
+
+export function createMutationProposalSummary(card: unknown) {
+  if (!card || typeof card !== 'object') return null
+  const value = card as Record<string, unknown>
+  if (value.type !== 'proposal' || (value.action !== 'update' && value.action !== 'delete')) return null
+  return value.action === 'delete' ? '일정 삭제 확인을 아래 카드에 준비했어요. 확인 버튼을 눌러야 삭제돼요.' : '일정 변경 확인을 아래 카드에 준비했어요. 확인 버튼을 눌러야 반영돼요.'
+}
+
+export function createEventListSummary(cards: unknown[], toolCalls: Array<{ name: string; status: string }>, message: string) {
+  if (cards.length !== 1 || toolCalls.length !== 1 || toolCalls[0].name !== 'listEvents' || toolCalls[0].status !== 'success') return null
+  if (/(?:왜|어때|많|무리|분석|추천|비교|설명|정리|빈\s*시간|가능한?\s*시간|다음\s*날)/u.test(message)) return null
+  const card = cards[0]
+  if (!card || typeof card !== 'object' || Array.isArray(card)) return null
+  const value = card as Record<string, unknown>
+  if (value.type !== 'events' || !Array.isArray(value.events)) return null
+  return value.events.length ? '등록된 일정은 아래 카드에서 확인할 수 있어요.' : '해당 기간에 등록된 일정이 없어요.'
 }
 
 export function createAvailabilityResultSummary(cards: unknown[], toolCalls: Array<{ name: string; status: string }>, message: string): string | null {
@@ -85,21 +126,20 @@ export function shouldForceAvailabilityTool(message: string) {
 
 export function validateAssistantToolArguments(name: AssistantToolName, args: Record<string, unknown>) {
   if (name === 'prepareEventUpdate' || name === 'prepareEventDelete') {
-    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    if (typeof args.eventId !== 'string' || !uuid.test(args.eventId) || !Number.isSafeInteger(args.expectedVersion) || Number(args.expectedVersion) < 1) return { ok: false as const, message: '변경할 일정을 다시 조회해 주세요.' }
-    if (name === 'prepareEventDelete') {
-      if (Object.keys(args).some(key => key !== 'eventId' && key !== 'expectedVersion')) return { ok: false as const, message: '일정 삭제 정보를 확인해 주세요.' }
-      return { ok: true as const, eventId: args.eventId, expectedVersion: Number(args.expectedVersion) }
-    }
-    const allowedArgs = ['eventId', 'expectedVersion', 'title', 'note', 'date', 'startTime', 'endTime']
+    const allowedArgs = name === 'prepareEventDelete' ? ['startDate', 'endDate', 'query'] : ['startDate', 'endDate', 'query', 'title', 'note', 'date', 'startTime', 'endTime']
     if (Object.keys(args).some(key => !allowedArgs.includes(key))) return { ok: false as const, message: '지원하지 않는 일정 변경 정보가 있어요.' }
+    const startDate = args.startDate
+    const endDate = args.endDate ?? startDate
+    if (!isToolDate(startDate) || !isToolDate(endDate) || startDate > endDate || countInclusiveDays(startDate, endDate) > 366) return { ok: false as const, message: '변경할 일정의 날짜 범위를 확인해 주세요.' }
+    if (args.query !== undefined && (typeof args.query !== 'string' || !args.query.trim() || args.query.trim().length > 100)) return { ok: false as const, message: '변경할 일정의 제목을 확인해 주세요.' }
+    if (name === 'prepareEventDelete') return { ok: true as const, startDate, endDate, ...(typeof args.query === 'string' ? { query: args.query.trim() } : {}) }
     const title = args.title === undefined ? undefined : typeof args.title === 'string' ? args.title.trim() : ''
     const note = args.note === undefined || args.note === null ? null : typeof args.note === 'string' ? args.note.trim() : false
     if (title === '' || (typeof title === 'string' && title.length > 100) || note === false || (typeof note === 'string' && note.length > 500)) return { ok: false as const, message: '일정 제목이나 메모를 확인해 주세요.' }
     const hasAnyTime = args.date !== undefined || args.startTime !== undefined || args.endTime !== undefined
     if (hasAnyTime && (!isToolDate(args.date) || !isToolTime(args.startTime) || !isToolTime(args.endTime) || Number(args.startTime.slice(-2)) % 15 !== 0 || Number(args.endTime.slice(-2)) % 15 !== 0)) return { ok: false as const, message: '변경할 날짜와 시작·종료 시간을 함께 확인해 주세요.' }
     if (title === undefined && args.note === undefined && !hasAnyTime) return { ok: false as const, message: '변경할 내용을 확인해 주세요.' }
-    return { ok: true as const, eventId: args.eventId, expectedVersion: Number(args.expectedVersion), ...(title !== undefined ? { title } : {}), ...(args.note !== undefined ? { note } : {}), ...(hasAnyTime ? { date: args.date as string, startTime: args.startTime as string, endTime: args.endTime as string } : {}) }
+    return { ok: true as const, startDate, endDate, ...(typeof args.query === 'string' ? { query: args.query.trim() } : {}), ...(title !== undefined ? { title } : {}), ...(args.note !== undefined ? { note } : {}), ...(hasAnyTime ? { date: args.date as string, startTime: args.startTime as string, endTime: args.endTime as string } : {}) }
   }
   if (name === 'prepareEvent') {
     const allowedArgs = ['title', 'note', 'searchId', 'candidateId', 'date', 'startTime', 'endTime']
@@ -217,13 +257,12 @@ export function summarizeAssistantToolInput(name: AssistantToolName, args: Recor
     if (Number.isInteger(args.durationMinutes) && Number(args.durationMinutes) >= 15 && Number(args.durationMinutes) % 15 === 0) summary.durationMinutes = Number(args.durationMinutes)
     else invalidFields.push('durationMinutes')
   }
-  if (name === 'listEvents' && args.query !== undefined) summary.hasTitleFilter = typeof args.query === 'string' && args.query.trim().length > 0
+  if ((name === 'listEvents' || name === 'prepareEventUpdate' || name === 'prepareEventDelete') && args.query !== undefined) summary.hasTitleFilter = typeof args.query === 'string' && args.query.trim().length > 0
   if (name === 'prepareEvent') {
     summary.hasEventTitle = typeof args.title === 'string' && args.title.trim().length > 0
     summary.proposalMode = typeof args.candidateId === 'string' ? 'candidate' : 'direct'
   } else if (name === 'prepareEventUpdate' || name === 'prepareEventDelete') {
     summary.proposalMode = name === 'prepareEventUpdate' ? 'update' : 'delete'
-    summary.hasEventId = typeof args.eventId === 'string' && /^[0-9a-f-]{36}$/i.test(args.eventId)
     if (name === 'prepareEventUpdate') summary.hasEventTitle = typeof args.title === 'string' && args.title.trim().length > 0
   }
   if (invalidFields.length) summary.invalidFields = invalidFields

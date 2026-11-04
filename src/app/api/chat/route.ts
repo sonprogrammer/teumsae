@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
+import { createClient } from '@supabase/supabase-js'
 import { assistantSystemPrompt, assistantToolDefinitions, executeAssistantTool, type AssistantCard } from '@/lib/assistant-tools'
-import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createToolLimitFallback, formatKoreaDateTime, getKoreaToday, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, resolveRelativeDateToolArguments, shouldForceAvailabilityTool, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
+import { assistantCardConcisenessInstruction, createAvailabilityResultSummary, createEventListSummary, createMutationProposalSummary, createToolLimitFallback, formatKoreaDateTime, formatRetryDelay, getKoreaToday, getRetryAfterSeconds, normalizeAvailabilityToolArguments, parseAssistantRequest, parseToolArguments, parseToolName, resolveRelativeDateToolArguments, shouldForceAvailabilityTool, summarizeAssistantToolInput, summarizeAssistantToolOutput, type AssistantToolCallLog } from '@/lib/assistant-chat'
 import { parseEventCandidates, resolveSelectedCandidate } from '@/lib/event-proposals'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { appendAssistantTurn, parseAssistantTranscript, reconcileProposalStates, type AssistantTranscriptMessage, type ProposalStatusRecord } from '@/lib/assistant-transcript'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 const privateHeaders = { 'Cache-Control': 'private, no-store' }
 const modelUrl = 'https://api.groq.com/openai/v1/chat/completions'
 const maxModelCalls = 5
@@ -16,7 +18,23 @@ const requestBudgetMs = 20000
 type GroqMessage = { role: 'system' | 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: unknown[]; tool_call_id?: string; name?: string }
 
 function responseError(code: string, message: string, status: number, details: Record<string, unknown> = {}) {
-  return NextResponse.json({ code, message, ...details }, { status, headers: privateHeaders })
+  const retryAfter = details.retryAfterSeconds
+  return NextResponse.json({ code, message, ...details }, { status, headers: { ...privateHeaders, ...(typeof retryAfter === 'number' ? { 'Retry-After': String(retryAfter) } : {}) } })
+}
+
+function createUsageAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) {
+    console.error('AI_USAGE_ADMIN_CONFIG_MISSING', {
+      hasSupabaseUrl: Boolean(url),
+      hasServiceRoleKey: Boolean(key),
+      vercelEnvironment: process.env.VERCEL_ENV ?? 'unknown',
+      gitCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? 'unknown'
+    })
+    return null
+  }
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
 function asMessages(value: unknown): Array<{ role: 'user' | 'assistant'; content: string }> {
@@ -113,6 +131,8 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) return responseError('AI_NOT_CONFIGURED', 'AI 연결 설정이 아직 준비되지 않았어요. 서버 환경변수를 확인해 주세요.', 503)
+  const usageAdmin = createUsageAdminClient()
+  if (!usageAdmin) return responseError('AI_USAGE_CHECK_FAILED', 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 503)
 
   const { error: cleanupError } = await supabase.from('conversations').delete().eq('owner_id', userId).lt('expires_at', new Date().toISOString())
   if (cleanupError) return responseError('CONVERSATION_CLEANUP_FAILED', '만료된 대화를 정리하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
@@ -159,7 +179,7 @@ export async function POST(request: Request) {
 
   const { data: withinUsageLimit, error: usageError } = await supabase.rpc('consume_ai_request')
   if (usageError) return responseError('AI_USAGE_CHECK_FAILED', 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', 500)
-  if (withinUsageLimit !== true) return responseError('AI_USAGE_LIMIT', '분당 AI 이용 한도를 초과했어요. 잠시 후 다시 시도해 주세요.', 429)
+  if (withinUsageLimit !== true) return responseError('AI_USAGE_LIMIT', '계정당 분당 AI 질문 10회 제한에 도달했어요. 다음 분에 다시 시도해 주세요.', 429)
 
   const now = new Date()
   const nowKorea = getKoreaToday(now)
@@ -182,11 +202,29 @@ export async function POST(request: Request) {
   let assistantText = ''
   let answerSource: 'model' | 'server_fallback' | 'tool_summary' = 'model'
   let modelReturnedFinal = false
-  let requestFailure: { code: string; message: string; status: number } | null = null
+  let requestFailure: { code: string; message: string; status: number; retryAfterSeconds?: number } | null = null
 
   try {
     while (modelCalls < maxModelCalls) {
       modelCalls += 1
+      const { data: requestReservation, error: requestReservationError } = await usageAdmin.rpc('consume_groq_model_request')
+      if (requestReservationError) {
+        requestFailure = { code: 'AI_USAGE_CHECK_FAILED', message: 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', status: 500 }
+        break
+      }
+      const reservation = Array.isArray(requestReservation) ? requestReservation[0] : requestReservation
+      const reservationData = reservation && typeof reservation === 'object' ? reservation as Record<string, unknown> : null
+      if (!reservationData || reservationData.allowed !== true) {
+        const retryAfterSeconds = Number.isSafeInteger(reservationData?.retry_after_seconds) ? Number(reservationData?.retry_after_seconds) : 60
+        requestFailure = { code: 'GROQ_SHARED_LIMIT', message: `무료 AI 요청 한도에 도달했어요. ${formatRetryDelay(retryAfterSeconds)} 후 다시 시도해 주세요.`, status: 429, retryAfterSeconds }
+        break
+      }
+      const usageMinuteBucket = typeof reservationData.usage_minute_bucket === 'string' ? reservationData.usage_minute_bucket : null
+      const usageDayBucket = typeof reservationData.usage_day_bucket === 'string' ? reservationData.usage_day_bucket : null
+      if (!usageMinuteBucket || !usageDayBucket) {
+        requestFailure = { code: 'AI_USAGE_CHECK_FAILED', message: 'AI 사용 한도를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.', status: 500 }
+        break
+      }
       const response = await fetch(modelUrl, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
@@ -194,8 +232,9 @@ export async function POST(request: Request) {
         signal: controller.signal
       })
       if (!response.ok) {
+        const retryAfterSeconds = response.status === 429 ? getRetryAfterSeconds(response.headers.get('retry-after')) : null
         requestFailure = response.status === 429
-          ? { code: 'MODEL_RATE_LIMIT', message: 'AI 서비스 요청 한도에 도달했어요. 잠시 후 다시 시도해 주세요.', status: 429 }
+          ? { code: 'MODEL_RATE_LIMIT', message: retryAfterSeconds ? `AI 서비스 요청 한도에 도달했어요. ${formatRetryDelay(retryAfterSeconds)} 후 다시 시도해 주세요.` : 'AI 서비스 요청 한도에 도달했어요. 잠시 후 다시 시도해 주세요.', status: 429, ...(retryAfterSeconds ? { retryAfterSeconds } : {}) }
           : { code: 'MODEL_REQUEST_FAILED', message: 'AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.', status: 502 }
         break
       }
@@ -213,7 +252,15 @@ export async function POST(request: Request) {
       }
       const modelMessage = assistantMessage as Record<string, unknown>
       const usage = (payload as Record<string, unknown>).usage
-      if (usage && typeof usage === 'object' && Number.isSafeInteger((usage as Record<string, unknown>).total_tokens)) totalTokens += Number((usage as Record<string, unknown>).total_tokens)
+      if (usage && typeof usage === 'object' && Number.isSafeInteger((usage as Record<string, unknown>).total_tokens)) {
+        const requestTokens = Number((usage as Record<string, unknown>).total_tokens)
+        totalTokens += requestTokens
+        const { error: tokenUsageError } = await usageAdmin.rpc('record_groq_model_usage', { p_token_count: requestTokens, p_minute_bucket: usageMinuteBucket, p_day_bucket: usageDayBucket })
+        if (tokenUsageError) {
+          requestFailure = { code: 'AI_USAGE_RECORD_FAILED', message: 'AI 사용량을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.', status: 500 }
+          break
+        }
+      }
       const toolCalls = Array.isArray(modelMessage.tool_calls) ? modelMessage.tool_calls : []
       const content = typeof modelMessage.content === 'string' ? modelMessage.content : ''
       if (!toolCalls.length) {
@@ -258,10 +305,28 @@ export async function POST(request: Request) {
           continue
         }
         context = result.context
+        if (result.card.type === 'proposal' && (result.card.action === 'update' || result.card.action === 'delete')) {
+          for (let index = cards.length - 1; index >= 0; index -= 1) if (cards[index].type === 'events') cards.splice(index, 1)
+        }
         cards.push(result.card)
         modelMessages.push({ role: 'tool', tool_call_id: callId, name, content: JSON.stringify(modelToolResult(result.card)) })
       }
       if (requestFailure) break
+      const mutationProposal = [...cards].reverse().find(card => card.type === 'proposal' && (card.action === 'update' || card.action === 'delete'))
+      const mutationSummary = createMutationProposalSummary(mutationProposal)
+      if (mutationSummary && toolLog.some(tool => tool.name === 'prepareEventUpdate' || tool.name === 'prepareEventDelete') && toolLog.every(tool => tool.status === 'success')) {
+        assistantText = mutationSummary
+        answerSource = 'server_fallback'
+        modelReturnedFinal = true
+        break
+      }
+      const eventSummary = createEventListSummary(cards, toolLog, parsed.value.message)
+      if (eventSummary) {
+        assistantText = eventSummary
+        answerSource = 'tool_summary'
+        modelReturnedFinal = true
+        break
+      }
       const availabilitySummary = createAvailabilityResultSummary(cards, toolLog, parsed.value.message)
       if (availabilitySummary) {
         assistantText = availabilitySummary
