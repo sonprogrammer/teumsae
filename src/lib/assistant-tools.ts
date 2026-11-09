@@ -73,6 +73,7 @@ export async function executeAssistantTool({ name, args, supabase, userId, conte
     }).abortSignal(signal)
     if (error) return { ok: false, code: error.code === '40001' ? 'STALE_EVENT' : 'CHANGE_PROPOSAL_FAILED', message: error.code === '40001' ? '일정이 바뀌었어요. 다시 조회해 주세요.' : '일정 변경 확인을 만들지 못했어요. 다시 시도해 주세요.', fatal: false }
     const result = data && typeof data === 'object' ? data as Record<string, unknown> : {}
+    if (result.status === 'conflict') return { ok: false, code: 'EVENT_CONFLICT', message: '변경하려는 시간이 다른 일정과 겹쳐요. 시간을 바꿔 다시 요청해 주세요.', fatal: false }
     const proposal = result.proposal && typeof result.proposal === 'object' ? result.proposal as Record<string, unknown> : null
     const previous = result.previousEvent && typeof result.previousEvent === 'object' ? result.previousEvent as Record<string, unknown> : null
     if (!proposal || typeof proposal.id !== 'string' || typeof proposal.startsAt !== 'string' || typeof proposal.endsAt !== 'string' || typeof proposal.expiresAt !== 'string') return { ok: false, code: 'CHANGE_PROPOSAL_FAILED', message: '일정 변경 확인 정보를 읽지 못했어요.', fatal: true }
