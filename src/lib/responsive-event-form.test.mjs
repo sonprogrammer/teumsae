@@ -55,7 +55,9 @@ test('stacks the calendar and agenda when the viewport cannot fit both panels', 
 
 test('centers a wider two-column schedule layout on desktop', () => {
   assert.equal(declarationsForBaseSelector('.real-schedule-content')['max-width'], '1500px')
-  assert.equal(declarationsForBaseSelector('.real-schedule-header')['max-width'], '1500px')
+  const header = declarationsForBaseSelector('.real-schedule-header')
+  assert.equal(header['max-width'], undefined)
+  assert.equal(header['padding'], '0 max(30px, calc(50vw - 720px))')
   assert.equal(declarationsForBaseSelector('.real-schedule-workspace')['grid-template-columns'], 'minmax(0, 1.7fr) minmax(340px, .9fr)')
 })
 
