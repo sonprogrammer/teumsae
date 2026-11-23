@@ -337,7 +337,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .auth-unconfigured strong { font-size: 17px; }
 .auth-unconfigured p { color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
 .auth-unconfigured a, .real-empty-state a { color: var(--teal); font-size: 12px; font-weight: 750; text-decoration: none; }
-.real-schedule-header { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1500px; height: 82px; margin: auto; padding: 0 30px; border-bottom: 1px solid var(--line); background: rgba(255, 254, 250, .92); backdrop-filter: blur(16px); }
+.real-schedule-header { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 20px; height: 82px; padding: 0 max(30px, calc(50vw - 720px)); border-bottom: 1px solid var(--line); background: rgba(255, 254, 250, .92); backdrop-filter: blur(16px); }
 .real-schedule-brand { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); font-size: 22px; font-weight: 800; letter-spacing: -.07em; text-decoration: none; }
 .real-schedule-brand img { width: 42px; height: 38px; object-fit: contain; }
 .real-schedule-brand > span { display: flex; align-items: baseline; gap: 7px; }
