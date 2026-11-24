@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Mic } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Mic } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { availabilityWindowsForDate, DEFAULT_SCHEDULE_AVAILABILITY, findAvailabilitySlots } from '@/lib/availability'
 import type { SampleSlot } from '@/lib/sample-schedule'
@@ -226,8 +226,8 @@ export default function ScheduleDemo({ today }: { today: string }) {
                     <button className={calendarView === 'month' ? 'is-active' : ''} onClick={() => setCalendarView('month')} aria-pressed={calendarView === 'month'}>월간</button>
                   </div>
                   <button className="today-button" onClick={goToday}>오늘</button>
-                  <button className="icon-button" onClick={() => moveCalendar(-1)} aria-label={calendarView === 'week' ? '이전 주' : '이전 달'}>‹</button>
-                  <button className="icon-button" onClick={() => moveCalendar(1)} aria-label={calendarView === 'week' ? '다음 주' : '다음 달'}>›</button>
+                  <button className="icon-button" onClick={() => moveCalendar(-1)} aria-label={calendarView === 'week' ? '이전 주' : '이전 달'}><ChevronLeft size={20} /></button>
+                  <button className="icon-button" onClick={() => moveCalendar(1)} aria-label={calendarView === 'week' ? '다음 주' : '다음 달'}><ChevronRight size={20} /></button>
                 </div>
               </div>
               <div className="week-caption"><strong>{calendarView === 'week' ? shortDate(weekStart) + ' – ' + shortDate(addDays(weekStart, 6)) : selectedDate.slice(0, 4) + '년 ' + Number(selectedDate.slice(5, 7)) + '월'}</strong><span>날짜를 선택하면 하루를 자세히 볼 수 있어요</span></div>
@@ -245,21 +245,21 @@ export default function ScheduleDemo({ today }: { today: string }) {
                   <div className="time-gutter">{hours.map(hour => <span key={hour} style={{ top: (hour - 9) * 56 }}>{String(hour).padStart(2, '0')}:00</span>)}</div>
                   {days.map(date => <div key={date} className={'day-track' + (date === selectedDate ? ' is-selected' : '')}>
                     {events.filter(event => event.date === date).map(event => <button key={event.id} className={'event-block event-' + event.kind} style={{ top: (minutes(event.start) - 540) / 60 * 56 + 3, height: Math.max((minutes(event.end) - minutes(event.start)) / 60 * 56 - 6, 42) }} onClick={() => selectDate(date)} aria-label={event.title + ' · ' + event.start + '–' + event.end} data-tooltip={event.title + ' · ' + event.start + '–' + event.end}>
-                      <strong>{event.title}</strong><span>{event.start}–{event.end}</span>
+                      <strong>{event.title}</strong><span>{event.start}~{event.end}</span>
                     </button>)}
                     {date === candidateDate && selectedSlot && displayMode === 'normal' && <div className="candidate-preview" style={{ top: (minutes(selectedSlot.start) - 540) / 60 * 56 + 3, height: 50 }}><span>✦ 선택한 틈새</span><strong>{selectedSlot.start}–{selectedSlot.end}</strong></div>}
                   </div>)}
                 </div>
               </div>
-              <div className="mobile-week-strip" aria-label="날짜 선택">
-                {days.map(date => {
-                  const day = dateFromISO(date)
-                  const count = events.filter(event => event.date === date).length
-                  return <button key={date} className={'mobile-day' + (date === selectedDate ? ' is-selected' : '')} onClick={() => selectDate(date)} aria-pressed={date === selectedDate}>
-                    <span>{weekdays[day.getUTCDay()]}</span><strong>{day.getUTCDate()}</strong><i className={count ? 'has-events' : ''} />
-                  </button>
-                })}
-              </div>
+                <div className="mobile-week-strip" aria-label="날짜 선택">
+                  {days.map(date => {
+                    const day = dateFromISO(date)
+                    const count = events.filter(event => event.date === date).length
+                    return <button key={date} className={'mobile-day' + (date === selectedDate ? ' is-selected' : '')} onClick={() => selectDate(date)} aria-pressed={date === selectedDate}>
+                      <span>{weekdays[day.getUTCDay()]}</span><strong>{day.getUTCDate()}</strong><i className={count ? 'has-events' : ''} />
+                    </button>
+                  })}
+                </div>
               </> : <div className="month-view" aria-label="월간 달력">
                 <div className="month-weekdays">{mondayFirstWeekdays.map(day => <span key={day}>{day}</span>)}</div>
                 <div className="month-grid">{monthDays.map(date => {
