@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const migration = readFileSync(new URL('../../supabase/migrations/202610310003_voice_transcription_rate_limit.sql', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../../supabase/migrations/202610310004_voice_transcription_rate_limit.sql', import.meta.url), 'utf8')
 const route = readFileSync(new URL('../app/api/speech-transcribe/route.ts', import.meta.url), 'utf8')
 
 test('voice transcription has its own bounded per-minute limit separate from AI turns', () => {
